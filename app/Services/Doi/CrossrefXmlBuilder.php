@@ -40,6 +40,7 @@ class CrossrefXmlBuilder
             'updateType' => $updateType,
             'crossmarkPolicyUrl' => $crossmark['policy_url'] ?? '',
             'crossmarkDomains' => $crossmark['domains'] ?? [],
+            'funding' => $article->funding ?? [],
         ])->render();
     }
 }

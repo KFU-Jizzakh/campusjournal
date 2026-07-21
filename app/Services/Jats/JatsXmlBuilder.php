@@ -43,6 +43,11 @@ class JatsXmlBuilder
             'inline' => $inline,
             'printIssn' => Setting::get('journal_issn_print'),
             'electronicIssn' => Setting::get('journal_issn_electronic'),
+            'funding' => collect($article->funding ?? [])->map(function (array $funder): array {
+                $funder['identifier_type'] = Article::funderIdentifierType($funder['funder_identifier'] ?? '');
+
+                return $funder;
+            })->all(),
         ])->render();
     }
 

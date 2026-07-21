@@ -55,4 +55,17 @@
             <resource>{{ $resourceUrl }}</resource>
         </doi_data>
     @endif
+    @if (! empty($funding))
+        @foreach ($funding as $funder)
+            <fr:program name="fundref" xmlns:fr="http://www.crossref.org/fundref.xsd">
+                <fr:assertion name="funder_name">{{ $funder['funder_name'] }}</fr:assertion>
+                @if (! empty($funder['funder_identifier']))
+                    <fr:assertion name="funder_identifier">{{ $funder['funder_identifier'] }}</fr:assertion>
+                @endif
+                @if (! empty($funder['award_number']))
+                    <fr:assertion name="award_number">{{ $funder['award_number'] }}</fr:assertion>
+                @endif
+            </fr:program>
+        @endforeach
+    @endif
 </journal_article>

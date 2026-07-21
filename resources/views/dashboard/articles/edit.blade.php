@@ -72,7 +72,45 @@
                     <p class="text-xs text-gray-400 mt-1">По одной ссылке на строку</p>
                     <x-input-error :messages="$errors->get('references')" class="mt-1" />
                 </div>
+            </div>
+        </div>
 
+        <div class="bg-white rounded-lg border border-gray-200 p-6" x-data="{
+                    funders: @json(old('funding', $article->funding ?? [])),
+                    addFunder() { this.funders.push({ funder_name: '', funder_identifier: '', award_number: '' }); },
+                    removeFunder(i) { this.funders.splice(i, 1); }
+                }">
+                    <h3 class="font-semibold text-gray-900 mb-4">{{ __('article.funding_label') }}</h3>
+                    <p class="text-xs text-gray-400 mb-3">{{ __('article.funding_hint') }}</p>
+
+                    <template x-for="(funder, index) in funders" :key="index">
+                        <div class="border border-gray-100 rounded-lg p-4 mb-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="text-xs text-gray-400 uppercase font-medium" x-text="'{{ __('article.funder_number') }} ' + (index + 1)"></div>
+                                <button type="button" @click="removeFunder(index)" class="text-xs text-red-500 hover:text-red-700">{{ __('article.remove_funder') }}</button>
+                            </div>
+                            <div class="space-y-3">
+                                <div>
+                                    <x-input-label :value="__('article.funder_name')" />
+                                    <input type="text" :name="'funding[' + index + '][funder_name]'" x-model="funder.funder_name" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
+                                </div>
+                                <div>
+                                    <x-input-label :value="__('article.funder_identifier')" />
+                                    <input type="text" :name="'funding[' + index + '][funder_identifier]'" x-model="funder.funder_identifier" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
+                                </div>
+                                <div>
+                                    <x-input-label :value="__('article.award_number')" />
+                                    <input type="text" :name="'funding[' + index + '][award_number]'" x-model="funder.award_number" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <button type="button" @click="addFunder()" class="text-sm text-primary hover:underline">{{ __('article.add_funder') }}</button>
+                </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <div class="space-y-4">
                 <div>
                     <x-input-label for="pdf_file" :value="__('article.new_file_label')" />
                     <input id="pdf_file" name="pdf_file" type="file" accept=".pdf,.doc,.docx"

@@ -72,5 +72,22 @@
                 @endforeach
             </kwd-group>
         @endif
+        @if (! empty($funding))
+            <funding-group>
+                @foreach ($funding as $funder)
+                    <award-group>
+                        <funding-source>{{ $funder['funder_name'] }}</funding-source>
+                        @if (! empty($funder['funder_identifier']))
+                            @if (! empty($funder['identifier_type']))
+                                <institution-id institution-id-type="{{ $funder['identifier_type'] }}">{{ $funder['funder_identifier'] }}</institution-id>
+                            @endif
+                        @endif
+                        @if (! empty($funder['award_number']))
+                            <award-id>{{ $funder['award_number'] }}</award-id>
+                        @endif
+                    </award-group>
+                @endforeach
+            </funding-group>
+        @endif
     </article-meta>
 </front>

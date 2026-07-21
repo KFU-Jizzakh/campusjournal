@@ -46,6 +46,26 @@
             @endif
         </div>
 
+        {{-- Funding --}}
+        @if(!empty($article->funding))
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-3">{{ __('article.funding_label') }}</h3>
+                <div class="space-y-2">
+                    @foreach($article->funding as $funder)
+                        <div class="text-sm text-gray-700">
+                            <span class="font-medium">{{ $funder['funder_name'] }}</span>
+                            @if(!empty($funder['award_number']))
+                                — {{ $funder['award_number'] }}
+                            @endif
+                            @if(!empty($funder['funder_identifier']))
+                                <div class="text-xs text-gray-400">{{ $funder['funder_identifier'] }}</div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         {{-- Review Type --}}
         @if($article->isSubmitted())
         <div class="bg-white rounded-lg border border-gray-200 p-6" x-data="{ editing: false }">

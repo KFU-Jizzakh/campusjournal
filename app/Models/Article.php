@@ -52,9 +52,9 @@ use Illuminate\Support\Facades\Storage;
  * manuscript, managing the full lifecycle from draft through peer
  * review, decision, copyediting, production, and publication.
  *
- * SPECIFICATION: SPEC-01/AC-1, SPEC-01/AC-7, SPEC-01/BR-1, SPEC-01/BR-2, SPEC-01/BR-3, SPEC-01/BR-4, SPEC-01/BR-5, SPEC-01/BR-6, SPEC-01/BR-7, SPEC-02/BR-6, SPEC-04/BR-1, SPEC-04/BR-5, SPEC-05/BR-1, SPEC-05/BR-2, SPEC-05/BR-3, SPEC-05/BR-4, SPEC-13/BR-1, SPEC-13/BR-2, SPEC-13/BR-3, SPEC-15/AC-2, SPEC-15/AC-4, SPEC-15/BR-1, SPEC-15/BR-2, SPEC-15/BR-3, SPEC-15/BR-4, SPEC-15/BR-5
+ * SPECIFICATION: SPEC-01/AC-1, SPEC-01/AC-7, SPEC-01/BR-1, SPEC-01/BR-2, SPEC-01/BR-3, SPEC-01/BR-4, SPEC-01/BR-5, SPEC-01/BR-6, SPEC-01/BR-7, SPEC-02/BR-6, SPEC-04/BR-1, SPEC-04/BR-5, SPEC-05/BR-1, SPEC-05/BR-2, SPEC-05/BR-3, SPEC-05/BR-4, SPEC-13/BR-1, SPEC-13/BR-2, SPEC-13/BR-3, SPEC-15/AC-2, SPEC-15/AC-4, SPEC-15/BR-1, SPEC-15/BR-2, SPEC-15/BR-3, SPEC-15/BR-4, SPEC-15/BR-5, SPEC-16/BR-1, SPEC-16/BR-2, SPEC-16/BR-3, SPEC-17/BR-1
  */
-#[Fillable(['title', 'abstract_ru', 'abstract_en', 'body', 'doi', 'keywords', 'pages', 'first_page', 'last_page', 'views_count', 'pdf_path', 'blinded_pdf_path', 'blinded_at', 'blinded_by', 'status', 'review_type', 'issue_id', 'category_id', 'submitted_by', 'submitted_at', 'published_at', 'doi_registered_at', 'editor_id', 'decision', 'decision_comments', 'decided_at', 'decided_by', 'copyedited_at', 'copyedited_by', 'copyedited_file_path', 'copyedited_file_uploaded_at', 'copyedited_file_uploaded_by', 'production_at', 'production_by', 'galley_pdf_path', 'galley_uploaded_at', 'galley_uploaded_by', 'galley_sent_at', 'galley_sent_by', 'galley_approved_at', 'galley_approved_by', 'withdrawal_reason', 'withdrawn_at', 'retraction_reason', 'retracted_at'])]
+#[Fillable(['title', 'abstract_ru', 'abstract_en', 'body', 'doi', 'keywords', 'funding', 'pages', 'first_page', 'last_page', 'views_count', 'pdf_path', 'blinded_pdf_path', 'blinded_at', 'blinded_by', 'status', 'review_type', 'issue_id', 'category_id', 'submitted_by', 'submitted_at', 'published_at', 'doi_registered_at', 'editor_id', 'decision', 'decision_comments', 'decided_at', 'decided_by', 'copyedited_at', 'copyedited_by', 'copyedited_file_path', 'copyedited_file_uploaded_at', 'copyedited_file_uploaded_by', 'production_at', 'production_by', 'galley_pdf_path', 'galley_uploaded_at', 'galley_uploaded_by', 'galley_sent_at', 'galley_sent_by', 'galley_approved_at', 'galley_approved_by', 'withdrawal_reason', 'withdrawn_at', 'retraction_reason', 'retracted_at'])]
 class Article extends Model
 {
     use HasFactory, SoftDeletes;
@@ -78,6 +78,7 @@ class Article extends Model
             'withdrawn_at' => 'datetime',
             'retracted_at' => 'datetime',
             'keywords' => 'array',
+            'funding' => 'array',
         ];
     }
 
@@ -1156,6 +1157,26 @@ class Article extends Model
     public function isDoubleBlind(): bool
     {
         return $this->review_type === ReviewType::DoubleBlind;
+    }
+
+    /**
+     * PURPOSE: Detect the institution identifier type (doi/isni/ror)
+     * for JATS `<institution-id>` output from a funder_identifier URL.
+     *
+     * SPECIFICATION: SPEC-17/BR-3
+     */
+    public static function funderIdentifierType(?string $identifier): ?string
+    {
+        if (empty($identifier)) {
+            return null;
+        }
+
+        return match (true) {
+            str_contains($identifier, 'doi.org') || str_contains($identifier, 'dx.doi.org') => 'doi',
+            str_contains($identifier, 'ror.org') => 'ror',
+            str_contains($identifier, 'isni.org') || preg_match('/^\d{4}-\d{4}-\d{4}-\d{4}$/', $identifier) => 'isni',
+            default => null,
+        };
     }
 
     /**

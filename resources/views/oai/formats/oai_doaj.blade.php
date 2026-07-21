@@ -56,4 +56,17 @@
             @endforeach
         </keywords>
     @endif
+    @if (! empty($article->funding))
+        @foreach ($article->funding as $funder)
+            <funding>
+                <funderName>{{ $funder['funder_name'] }}</funderName>
+                @if (! empty($funder['funder_identifier']))
+                    <funderIdentifier>{{ $funder['funder_identifier'] }}</funderIdentifier>
+                @endif
+                @if (! empty($funder['award_number']))
+                    <awardNumber>{{ $funder['award_number'] }}</awardNumber>
+                @endif
+            </funding>
+        @endforeach
+    @endif
 </record>

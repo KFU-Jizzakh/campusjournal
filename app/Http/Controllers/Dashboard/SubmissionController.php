@@ -53,6 +53,10 @@ class SubmissionController extends Controller
             'coauthors.*.organization' => 'nullable|string|max:255',
             'coauthors.*.orcid' => ['nullable', 'string', 'max:50', new Orcid],
             'references' => 'nullable|string|max:10000',
+            'funding' => 'nullable|array|max:20',
+            'funding.*.funder_name' => 'required|string|max:500',
+            'funding.*.funder_identifier' => 'nullable|string|max:500',
+            'funding.*.award_number' => 'nullable|string|max:255',
             'agreement_accepted' => 'accepted',
         ]);
 
@@ -72,6 +76,7 @@ class SubmissionController extends Controller
                 'abstract_ru' => $validated['abstract_ru'],
                 'abstract_en' => $validated['abstract_en'] ?? null,
                 'keywords' => $keywords,
+                'funding' => $validated['funding'] ?? null,
                 'category_id' => $validated['category_id'],
                 'pdf_path' => $pdfPath,
             ]);
@@ -165,6 +170,10 @@ class SubmissionController extends Controller
             'coauthors.*.organization' => 'nullable|string|max:255',
             'coauthors.*.orcid' => ['nullable', 'string', 'max:50', new Orcid],
             'references' => 'nullable|string|max:10000',
+            'funding' => 'nullable|array|max:20',
+            'funding.*.funder_name' => 'required|string|max:500',
+            'funding.*.funder_identifier' => 'nullable|string|max:500',
+            'funding.*.award_number' => 'nullable|string|max:255',
         ]);
 
         if ($article->isRevision()) {
@@ -184,6 +193,7 @@ class SubmissionController extends Controller
             'abstract_ru' => $validated['abstract_ru'],
             'abstract_en' => $validated['abstract_en'] ?? null,
             'keywords' => $keywords,
+            'funding' => $validated['funding'] ?? null,
             'category_id' => $validated['category_id'],
         ];
 
