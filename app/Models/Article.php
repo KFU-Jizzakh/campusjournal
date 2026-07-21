@@ -1174,7 +1174,7 @@ class Article extends Model
         return match (true) {
             str_contains($identifier, 'doi.org') || str_contains($identifier, 'dx.doi.org') => 'doi',
             str_contains($identifier, 'ror.org') => 'ror',
-            str_contains($identifier, 'isni.org') || preg_match('/^\d{4}-\d{4}-\d{4}-\d{4}$/', $identifier) => 'isni',
+            str_contains($identifier, 'isni.org') => 'isni',
             default => null,
         };
     }
