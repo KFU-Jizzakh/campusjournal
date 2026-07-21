@@ -14,6 +14,7 @@ use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -536,20 +537,22 @@ class EditorialController extends Controller
             $filePath = $request->file('file')->store('corrections', 'local');
         }
 
-        Correction::create([
-            'article_id' => $article->id,
-            'type' => $validated['type'],
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'file_path' => $filePath,
-            'published_at' => $validated['published_at'],
-            'created_by' => $request->user()->id,
-        ]);
+        DB::transaction(function () use ($article, $request, $validated, $filePath) {
+            Correction::create([
+                'article_id' => $article->id,
+                'type' => $validated['type'],
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'file_path' => $filePath,
+                'published_at' => $validated['published_at'],
+                'created_by' => $request->user()->id,
+            ]);
 
-        OutboxEvent::log('article.correction_added', $article, [
-            'correction_type' => $validated['type'],
-            'correction_title' => $validated['title'],
-        ]);
+            OutboxEvent::log('article.correction_added', $article, [
+                'correction_type' => $validated['type'],
+                'correction_title' => $validated['title'],
+            ]);
+        });
 
         if (config('services.crossref.enabled')) {
             DepositArticleToCrossref::dispatch($article->fresh()->load('corrections'), $request->user()?->id, 'correction');
