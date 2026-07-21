@@ -17,8 +17,8 @@ enum CorrectionType: string
     public function label(): string
     {
         return match ($this) {
-            self::Corrigendum => 'Corrigendum',
-            self::Erratum => 'Erratum',
+            self::Corrigendum => 'Корригендум',
+            self::Erratum => 'Эрратум',
             self::ExpressionOfConcern => 'Выражение обеспокоенности',
         };
     }
