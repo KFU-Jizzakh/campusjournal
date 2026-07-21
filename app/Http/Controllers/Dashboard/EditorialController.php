@@ -572,11 +572,11 @@ class EditorialController extends Controller
 
         $this->authorize('manageCorrections', $article);
 
+        $correction->delete();
+
         if ($correction->file_path) {
             Storage::disk('local')->delete($correction->file_path);
         }
-
-        $correction->delete();
 
         if (config('services.crossref.enabled')) {
             DepositArticleToCrossref::dispatch($article->fresh()->load('corrections'), $request->user()?->id, 'correction');
