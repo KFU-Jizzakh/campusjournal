@@ -17,7 +17,7 @@ Status: IMPLEMENTED
 - AC-6: The public article page shows a prominent retraction banner for retracted articles, lists correction notices, and includes a Crossmark button
 - AC-7: Withdrawn articles are not shown on the public site, listed only in editorial dashboard with Withdrawn status
 - AC-8: Outbox events are recorded for withdrawal (`article.withdrawn`), retraction (`article.retracted`), and correction addition (`article.correction_added`)
-- AC-9: Authors are notified of retraction and withdrawal (if performed by editor); editors are notified of author-initiated withdrawal
+- AC-9: Authors are notified of retraction and withdrawal (if performed by editor); editors are notified of author-initiated withdrawal; if no editor is assigned, managing-editors and editor-in-chief are notified instead
 
 ## UI/UX Notes
 
@@ -36,9 +36,9 @@ Status: IMPLEMENTED
 - BR-4: Retracted articles remain publicly accessible with a retraction watermar/banner and the retraction reason
 - BR-5: Corrections can only be added to published articles by workflow managers
 - BR-6: Each correction has a type, title, description, optional PDF notice file, and publication date
-- BR-7: On retraction or correction, the Crossref DOI deposit is re-sent with Crossmark update metadata (`update_type` in XML head)
+- BR-7: On retraction or correction, the Crossref DOI deposit is re-sent with Crossmark update metadata (`update_type` in XML head); for corrections, if no corrections remain after deletion, the `<doi_updates>` block is omitted
 - BR-8: Crossmark update deposit uses the same DOI — it is re-deposited as an update, not a new DOI
-- BR-9: Notifications follow the existing pattern — AuthorStatusChanged for retraction/withdrawal, with one-hour throttle
+- BR-9: Notifications follow the existing pattern — AuthorStatusChanged for retraction/withdrawal, with one-hour throttle; if no editor is assigned, managing-editors and editor-in-chief receive author-initiated withdrawal notifications
 
 ## Behavior
 
@@ -120,6 +120,7 @@ Given a correction exists on a published article
 And   the authenticated user is a workflow manager
 When  the user deletes the correction
 Then  the correction is removed and its file (if any) is deleted from storage
+And   if Crossref is enabled, a DOI re-deposit with Crossmark `correction` update is queued
 
 #### Scenario: Attempt to add correction to non-published article
 
