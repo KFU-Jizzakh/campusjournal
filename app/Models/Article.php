@@ -879,12 +879,18 @@ class Article extends Model
                 'by_author' => $wasAuthor,
             ]);
 
-            if ($wasAuthor && $lockedArticle->editor) {
-                $lockedArticle->editor->notify(
-                    new AuthorStatusChanged(
-                        $lockedArticle,
-                        'article.withdrawn',
-                        'Статья отозвана автором'
+            if ($wasAuthor) {
+                $notifiable = $lockedArticle->editor
+                    ? collect([$lockedArticle->editor])
+                    : User::role(['managing-editor', 'editor-in-chief'])->get();
+
+                $notifiable->each(
+                    fn (User $user) => $user->notify(
+                        new AuthorStatusChanged(
+                            $lockedArticle,
+                            'article.withdrawn',
+                            'Статья отозвана автором'
+                        )
                     )
                 );
             }
