@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * PDF downloads, BibTeX/RIS/JATS exports, and blinded PDF
  * access for double-blind reviewers.
  *
- * SPECIFICATION: SPEC-10/AC-1, SPEC-11/AC-4, SPEC-11/AC-5
+ * SPECIFICATION: SPEC-10/AC-1, SPEC-11/AC-4, SPEC-11/AC-5, SPEC-18/AC-1, SPEC-18/AC-2
  */
 class ArticleController extends Controller
 {
@@ -199,6 +199,14 @@ class ArticleController extends Controller
         $disk = Storage::disk($article->pdf_disk);
 
         abort_unless($disk->exists($article->pdf_path), 404);
+
+        if (request()->boolean('download') && in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted])) {
+            $downloaded = session()->get('downloaded_articles', []);
+            if (! in_array($article->id, $downloaded)) {
+                $article->increment('downloads_count');
+                session()->push('downloaded_articles', $article->id);
+            }
+        }
 
         return $disk->response($article->pdf_path, "article-{$article->id}.pdf", [
             'Content-Type' => 'application/pdf',

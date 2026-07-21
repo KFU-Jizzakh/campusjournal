@@ -135,6 +135,7 @@ class ArticleResource extends Resource
                     'danger' => 'failed',
                 ]),
                 Tables\Columns\TextColumn::make('views_count')->label('Просмотры')->sortable(),
+                Tables\Columns\TextColumn::make('downloads_count')->label('Скачивания')->sortable(),
                 Tables\Columns\TextColumn::make('submitted_at')->label('Подана')->date('d.m.Y')->sortable(),
             ])
             ->modifyQueryUsing(fn ($query) => $query->with(['files']))
