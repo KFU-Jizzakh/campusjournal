@@ -578,6 +578,10 @@ class EditorialController extends Controller
 
         $correction->delete();
 
+        if (config('services.crossref.enabled')) {
+            DepositArticleToCrossref::dispatch($article->fresh()->load('corrections'), $request->user()?->id, 'correction');
+        }
+
         return back()->with('success', 'Исправление удалено.');
     }
 }

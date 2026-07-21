@@ -2,6 +2,7 @@
 
 use App\Models\Article;
 use App\Models\Author;
+use App\Models\Correction;
 use App\Models\Issue;
 use App\Services\Doi\CrossrefXmlBuilder;
 
@@ -80,7 +81,18 @@ test('includes doi_updates block when update type is provided', function (string
     ]);
     $article->authors()->attach(Author::factory()->create(), ['order' => 0]);
 
-    $xml = app(CrossrefXmlBuilder::class)->build($article, 'batch-up', $updateType);
+    if ($updateType === 'correction') {
+        Correction::create([
+            'article_id' => $article->id,
+            'type' => 'corrigendum',
+            'title' => 'Test Correction',
+            'description' => 'A correction.',
+            'published_at' => now(),
+            'created_by' => null,
+        ]);
+    }
+
+    $xml = app(CrossrefXmlBuilder::class)->build($article->fresh(), 'batch-up', $updateType);
 
     expect($xml)->toContain('<crossmark>');
     expect($xml)->toContain('<crossmark_version>1</crossmark_version>');
@@ -88,3 +100,18 @@ test('includes doi_updates block when update type is provided', function (string
     expect($xml)->toContain('<doi_updates>');
     expect($xml)->toContain('<update type="'.$updateType.'"/>');
 })->with(['retraction', 'correction']);
+
+test('does not include doi_updates for correction when no corrections exist', function () {
+    $issue = Issue::factory()->create(['volume' => 1, 'number' => 1, 'year' => 2026]);
+    $article = Article::factory()->published()->create([
+        'title' => 'Test',
+        'issue_id' => $issue->id,
+    ]);
+    $article->authors()->attach(Author::factory()->create(), ['order' => 0]);
+
+    $xml = app(CrossrefXmlBuilder::class)->build($article, 'batch-no-correction', 'correction');
+
+    expect($xml)->toContain('<crossmark>');
+    expect($xml)->not()->toContain('<doi_updates>');
+    expect($xml)->not()->toContain('<update type="correction"/>');
+});

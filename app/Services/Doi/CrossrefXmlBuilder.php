@@ -23,6 +23,10 @@ class CrossrefXmlBuilder
             $article->loadMissing('corrections');
         }
 
+        if ($updateType === 'correction' && $article->corrections->isEmpty()) {
+            $updateType = null;
+        }
+
         $config = config('services.crossref');
         $crossmark = $config['crossmark'] ?? [];
 
