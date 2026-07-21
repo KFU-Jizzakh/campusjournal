@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'home' => 'Главная',
+    'about' => 'О журнале',
+    'issues' => 'Выпуски',
+    'articles' => 'Статьи',
+    'editorial_board' => 'Редколлегия',
+    'for_authors' => 'Авторам',
+    'news' => 'Новости',
+    'conferences' => 'Конференции',
+    'events' => 'События',
+    'contacts' => 'Контакты',
+    'search' => 'Поиск',
+    'submit_article' => 'Подать рукопись',
+    'reviews' => 'Рецензии',
+    'editorial' => 'Редакция',
+    'profile' => 'Профиль',
+    'logout' => 'Выйти',
+    'dashboard' => 'Главная',
+    'site' => 'На сайт',
+    'login' => 'Войти',
+    'register' => 'Регистрация',
+    'sections' => 'Разделы',
+];
