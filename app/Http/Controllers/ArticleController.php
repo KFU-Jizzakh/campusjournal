@@ -36,11 +36,11 @@ class ArticleController extends Controller
 
     public function show(Article $article)
     {
-        if ($article->status !== ArticleStatus::Published) {
+        if (! in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted])) {
             abort(404);
         }
 
-        $article->load('authors', 'category', 'issue', 'latestAgreement.agreement');
+        $article->load('authors', 'category', 'issue', 'latestAgreement.agreement', 'corrections');
 
         $publicationLicense = $article->publicationLicense();
 
@@ -88,7 +88,7 @@ class ArticleController extends Controller
 
     public function exportBibtex(Article $article)
     {
-        abort_unless($article->status === ArticleStatus::Published, 404);
+        abort_unless(in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted]), 404);
         $article->load('authors', 'issue');
 
         $escape = fn (string $s): string => str_replace(
@@ -132,7 +132,7 @@ class ArticleController extends Controller
 
     public function exportRis(Article $article)
     {
-        abort_unless($article->status === ArticleStatus::Published, 404);
+        abort_unless(in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted]), 404);
         $article->load('authors', 'issue');
 
         $lines = [];
@@ -184,7 +184,7 @@ class ArticleController extends Controller
 
         // Published articles are publicly accessible
         // Non-published articles require the user to be the submitter, an editor, or a reviewer
-        if ($article->status !== ArticleStatus::Published) {
+        if (! in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted])) {
             $user = auth()->user();
             abort_unless($user, 404);
 
@@ -269,7 +269,7 @@ class ArticleController extends Controller
 
     public function exportJats(Article $article, JatsXmlBuilder $builder)
     {
-        abort_unless($article->status === ArticleStatus::Published, 404);
+        abort_unless(in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted]), 404);
 
         $xml = $builder->build($article);
 

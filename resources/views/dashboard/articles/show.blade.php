@@ -56,8 +56,46 @@
                 </div>
             @endif
 
+            @if($article->isRetracted())
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <h3 class="text-sm font-semibold text-red-700 mb-1">Статья отозвана (ретрекшн)</h3>
+                    @if($article->retraction_reason)
+                        <p class="text-sm text-red-600">{{ $article->retraction_reason }}</p>
+                    @endif
+                    @if($article->retracted_at)
+                        <p class="text-xs text-red-400 mt-1">Дата: {{ $article->retracted_at->format('d.m.Y') }}</p>
+                    @endif
+                </div>
+            @endif
+
             <div class="text-xs text-gray-400">{{ __('article.submitted_at') }} {{ $article->submitted_at?->format('d.m.Y H:i') }}</div>
         </div>
+
+        {{-- Withdraw --}}
+        @if($article->isWithdrawable())
+            <div class="bg-white rounded-lg border border-gray-200 p-6" x-data="{ showForm: false }">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-gray-900">Отозвать статью</h3>
+                    <button @click="showForm = !showForm" class="text-sm text-red-500 hover:underline">
+                        <span x-show="!showForm">Отозвать</span>
+                        <span x-show="showForm" x-cloak>Отмена</span>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mb-3">Если вы передумали публиковать статью, вы можете её отозвать. После отзыва статья будет снята с рассмотрения.</p>
+                <div x-show="showForm" x-cloak>
+                    <form method="POST" action="{{ route('submissions.withdraw', $article) }}" onsubmit="return confirm('Вы уверены, что хотите отозвать статью? Это действие нельзя отменить.')">
+                        @csrf
+                        <div class="space-y-3">
+                            <textarea name="reason" rows="3" required maxlength="5000"
+                                placeholder="Причина отзыва..."
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm"></textarea>
+                            <x-input-error :messages="$errors->get('reason')" class="mt-1" />
+                            <x-danger-button>Отозвать статью</x-danger-button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
 
         {{-- Copyright Agreement --}}
         @if($article->latestAgreement && $article->latestAgreement->agreement)

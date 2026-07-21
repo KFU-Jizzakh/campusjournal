@@ -11,6 +11,24 @@
             <email_address>{{ $depositorEmail }}</email_address>
         </depositor>
         <registrant>{{ $registrant }}</registrant>
+        @if ($updateType)
+            <crossmark>
+                <crossmark_version>1</crossmark_version>
+                <crossmark_policy>{{ $crossmarkPolicyUrl }}</crossmark_policy>
+                @foreach ($crossmarkDomains as $domain)
+                    <crossmark_domain>
+                        <domain>{{ $domain }}</domain>
+                    </crossmark_domain>
+                @endforeach
+                <doi_updates>
+                    @if ($updateType === 'retraction')
+                        <update type="retraction"/>
+                    @elseif ($updateType === 'correction')
+                        <update type="correction"/>
+                    @endif
+                </doi_updates>
+            </crossmark>
+        @endif
     </head>
     <body>
         <journal>

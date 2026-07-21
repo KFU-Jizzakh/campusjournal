@@ -104,4 +104,6 @@ return [
     'error_upload_copyedited_file_status' => 'Загрузить исправленный файл можно только на этапе корректуры.',
     'error_delete_copyedited_file_status' => 'Удалить исправленный файл можно только на этапе корректуры.',
     'error_no_copyedited_file_to_delete' => 'Нет файла для удаления.',
+    'error_not_retractable' => 'Статья не может быть отозвана (ретрекшн) — требуется статус «Опубликована».',
+    'error_not_withdrawable' => 'Статья не может быть отозвана в текущем статусе.',
 ];

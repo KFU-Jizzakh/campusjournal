@@ -6,7 +6,7 @@ namespace App\Enums;
  * PURPOSE: Defines the article editorial workflow state machine
  * with labels, colours, and allowed status transitions.
  *
- * SPECIFICATION: SPEC-01/BR-5, SPEC-02/BR-6, SPEC-04/BR-5, SPEC-13/BR-1
+ * SPECIFICATION: SPEC-01/BR-5, SPEC-02/BR-6, SPEC-04/BR-5, SPEC-13/BR-1, SPEC-16/BR-1, SPEC-16/BR-2
  */
 enum ArticleStatus: string
 {
@@ -21,6 +21,8 @@ enum ArticleStatus: string
     case AwaitingApproval = 'awaiting_approval';
     case Approved = 'approved';
     case Published = 'published';
+    case Withdrawn = 'withdrawn';
+    case Retracted = 'retracted';
 
     public function label(): string
     {
@@ -36,6 +38,8 @@ enum ArticleStatus: string
             self::Approved => 'Утверждено автором',
             self::Rejected => 'Отклонена',
             self::Published => 'Опубликована',
+            self::Withdrawn => 'Отозвана',
+            self::Retracted => 'Ретрекшн',
         };
     }
 
@@ -45,7 +49,7 @@ enum ArticleStatus: string
             self::Draft => 'gray',
             self::Submitted, self::Copyediting, self::AwaitingApproval => 'info',
             self::InReview, self::Production => 'warning',
-            self::Rejected, self::Revision => 'danger',
+            self::Rejected, self::Revision, self::Retracted, self::Withdrawn => 'danger',
             self::Accepted, self::Approved, self::Published => 'success',
         };
     }
@@ -54,15 +58,18 @@ enum ArticleStatus: string
     {
         return match ($this) {
             self::Draft => [self::Submitted],
-            self::Submitted => [self::InReview],
-            self::InReview => [self::Accepted, self::Revision, self::Rejected],
-            self::Revision => [self::Submitted],
-            self::Accepted => [self::Copyediting],
-            self::Copyediting => [self::Production],
-            self::Production => [self::AwaitingApproval],
-            self::AwaitingApproval => [self::Production, self::Approved],
-            self::Approved => [self::Published],
-            self::Rejected, self::Published => [],
+            self::Submitted => [self::InReview, self::Withdrawn],
+            self::InReview => [self::Accepted, self::Revision, self::Rejected, self::Withdrawn],
+            self::Revision => [self::Submitted, self::Withdrawn],
+            self::Accepted => [self::Copyediting, self::Withdrawn],
+            self::Copyediting => [self::Production, self::Withdrawn],
+            self::Production => [self::AwaitingApproval, self::Withdrawn],
+            self::AwaitingApproval => [self::Production, self::Approved, self::Withdrawn],
+            self::Approved => [self::Published, self::Withdrawn],
+            self::Rejected => [],
+            self::Published => [self::Retracted],
+            self::Withdrawn => [],
+            self::Retracted => [],
         };
     }
 

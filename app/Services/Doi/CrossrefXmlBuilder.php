@@ -8,16 +8,23 @@ use Illuminate\Support\Facades\View;
 /**
  * PURPOSE: Renders Crossref deposit XML v5.3.1 from a
  * Blade template using article and issue metadata.
+ * When an updateType is provided (retraction/correction),
+ * Crossmark update metadata is included in the deposit.
  *
- * SPECIFICATION: SPEC-08/AC-4
+ * SPECIFICATION: SPEC-08/AC-4, SPEC-16/AC-5, SPEC-16/BR-7, SPEC-16/BR-8
  */
 class CrossrefXmlBuilder
 {
-    public function build(Article $article, string $batchId): string
+    public function build(Article $article, string $batchId, ?string $updateType = null): string
     {
         $article->loadMissing(['authors', 'issue']);
 
+        if ($updateType) {
+            $article->loadMissing('corrections');
+        }
+
         $config = config('services.crossref');
+        $crossmark = $config['crossmark'] ?? [];
 
         return View::make('crossref.deposit', [
             'article' => $article,
@@ -30,6 +37,9 @@ class CrossrefXmlBuilder
             'registrant' => $config['registrant'] ?? 'Registrant',
             'resourceUrl' => route('articles.show', $article),
             'authorNameParts' => fn ($author) => $author->name_parts,
+            'updateType' => $updateType,
+            'crossmarkPolicyUrl' => $crossmark['policy_url'] ?? '',
+            'crossmarkDomains' => $crossmark['domains'] ?? [],
         ])->render();
     }
 }

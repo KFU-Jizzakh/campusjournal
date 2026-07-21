@@ -9,6 +9,7 @@ use App\Jobs\DepositArticleToCrossref;
 use App\Mail\ReviewAssignedDoubleBlindMailable;
 use App\Mail\ReviewAssignedMailable;
 use App\Models\Article;
+use App\Models\Correction;
 use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\User;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Storage;
  * assigning editors and reviewers, making decisions, and
  * progressing through copyediting, production, and publication.
  *
- * SPECIFICATION: SPEC-02/AC-1, SPEC-02/AC-2, SPEC-02/AC-3, SPEC-04/AC-1, SPEC-04/AC-2, SPEC-04/AC-4, SPEC-04/AC-5, SPEC-04/AC-6, SPEC-05/AC-1, SPEC-05/AC-3
+ * SPECIFICATION: SPEC-02/AC-1, SPEC-02/AC-2, SPEC-02/AC-3, SPEC-04/AC-1, SPEC-04/AC-2, SPEC-04/AC-4, SPEC-04/AC-5, SPEC-04/AC-6, SPEC-05/AC-1, SPEC-05/AC-3, SPEC-16/AC-1, SPEC-16/AC-2, SPEC-16/AC-3, SPEC-16/AC-4
  */
 class EditorialController extends Controller
 {
@@ -60,6 +61,8 @@ class EditorialController extends Controller
             ->selectRaw('count(*) filter (where status = ?) as revision', [ArticleStatus::Revision->value])
             ->selectRaw('count(*) filter (where status = ?) as rejected', [ArticleStatus::Rejected->value])
             ->selectRaw('count(*) filter (where status = ?) as published', [ArticleStatus::Published->value])
+            ->selectRaw('count(*) filter (where status = ?) as withdrawn', [ArticleStatus::Withdrawn->value])
+            ->selectRaw('count(*) filter (where status = ?) as retracted', [ArticleStatus::Retracted->value])
             ->first();
 
         return view('dashboard.editorial.index', compact('articles', 'counts', 'status'));
@@ -69,7 +72,7 @@ class EditorialController extends Controller
     {
         $this->authorize('viewEditorial', $article);
 
-        $article->load('submitter.profile', 'editor.profile', 'category', 'authors', 'reviews.reviewer.profile', 'decidedBy.profile', 'copyeditedBy.profile', 'copyeditedFileUploadedBy.profile', 'productionBy.profile', 'galleyUploadedBy.profile', 'galleySentBy.profile', 'galleyApprovedBy.profile', 'galleyRevisions.requestedBy.profile', 'issue', 'files.uploader.profile', 'discussions.article', 'discussions.review', 'discussions.user.profile', 'discussions.replies.user.profile');
+        $article->load('submitter.profile', 'editor.profile', 'category', 'authors', 'reviews.reviewer.profile', 'decidedBy.profile', 'copyeditedBy.profile', 'copyeditedFileUploadedBy.profile', 'productionBy.profile', 'galleyUploadedBy.profile', 'galleySentBy.profile', 'galleyApprovedBy.profile', 'galleyRevisions.requestedBy.profile', 'issue', 'files.uploader.profile', 'discussions.article', 'discussions.review', 'discussions.user.profile', 'discussions.replies.user.profile', 'corrections.createdBy.profile');
 
         $sectionEditors = User::role('section-editor')->with('profile')->orderBy('email')->get();
         $reviewers = User::permission('review-article')->with('profile')->orderBy('email')->get();
@@ -79,6 +82,9 @@ class EditorialController extends Controller
         $showAssignEditor = $article->isSubmitted() && $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
         $showPublish = $article->isApproved() && $user->hasPermissionTo('publish-issue');
         $showGalleyUpload = $article->isProduction();
+        $showWithdraw = $article->isWithdrawable() && $user->can('withdraw', $article);
+        $showRetract = $article->isRetractable() && $user->can('retract', $article);
+        $showCorrections = $article->isPublished() && $user->can('manageCorrections', $article);
 
         $article->discussions
             ->filter(fn ($d) => $d->isVisibleTo($user, $article))
@@ -88,7 +94,7 @@ class EditorialController extends Controller
             });
 
         return view('dashboard.editorial.show', compact(
-            'article', 'sectionEditors', 'reviewers', 'issues', 'showAssignEditor', 'showPublish', 'showGalleyUpload'
+            'article', 'sectionEditors', 'reviewers', 'issues', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections'
         ));
     }
 
@@ -455,5 +461,120 @@ class EditorialController extends Controller
         }
 
         return back()->with('success', __('dashboard.copyedited_file_deleted'));
+    }
+
+    /**
+     * Withdraw an article from the editorial workflow.
+     * Only pre-published articles can be withdrawn.
+     *
+     * SPECIFICATION: SPEC-16/AC-2
+     */
+    public function withdraw(Request $request, Article $article)
+    {
+        $this->authorize('withdraw', $article);
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:5000',
+        ]);
+
+        try {
+            $article->withdraw($validated['reason'], $request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Статья отозвана.');
+    }
+
+    /**
+     * Retract a published article. Article remains visible
+     * with a retraction notice. Re-deposits DOI with Crossmark
+     * retraction metadata if Crossref is enabled.
+     *
+     * SPECIFICATION: SPEC-16/AC-3
+     */
+    public function retract(Request $request, Article $article)
+    {
+        $this->authorize('retract', $article);
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:5000',
+        ]);
+
+        try {
+            $article->retract($validated['reason'], $request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        if (config('services.crossref.enabled')) {
+            DepositArticleToCrossref::dispatch($article->fresh(), $request->user()?->id, 'retraction');
+        }
+
+        return back()->with('success', 'Статья отозвана (ретрекшн).');
+    }
+
+    /**
+     * Add a post-publication correction to a published article.
+     *
+     * SPECIFICATION: SPEC-16/AC-4
+     */
+    public function storeCorrection(Request $request, Article $article)
+    {
+        $this->authorize('manageCorrections', $article);
+
+        $validated = $request->validate([
+            'type' => 'required|in:corrigendum,erratum,expression_of_concern',
+            'title' => 'required|string|max:500',
+            'description' => 'required|string|max:10000',
+            'published_at' => 'required|date',
+            'file' => 'nullable|file|mimes:pdf|max:51200',
+        ]);
+
+        $filePath = null;
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store('corrections', 'local');
+        }
+
+        Correction::create([
+            'article_id' => $article->id,
+            'type' => $validated['type'],
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'file_path' => $filePath,
+            'published_at' => $validated['published_at'],
+            'created_by' => $request->user()->id,
+        ]);
+
+        OutboxEvent::log('article.correction_added', $article, [
+            'correction_type' => $validated['type'],
+            'correction_title' => $validated['title'],
+        ]);
+
+        if (config('services.crossref.enabled')) {
+            DepositArticleToCrossref::dispatch($article->fresh()->load('corrections'), $request->user()?->id, 'correction');
+        }
+
+        return back()->with('success', 'Исправление добавлено.');
+    }
+
+    /**
+     * Delete a post-publication correction.
+     *
+     * SPECIFICATION: SPEC-16/AC-4
+     */
+    public function destroyCorrection(Request $request, Article $article, Correction $correction)
+    {
+        abort_unless($correction->article_id === $article->id, 404);
+
+        $this->authorize('manageCorrections', $article);
+
+        if ($correction->file_path) {
+            Storage::disk('local')->delete($correction->file_path);
+        }
+
+        $correction->delete();
+
+        return back()->with('success', 'Исправление удалено.');
     }
 }

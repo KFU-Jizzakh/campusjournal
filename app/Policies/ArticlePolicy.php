@@ -231,4 +231,39 @@ class ArticlePolicy
         return $this->canManageWorkflow($user, $article)
             || $user->id === $article->submitted_by;
     }
+
+    /**
+     * PURPOSE: Authorise retracting a published article.
+     *
+     * SPECIFICATION: SPEC-16/BR-2
+     */
+    public function retract(User $user, Article $article): bool
+    {
+        return $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
+    }
+
+    /**
+     * PURPOSE: Authorise withdrawing an article before publication.
+     * The article submitter and workflow managers can withdraw.
+     *
+     * SPECIFICATION: SPEC-16/AC-1, SPEC-16/AC-2
+     */
+    public function withdraw(User $user, Article $article): bool
+    {
+        if ($article->submitted_by === $user->id) {
+            return true;
+        }
+
+        return $this->canManageWorkflow($user, $article);
+    }
+
+    /**
+     * PURPOSE: Authorise managing corrections on published articles.
+     *
+     * SPECIFICATION: SPEC-16/BR-5
+     */
+    public function manageCorrections(User $user, Article $article): bool
+    {
+        return $this->canManageWorkflow($user, $article);
+    }
 }

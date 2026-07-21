@@ -19,8 +19,9 @@ use Throwable;
 /**
  * PURPOSE: Queued job for depositing a published article's DOI
  * metadata to Crossref with 3 retries and exponential backoff.
+ * Supports Crossmark update deposits (retraction/correction).
  *
- * SPECIFICATION: SPEC-08/AC-1, SPEC-08/AC-6, SPEC-08/AC-7, SPEC-08/AC-8, SPEC-08/BR-3, SPEC-08/BR-4
+ * SPECIFICATION: SPEC-08/AC-1, SPEC-08/AC-6, SPEC-08/AC-7, SPEC-08/AC-8, SPEC-08/BR-3, SPEC-08/BR-4, SPEC-16/AC-5, SPEC-16/BR-7, SPEC-16/BR-8
  */
 class DepositArticleToCrossref implements ShouldQueue
 {
@@ -33,13 +34,14 @@ class DepositArticleToCrossref implements ShouldQueue
     public function __construct(
         public Article $article,
         public ?int $actorId = null,
+        public ?string $updateType = null,
     ) {}
 
     public function handle(DoiMinter $minter, CrossrefXmlBuilder $builder, CrossrefClient $client): void
     {
         $doi = $minter->mint($this->article);
         $batchId = (string) Str::uuid();
-        $xml = $builder->build($this->article->refresh(), $batchId);
+        $xml = $builder->build($this->article->refresh(), $batchId, $this->updateType);
 
         $deposit = CrossrefDeposit::create([
             'article_id' => $this->article->id,

@@ -676,6 +676,131 @@
             </div>
         @endif
 
+        {{-- Withdraw --}}
+        @if($showWithdraw ?? false)
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-3">Отзыв статьи</h3>
+                <p class="text-sm text-gray-500 mb-3">Отозвать статью из редакционного процесса. Статья будет снята с рассмотрения и не будет опубликована.</p>
+                <form method="POST" action="{{ route('editorial.withdraw', $article) }}" onsubmit="return confirm('Вы уверены, что хотите отозвать статью? Это действие нельзя отменить.')">
+                    @csrf
+                    <div class="space-y-3">
+                        <div>
+                            <textarea name="reason" rows="3" required maxlength="5000"
+                                placeholder="Причина отзыва..."
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm"></textarea>
+                            <x-input-error :messages="$errors->get('reason')" class="mt-1" />
+                        </div>
+                        <x-danger-button>Отозвать статью</x-danger-button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        {{-- Retract --}}
+        @if($showRetract ?? false)
+            <div class="bg-white rounded-lg border border-red-200 p-6">
+                <h3 class="font-semibold text-red-700 mb-3">Ретрекшн (отзыв опубликованной статьи)</h3>
+                <p class="text-sm text-gray-500 mb-3">Ретрекшн означает отзыв уже опубликованной статьи. Статья останется доступной на сайте с пометкой "Ретрекшн".</p>
+                <form method="POST" action="{{ route('editorial.retract', $article) }}" onsubmit="return confirm('Вы уверены, что хотите отозвать (ретрекшн) опубликованную статью?')">
+                    @csrf
+                    <div class="space-y-3">
+                        <div>
+                            <textarea name="reason" rows="3" required maxlength="5000"
+                                placeholder="Причина ретрекшна..."
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm"></textarea>
+                            <x-input-error :messages="$errors->get('reason')" class="mt-1" />
+                        </div>
+                        <x-danger-button>Отозвать (ретрекшн)</x-danger-button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        {{-- Corrections --}}
+        @if($showCorrections ?? false)
+            <div class="bg-white rounded-lg border border-gray-200 p-6" x-data="{ showForm: false }">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-gray-900">Исправления (corrigendum / erratum)</h3>
+                    <button @click="showForm = !showForm" class="text-sm text-primary hover:underline">
+                        <span x-show="!showForm">Добавить исправление</span>
+                        <span x-show="showForm" x-cloak>Отмена</span>
+                    </button>
+                </div>
+
+                <div x-show="showForm" x-cloak class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <form method="POST" action="{{ route('editorial.corrections.store', $article) }}" enctype="multipart/form-data" class="space-y-4">
+                        @csrf
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Тип исправления</label>
+                            <select name="type" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm">
+                                @foreach(\App\Enums\CorrectionType::cases() as $type)
+                                    <option value="{{ $type->value }}">{{ $type->label() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Заголовок</label>
+                            <input type="text" name="title" required maxlength="500"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                            <textarea name="description" rows="3" required maxlength="10000"
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm"
+                                placeholder="Что именно было исправлено..."></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Дата публикации исправления</label>
+                                <input type="date" name="published_at" required value="{{ now()->format('Y-m-d') }}"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">PDF уведомления (необязательно)</label>
+                                <input type="file" name="file" accept=".pdf"
+                                    class="block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                            </div>
+                        </div>
+                        <x-primary-button>Добавить исправление</x-primary-button>
+                    </form>
+                </div>
+
+                @if($article->corrections->isNotEmpty())
+                    <div class="space-y-3">
+                        @foreach($article->corrections as $correction)
+                            <div class="border border-gray-100 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs px-1.5 py-0.5 rounded-full {{ $correction->type->badgeClass() }}">
+                                            {{ $correction->type->label() }}
+                                        </span>
+                                        <span class="text-sm font-medium text-gray-900">{{ $correction->title }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs text-gray-400">{{ $correction->published_at->format('d.m.Y') }}</span>
+                                        <form method="POST" action="{{ route('editorial.corrections.destroy', [$article, $correction]) }}" onsubmit="return confirm('Удалить исправление?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-xs text-red-500 hover:underline">Удалить</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-700">{{ $correction->description }}</p>
+                                @if($correction->file_path)
+                                    <div class="mt-2">
+                                        <a href="{{ Storage::disk('local')->url($correction->file_path) }}" target="_blank"
+                                            class="text-xs text-primary hover:underline">Скачать PDF уведомления</a>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-sm text-gray-400 text-center py-4">Нет исправлений</p>
+                @endif
+            </div>
+        @endif
+
         {{-- Discussions --}}
         <div class="bg-white rounded-lg border border-gray-200 p-6" x-data="discussions({{ $article->id }})" id="discussions">
             <h3 class="font-semibold text-gray-900 mb-4">Обсуждения</h3>

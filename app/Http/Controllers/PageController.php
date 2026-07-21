@@ -35,4 +35,14 @@ class PageController extends Controller
     {
         return view('pages.join');
     }
+
+    public function crossmarkPolicy()
+    {
+        $config = config('services.crossref.crossmark');
+
+        return view('pages.crossmark-policy', [
+            'policyUrl' => $config['policy_url'] ?? '',
+            'domains' => $config['domains'] ?? [],
+        ]);
+    }
 }

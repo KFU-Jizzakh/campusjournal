@@ -44,6 +44,7 @@ Route::get('/events', [EventController::class, 'index'])->name('events.index');
 Route::get('/conferences', [ConferenceController::class, 'index'])->name('conferences.index');
 Route::get('/conferences/{conference:slug}', [ConferenceController::class, 'show'])->name('conferences.show');
 Route::get('/contacts', [PageController::class, 'contacts'])->name('contacts');
+Route::get('/crossmark-policy', [PageController::class, 'crossmarkPolicy'])->name('crossmark-policy');
 Route::get('/search', [SearchController::class, 'index'])->name('search');
 
 // OAI-PMH endpoint
@@ -124,6 +125,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/dashboard/editorial/{article}/copyedited-file', [EditorialController::class, 'uploadCopyeditedFile'])->name('editorial.upload-copyedited-file');
         Route::delete('/dashboard/editorial/{article}/copyedited-file', [EditorialController::class, 'deleteCopyeditedFile'])->name('editorial.delete-copyedited-file');
 
+        // Post-publication: retraction, withdrawal, corrections
+        Route::post('/dashboard/editorial/{article}/withdraw', [EditorialController::class, 'withdraw'])->name('editorial.withdraw');
+        Route::post('/dashboard/editorial/{article}/retract', [EditorialController::class, 'retract'])->name('editorial.retract');
+        Route::post('/dashboard/editorial/{article}/corrections', [EditorialController::class, 'storeCorrection'])->name('editorial.corrections.store');
+        Route::delete('/dashboard/editorial/{article}/corrections/{correction}', [EditorialController::class, 'destroyCorrection'])->name('editorial.corrections.destroy');
+
         // Discussions
         Route::get('/dashboard/editorial/{article}/discussions', [DiscussionController::class, 'index'])->name('editorial.discussions.index');
         Route::post('/dashboard/editorial/{article}/discussions', [DiscussionController::class, 'store'])->name('editorial.discussions.store');
@@ -139,6 +146,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/dashboard/articles/{article}/discussions', [DiscussionController::class, 'store'])->name('submissions.discussions.store');
         Route::post('/dashboard/articles/{article}/approve-galley', [SubmissionController::class, 'approveGalley'])->name('submissions.approve-galley');
         Route::post('/dashboard/articles/{article}/request-revision', [SubmissionController::class, 'requestGalleyRevision'])->name('submissions.request-revision');
+        Route::post('/dashboard/articles/{article}/withdraw', [SubmissionController::class, 'withdraw'])->name('submissions.withdraw');
     });
 
     // Discussion management (authorized via policy)

@@ -6,6 +6,8 @@ use App\Enums\ArticleFileLicense;
 use App\Enums\ArticleStatus;
 use App\Enums\ReviewStatus;
 use App\Enums\ReviewType;
+use App\Exceptions\ArticleNotRetractableException;
+use App\Exceptions\ArticleNotWithdrawableException;
 use App\Exceptions\AssignEditorFailedException;
 use App\Exceptions\AssignReviewerFailedException;
 use App\Exceptions\CannotReviewArticleException;
@@ -52,7 +54,7 @@ use Illuminate\Support\Facades\Storage;
  *
  * SPECIFICATION: SPEC-01/AC-1, SPEC-01/AC-7, SPEC-01/BR-1, SPEC-01/BR-2, SPEC-01/BR-3, SPEC-01/BR-4, SPEC-01/BR-5, SPEC-01/BR-6, SPEC-01/BR-7, SPEC-02/BR-6, SPEC-04/BR-1, SPEC-04/BR-5, SPEC-05/BR-1, SPEC-05/BR-2, SPEC-05/BR-3, SPEC-05/BR-4, SPEC-13/BR-1, SPEC-13/BR-2, SPEC-13/BR-3, SPEC-15/AC-2, SPEC-15/AC-4, SPEC-15/BR-1, SPEC-15/BR-2, SPEC-15/BR-3, SPEC-15/BR-4, SPEC-15/BR-5
  */
-#[Fillable(['title', 'abstract_ru', 'abstract_en', 'body', 'doi', 'keywords', 'pages', 'first_page', 'last_page', 'views_count', 'pdf_path', 'blinded_pdf_path', 'blinded_at', 'blinded_by', 'status', 'review_type', 'issue_id', 'category_id', 'submitted_by', 'submitted_at', 'published_at', 'doi_registered_at', 'editor_id', 'decision', 'decision_comments', 'decided_at', 'decided_by', 'copyedited_at', 'copyedited_by', 'copyedited_file_path', 'copyedited_file_uploaded_at', 'copyedited_file_uploaded_by', 'production_at', 'production_by', 'galley_pdf_path', 'galley_uploaded_at', 'galley_uploaded_by', 'galley_sent_at', 'galley_sent_by', 'galley_approved_at', 'galley_approved_by'])]
+#[Fillable(['title', 'abstract_ru', 'abstract_en', 'body', 'doi', 'keywords', 'pages', 'first_page', 'last_page', 'views_count', 'pdf_path', 'blinded_pdf_path', 'blinded_at', 'blinded_by', 'status', 'review_type', 'issue_id', 'category_id', 'submitted_by', 'submitted_at', 'published_at', 'doi_registered_at', 'editor_id', 'decision', 'decision_comments', 'decided_at', 'decided_by', 'copyedited_at', 'copyedited_by', 'copyedited_file_path', 'copyedited_file_uploaded_at', 'copyedited_file_uploaded_by', 'production_at', 'production_by', 'galley_pdf_path', 'galley_uploaded_at', 'galley_uploaded_by', 'galley_sent_at', 'galley_sent_by', 'galley_approved_at', 'galley_approved_by', 'withdrawal_reason', 'withdrawn_at', 'retraction_reason', 'retracted_at'])]
 class Article extends Model
 {
     use HasFactory, SoftDeletes;
@@ -73,6 +75,8 @@ class Article extends Model
             'galley_uploaded_at' => 'datetime',
             'galley_sent_at' => 'datetime',
             'galley_approved_at' => 'datetime',
+            'withdrawn_at' => 'datetime',
+            'retracted_at' => 'datetime',
             'keywords' => 'array',
         ];
     }
@@ -195,6 +199,17 @@ class Article extends Model
         return $this->hasMany(ArticleFile::class)->orderBy('created_at');
     }
 
+    /**
+     * Post-publication corrections: corrigenda, errata,
+     * and expressions of concern.
+     *
+     * SPECIFICATION: SPEC-16/AC-4, SPEC-16/BR-6
+     */
+    public function corrections(): HasMany
+    {
+        return $this->hasMany(Correction::class)->orderByDesc('published_at');
+    }
+
     public function crossrefDeposits(): HasMany
     {
         return $this->hasMany(CrossrefDeposit::class)->orderByDesc('created_at');
@@ -273,7 +288,7 @@ class Article extends Model
 
     public function scopePublished($query)
     {
-        return $query->where('status', ArticleStatus::Published);
+        return $query->whereIn('status', [ArticleStatus::Published, ArticleStatus::Retracted]);
     }
 
     public function scopeSubmitted($query)
@@ -835,6 +850,94 @@ class Article extends Model
     }
 
     /**
+     * Withdraw the article before publication.
+     * Only possible from non-terminal, non-published statuses.
+     *
+     * SPECIFICATION: SPEC-16/AC-1, SPEC-16/AC-2, SPEC-16/BR-1, SPEC-16/BR-3
+     */
+    public function withdraw(string $reason, User $actor): void
+    {
+        DB::transaction(function () use ($reason, $actor) {
+            $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
+
+            if (! $lockedArticle->isWithdrawable()) {
+                throw new ArticleNotWithdrawableException;
+            }
+
+            $lockedArticle->transitionTo(ArticleStatus::Withdrawn);
+
+            $lockedArticle->fill([
+                'withdrawal_reason' => $reason,
+                'withdrawn_at' => now(),
+            ])->save();
+
+            $wasAuthor = $actor->id === $lockedArticle->submitted_by;
+
+            OutboxEvent::log('article.withdrawn', $lockedArticle, [
+                'reason' => $reason,
+                'by_author' => $wasAuthor,
+            ]);
+
+            if ($wasAuthor && $lockedArticle->editor) {
+                $lockedArticle->editor->notify(
+                    new AuthorStatusChanged(
+                        $lockedArticle,
+                        'article.withdrawn',
+                        'Статья отозвана автором'
+                    )
+                );
+            }
+
+            if (! $wasAuthor && ! $lockedArticle->wasRecentlyNotified('article.withdrawn')) {
+                $lockedArticle->notifiableUsers()->each(
+                    fn (User $user) => $user->notify(
+                        new AuthorStatusChanged($lockedArticle, 'article.withdrawn', 'Статья отозвана редакцией')
+                    )
+                );
+                $lockedArticle->markNotified('article.withdrawn');
+            }
+        });
+    }
+
+    /**
+     * Retract a published article. Article remains visible
+     * but marked as retracted with a reason.
+     *
+     * SPECIFICATION: SPEC-16/AC-3, SPEC-16/BR-2, SPEC-16/BR-4
+     */
+    public function retract(string $reason, User $actor): void
+    {
+        DB::transaction(function () use ($reason, $actor) {
+            $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
+
+            if (! $lockedArticle->isRetractable()) {
+                throw new ArticleNotRetractableException;
+            }
+
+            $lockedArticle->transitionTo(ArticleStatus::Retracted);
+
+            $lockedArticle->fill([
+                'retraction_reason' => $reason,
+                'retracted_at' => now(),
+            ])->save();
+
+            OutboxEvent::log('article.retracted', $lockedArticle, [
+                'reason' => $reason,
+                'by' => $actor->id,
+            ]);
+
+            if (! $lockedArticle->wasRecentlyNotified('article.retracted')) {
+                $lockedArticle->notifiableUsers()->each(
+                    fn (User $user) => $user->notify(
+                        new AuthorStatusChanged($lockedArticle, 'article.retracted', 'Статья отозвана (ретрекшн)')
+                    )
+                );
+                $lockedArticle->markNotified('article.retracted');
+            }
+        });
+    }
+
+    /**
      * Sync primary author (from submitter) and coauthors via pivot table.
      * Cleans up orphaned coauthors no longer attached to any article.
      *
@@ -983,6 +1086,16 @@ class Article extends Model
         return $this->status === ArticleStatus::Published;
     }
 
+    public function isWithdrawn(): bool
+    {
+        return $this->status === ArticleStatus::Withdrawn;
+    }
+
+    public function isRetracted(): bool
+    {
+        return $this->status === ArticleStatus::Retracted;
+    }
+
     /**
      * Whether the article is open for reviewer assignment.
      */
@@ -997,6 +1110,22 @@ class Article extends Model
     public function isEditable(): bool
     {
         return $this->isDraft() || $this->isRevision();
+    }
+
+    /**
+     * Whether the article can be withdrawn by the author or editor.
+     */
+    public function isWithdrawable(): bool
+    {
+        return $this->status->canTransitionTo(ArticleStatus::Withdrawn);
+    }
+
+    /**
+     * Whether the article can be retracted (published articles).
+     */
+    public function isRetractable(): bool
+    {
+        return $this->status->canTransitionTo(ArticleStatus::Retracted);
     }
 
     /**

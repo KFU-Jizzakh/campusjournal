@@ -264,6 +264,28 @@ class SubmissionController extends Controller
         return back()->with('success', __('article.galley_revision_requested_success'));
     }
 
+    /**
+     * Author withdraws their article before publication.
+     *
+     * SPECIFICATION: SPEC-16/AC-1
+     */
+    public function withdraw(Request $request, Article $article)
+    {
+        $this->authorize('withdraw', $article);
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:5000',
+        ]);
+
+        try {
+            $article->withdraw($validated['reason'], $request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Статья отозвана.');
+    }
+
     private function validateOrcidDistinct(array $validated): void
     {
         $orcids = array_filter([

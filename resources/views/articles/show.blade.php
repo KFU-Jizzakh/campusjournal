@@ -69,6 +69,19 @@ if ($article->keywords) $jsonLd['keywords'] = implode(', ', $article->keywords);
                 <a href="{{ route('articles.index') }}" class="text-sm text-primary hover:underline">&larr; {{ __('pages.articles_back') }}</a>
             </div>
 
+            {{-- Retraction banner --}}
+            @if($article->isRetracted())
+                <div class="mb-6 p-5 bg-red-50 border-2 border-red-300 rounded-lg">
+                    <h2 class="text-lg font-bold text-red-700 mb-2">Статья отозвана (ретрекшн)</h2>
+                    @if($article->retraction_reason)
+                        <p class="text-sm text-red-600">{{ $article->retraction_reason }}</p>
+                    @endif
+                    @if($article->retracted_at)
+                        <p class="text-xs text-red-400 mt-2">Дата ретрекшна: {{ $article->retracted_at->format('d.m.Y') }}</p>
+                    @endif
+                </div>
+            @endif
+
             <div class="mb-6">
                 <div class="flex flex-wrap items-center gap-3 mb-3">
                     @if($article->category)
@@ -312,6 +325,47 @@ if ($article->keywords) $jsonLd['keywords'] = implode(', ', $article->keywords);
                         @endforeach
                     </div>
                 </div>
+            @endif
+
+            {{-- Corrections --}}
+            @php
+                $articleCorrections = $article->corrections ?? collect();
+            @endphp
+            @if($articleCorrections->isNotEmpty())
+                <div class="mb-6 p-5 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Исправления</h2>
+                    <div class="space-y-3">
+                        @foreach($articleCorrections as $correction)
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs px-1.5 py-0.5 rounded-full {{ $correction->type->badgeClass() }}">
+                                        {{ $correction->type->label() }}
+                                    </span>
+                                    <span class="text-sm font-medium text-gray-900">{{ $correction->title }}</span>
+                                    <span class="text-xs text-gray-400">{{ $correction->published_at->format('d.m.Y') }}</span>
+                                </div>
+                                <p class="text-sm text-gray-700">{{ $correction->description }}</p>
+                                @if($correction->file_path)
+                                    <a href="{{ Storage::disk('local')->url($correction->file_path) }}" target="_blank"
+                                        class="text-xs text-primary hover:underline">Скачать PDF уведомления</a>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            {{-- Crossmark button --}}
+            @if($article->doi)
+                @php $crossmarkConfig = config('services.crossref.crossmark'); @endphp
+                @if(!empty($crossmarkConfig['policy_url']))
+                    <div class="mb-6 flex items-center gap-2">
+                        <a href="https://crossmark.crossref.org/dialog/?doi={{ urlencode($article->doi) }}&amp;domain={{ urlencode($crossmarkConfig['domains'][0] ?? parse_url(config('app.url'), PHP_URL_HOST) ?? 'localhost') }}&amp;date={{ $article->published_at?->format('Y-m-d') ?? now()->format('Y-m-d') }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                            Crossmark
+                        </a>
+                    </div>
+                @endif
             @endif
 
             {{-- PDF viewer & download --}}
