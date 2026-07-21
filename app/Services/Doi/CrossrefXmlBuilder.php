@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\View;
 /**
  * PURPOSE: Renders Crossref deposit XML v5.3.1 from a
  * Blade template using article and issue metadata.
- * When an updateType is provided (retraction/correction),
- * Crossmark update metadata is included in the deposit.
+ * Crossmark metadata is always included; when an updateType
+ * is provided, a <doi_updates> block is appended.
  *
  * SPECIFICATION: SPEC-08/AC-4, SPEC-16/AC-5, SPEC-16/BR-7, SPEC-16/BR-8
  */
