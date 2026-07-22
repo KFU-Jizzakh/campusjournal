@@ -7,7 +7,8 @@ Academic journal management system with full editorial workflow.
 - Use Conventional Commits spec for commit msg
 - Don't commit
 - Use ripgrep instead of grep if available
-- Before implementation add/update specs in @docs
+- Before implementing a feature, add or update detailed specs in @docs using the template @docs/_spec-template.md. Ask questions if anything is more than 1% unclear.
+- The feature’s behavior and key points from Acceptance Criteria and Business Rules must be covered by tests.
 
 ## Docblock format
 All classes and key methods must have a docblock in the format below
@@ -45,6 +46,7 @@ All classes and key methods must have a docblock in the format below
 | section@globalcampus.local | section-editor |
 | reviewer@globalcampus.local | reviewer |
 | author@globalcampus.local | author |
+| content@globalcampus.local | content-manager |
 
 
 # Commands
