@@ -36,6 +36,11 @@ class CopyrightAgreementResource extends Resource
 
     protected static ?int $navigationSort = 30;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([

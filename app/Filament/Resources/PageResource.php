@@ -23,9 +23,9 @@ class PageResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Страницы';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Настройки';
+    protected static string|\UnitEnum|null $navigationGroup = 'Контент';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 7;
 
     public static function form(Schema $schema): Schema
     {

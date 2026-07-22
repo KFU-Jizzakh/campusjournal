@@ -25,7 +25,7 @@ class OrganizationResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = 'Контент';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 10;
 
     public static function form(Schema $schema): Schema
     {

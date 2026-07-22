@@ -57,6 +57,13 @@ class UserSeeder extends Seeder
                 'middle_name' => null,
             ],
             [
+                'email' => 'content@globalcampus.local',
+                'role' => 'content-manager',
+                'last_name' => 'Контент',
+                'first_name' => 'Менеджер',
+                'middle_name' => null,
+            ],
+            [
                 'email' => 'reviewer2@globalcampus.local',
                 'role' => 'reviewer',
                 'last_name' => 'Рецензент',

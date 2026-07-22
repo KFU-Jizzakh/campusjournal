@@ -36,7 +36,6 @@ class RoleSeeder extends Seeder
             'manage-issue',
             'publish-issue',
             'manage-editorial-board',
-            'manage-content',
             'manage-submissions',
             'manage-doi',
         ];
@@ -49,6 +48,9 @@ class RoleSeeder extends Seeder
 
         $managingEditor = Role::firstOrCreate(['name' => 'managing-editor']);
         $managingEditor->syncPermissions($editorialLeadershipPermissions);
+
+        $contentManager = Role::firstOrCreate(['name' => 'content-manager']);
+        $contentManager->syncPermissions(['manage-content']);
 
         $sectionEditor = Role::firstOrCreate(['name' => 'section-editor']);
         $sectionEditor->syncPermissions([
