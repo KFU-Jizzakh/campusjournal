@@ -119,6 +119,9 @@
                 <a href="{{ route('conferences.index') }}" class="block py-2 hover:text-gray-300">{{ __('nav.conferences') }}</a>
                 <a href="{{ route('events.index') }}" class="block py-2 hover:text-gray-300">{{ __('nav.events') }}</a>
                 <a href="{{ route('contacts') }}" class="block py-2 hover:text-gray-300">{{ __('nav.contacts') }}</a>
+                <a href="{{ route('peer-review') }}" class="block py-2 hover:text-gray-300">{{ __('pages.peer_review') }}</a>
+                <a href="{{ route('publication-ethics') }}" class="block py-2 hover:text-gray-300">{{ __('pages.publication_ethics') }}</a>
+                <a href="{{ route('archiving') }}" class="block py-2 hover:text-gray-300">{{ __('pages.archiving') }}</a>
             </div>
         </div>
     </header>
@@ -131,7 +134,7 @@
     {{-- Footer --}}
     <footer class="bg-primary-dark text-gray-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {{-- About --}}
                 <div>
                     <h3 class="text-white font-bold text-lg mb-4">{{ config('app.name') }}</h3>
@@ -184,6 +187,16 @@
                         </a>
                         @endif
                     </div>
+                </div>
+
+                {{-- Policies --}}
+                <div>
+                    <h3 class="text-white font-bold text-lg mb-4">{{ __('pages.policies_heading') }}</h3>
+                    <ul class="text-sm space-y-2">
+                        <li><a href="{{ route('peer-review') }}" class="hover:text-white">{{ __('pages.peer_review') }}</a></li>
+                        <li><a href="{{ route('publication-ethics') }}" class="hover:text-white">{{ __('pages.publication_ethics') }}</a></li>
+                        <li><a href="{{ route('archiving') }}" class="hover:text-white">{{ __('pages.archiving') }}</a></li>
+                    </ul>
                 </div>
             </div>
 

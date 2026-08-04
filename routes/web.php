@@ -45,6 +45,9 @@ Route::get('/conferences', [ConferenceController::class, 'index'])->name('confer
 Route::get('/conferences/{conference:slug}', [ConferenceController::class, 'show'])->name('conferences.show');
 Route::get('/contacts', [PageController::class, 'contacts'])->name('contacts');
 Route::get('/crossmark-policy', [PageController::class, 'crossmarkPolicy'])->name('crossmark-policy');
+Route::get('/peer-review', [PageController::class, 'peerReview'])->name('peer-review');
+Route::get('/publication-ethics', [PageController::class, 'publicationEthics'])->name('publication-ethics');
+Route::get('/archiving', [PageController::class, 'archiving'])->name('archiving');
 Route::get('/search', [SearchController::class, 'index'])->name('search');
 
 // OAI-PMH endpoint

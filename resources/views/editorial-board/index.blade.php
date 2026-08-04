@@ -46,7 +46,7 @@
                                         <a href="mailto:{{ $member->author->email }}" class="text-primary hover:underline">{{ $member->author->email }}</a>
                                     @endif
                                     @if($member->author->orcid)
-                                        <span class="text-gray-500">ORCID: {{ $member->author->orcid }}</span>
+                                        <a href="{{ \App\Support\Orcid::url($member->author->orcid) }}" target="_blank" rel="noopener" class="text-primary hover:underline">ORCID: {{ $member->author->orcid }}</a>
                                     @endif
                                     @if($member->author->website)
                                         <a href="{{ $member->author->website }}" target="_blank" rel="noopener" class="text-primary hover:underline">{{ __('common.website') }}</a>

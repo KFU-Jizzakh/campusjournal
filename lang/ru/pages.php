@@ -58,4 +58,13 @@ return [
     'for_authors_description' => 'Зарегистрируйтесь на портале и воспользуйтесь формой подачи в личном кабинете.',
     'for_authors_submit' => 'Подать рукопись',
     'for_authors_register' => 'Зарегистрироваться',
+
+    'peer_review_title' => 'Рецензирование',
+    'publication_ethics_title' => 'Публикационная этика',
+    'archiving_title' => 'Архивирование',
+    'policies_heading' => 'Политики журнала',
+
+    'peer_review' => 'Рецензирование',
+    'publication_ethics' => 'Публикационная этика',
+    'archiving' => 'Архивирование',
 ];

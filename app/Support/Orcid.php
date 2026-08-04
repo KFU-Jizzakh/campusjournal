@@ -18,7 +18,11 @@ final class Orcid
 
     public static function url(?string $orcid): ?string
     {
-        $orcid = trim((string) $orcid);
+        if ($orcid === null) {
+            return null;
+        }
+
+        $orcid = trim($orcid);
         if ($orcid === '') {
             return null;
         }
