@@ -13,7 +13,7 @@ Status: IMPLEMENTED
 - AC-2: A workflow manager (EiC/ME) can withdraw any pre-published article — status changes to Withdrawn, reason is stored
 - AC-3: A workflow manager (EiC/ME) can retract a published article — status changes to Retracted, retraction reason is stored, article remains publicly visible with a retraction banner
 - AC-4: The editorial staff can add corrections (corrigendum/erratum/expression_of_concern) to a published article — corrections appear on the public page and in the editorial interface
-- AC-5: On retraction or correction, if Crossref is enabled, the DOI is re-deposited with Crossmark update metadata (`retraction` or `correction` update type)
+- AC-5: On retraction or correction, if Crossref is enabled and the DOI prefix is configured, the DOI is re-deposited with Crossmark update metadata (`retraction` or `correction` update type)
 - AC-6: The public article page shows a prominent retraction banner for retracted articles, lists correction notices, and includes a Crossmark button
 - AC-7: Withdrawn articles are not shown on the public site, listed only in editorial dashboard with Withdrawn status
 - AC-8: Outbox events are recorded for withdrawal (`article.withdrawn`), retraction (`article.retracted`), and correction addition (`article.correction_added`)
@@ -36,7 +36,7 @@ Status: IMPLEMENTED
 - BR-4: Retracted articles remain publicly accessible with a retraction watermar/banner and the retraction reason
 - BR-5: Corrections can only be added to published articles by workflow managers
 - BR-6: Each correction has a type, title, description, optional PDF notice file, and publication date
-- BR-7: On retraction or correction, the Crossref DOI deposit is re-sent with Crossmark update metadata (`update_type` in XML head); for corrections, if no corrections remain after deletion, the `<doi_updates>` block is omitted
+- BR-7: On retraction or correction, the Crossref DOI deposit is re-sent with Crossmark update metadata (`update_type` in XML head); for corrections, if no corrections remain after deletion, the `<doi_updates>` block is omitted. Re-deposits are dispatched only when Crossref is enabled and the DOI prefix is configured (SPEC-08/BR-2a)
 - BR-8: Crossmark update deposit uses the same DOI — it is re-deposited as an update, not a new DOI
 - BR-9: Notifications follow the existing pattern — AuthorStatusChanged for retraction/withdrawal, with one-hour throttle; if no editor is assigned, managing-editors and editor-in-chief receive author-initiated withdrawal notifications
 
@@ -89,7 +89,7 @@ Then  the status changes to Retracted
 And   retraction reason, timestamp and actor are saved
 And   the `article.retracted` event is recorded
 And   authors are notified
-And   if Crossref is enabled, a DOI re-deposit with Crossmark `retraction` update is queued
+And   if Crossref is enabled and the DOI prefix is configured, a DOI re-deposit with Crossmark `retraction` update is queued
 
 #### Scenario: Attempt to retract non-published article
 
@@ -120,7 +120,7 @@ Given a correction exists on a published article
 And   the authenticated user is a workflow manager
 When  the user deletes the correction
 Then  the correction is removed and its file (if any) is deleted from storage
-And   if Crossref is enabled, a DOI re-deposit with Crossmark `correction` update is queued
+And   if Crossref is enabled and the DOI prefix is configured, a DOI re-deposit with Crossmark `correction` update is queued
 
 #### Scenario: Attempt to add correction to non-published article
 
@@ -132,7 +132,7 @@ Then  the action is blocked
 
 #### Scenario: DOIs re-deposited with Crossmark on retraction
 
-Given Crossref is enabled
+Given Crossref is enabled and the DOI prefix is configured
 And   the article is retracted
 When  the retraction is saved
 Then  a DOI deposit job is queued with Crossmark update type `retraction`
@@ -140,11 +140,18 @@ And   the deposit XML includes `<crossmark>` elements with version, update type,
 
 #### Scenario: DOIs re-deposited with Crossmark on correction
 
-Given Crossref is enabled
+Given Crossref is enabled and the DOI prefix is configured
 And   a correction is added to a published article
 When  the correction is saved
 Then  a DOI deposit job is queued with Crossmark update type `correction`
 And   the deposit XML includes updated `<crossmark>` elements
+
+#### Scenario: No re-deposit when the prefix is not configured
+
+Given Crossref is enabled but the DOI prefix is not configured
+And   a retraction or correction is performed
+When  the action is saved
+Then  no DOI deposit job is queued
 
 ## Data Model
 

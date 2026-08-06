@@ -15,7 +15,7 @@ Status: IMPLEMENTED
 - AC-4a: The corrected manuscript file can be downloaded by editorial staff and the article submitter. Uploading a new version replaces the previous one (old file is deleted from storage).
 - AC-5: After copyediting and once a corrected manuscript file has been uploaded, the editor sends the article to production — status changes to "In Production", date and performer are saved. Attempting to send to production without an uploaded corrected file is blocked with an error message.
 - AC-6: After author approval of galleys (see SPEC-13), EiC/ME selects an issue and publishes the article — status changes to "Published", the article appears on the public site
-- AC-7: On publication, if Crossref is enabled, background DOI registration is triggered (see SPEC-08)
+- AC-7: On publication, if Crossref is enabled, background DOI registration is triggered (see SPEC-08). The full DOI (prefix + opaque random suffix) is minted and saved on the article at publication time (SPEC-08/AC-2)
 
 ## UI/UX Notes
 
@@ -121,6 +121,7 @@ Given the article is in "Author Approved" status, the user has the publish-issue
 When  the editor selects an issue from the list and clicks "Publish"
 Then  the status changes to "Published"
 And   the issue and publication date are saved
+And   if the article has no DOI and the Crossref prefix is configured, a DOI is minted and saved (SPEC-08/AC-2)
 And   the `article.published` event is recorded
 And   the article appears on the public site in the selected issue
 

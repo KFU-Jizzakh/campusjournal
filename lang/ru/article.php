@@ -78,6 +78,7 @@ return [
     'error_galley_not_awaiting_approval' => 'Утверждение или запрос правок возможен только на этапе утверждения автором.',
     'error_galley_approval_required' => 'Необходимо утверждение гранок автором для публикации.',
     'error_galley_pdf_not_uploaded' => 'Сначала загрузите свёрстанный PDF.',
+    'error_doi_prefix_not_configured' => 'Префикс DOI не настроен (CROSSREF_PREFIX).',
     'galley_heading' => 'Гранки',
     'galley_upload_label' => 'Свёрстанный PDF',
     'galley_upload_hint' => 'PDF до 50 МБ',

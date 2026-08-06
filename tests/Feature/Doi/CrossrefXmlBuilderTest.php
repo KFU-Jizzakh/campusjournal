@@ -101,6 +101,34 @@ test('includes doi_updates block when update type is provided', function (string
     expect($xml)->toContain('<update type="'.$updateType.'"/>');
 })->with(['retraction', 'correction']);
 
+test('uses explicit doi when the article has none stored', function () {
+    $issue = Issue::factory()->create(['volume' => 1, 'number' => 1, 'year' => 2026]);
+    $article = Article::factory()->published()->create([
+        'title' => 'Test',
+        'doi' => null,
+        'issue_id' => $issue->id,
+    ]);
+    $article->authors()->attach(Author::factory()->create(), ['order' => 0]);
+
+    $xml = app(CrossrefXmlBuilder::class)->build($article, 'batch-doi', null, '10.12345/abc23456');
+
+    expect($xml)->toContain('<doi>10.12345/abc23456</doi>');
+});
+
+test('does not include doi_data when neither stored nor explicit doi exists', function () {
+    $issue = Issue::factory()->create(['volume' => 1, 'number' => 1, 'year' => 2026]);
+    $article = Article::factory()->published()->create([
+        'title' => 'Test',
+        'doi' => null,
+        'issue_id' => $issue->id,
+    ]);
+    $article->authors()->attach(Author::factory()->create(), ['order' => 0]);
+
+    $xml = app(CrossrefXmlBuilder::class)->build($article, 'batch-none');
+
+    expect($xml)->not->toContain('<doi_data>');
+});
+
 test('does not include doi_updates for correction when no corrections exist', function () {
     $issue = Issue::factory()->create(['volume' => 1, 'number' => 1, 'year' => 2026]);
     $article = Article::factory()->published()->create([

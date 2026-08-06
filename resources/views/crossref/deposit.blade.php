@@ -61,6 +61,7 @@
                 'authors' => $authors,
                 'authorNameParts' => $authorNameParts,
                 'resourceUrl' => $resourceUrl,
+                'doi' => $doi,
             ])
         </journal>
     </body>

@@ -33,6 +33,7 @@ use App\Notifications\AuthorResubmitted;
 use App\Notifications\AuthorStatusChanged;
 use App\Notifications\AuthorSubmissionReceived;
 use App\Notifications\EditorGalleyRevisionRequested;
+use App\Services\Doi\DoiMinter;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -708,10 +709,10 @@ class Article extends Model
 
     /**
      * Publish the article — assign to an issue, set published_at,
-     * and transition to Published status.
-     * Requires prior author galley approval (BR-1).
+     * mint and persist a DOI if none exists, and transition to
+     * Published status. Requires prior author galley approval (BR-1).
      *
-     * SPECIFICATION: SPEC-04/AC-6, SPEC-04/BR-6, SPEC-04/BR-7, SPEC-13/BR-1
+     * SPECIFICATION: SPEC-04/AC-6, SPEC-04/BR-6, SPEC-04/BR-7, SPEC-13/BR-1, SPEC-08/AC-2, SPEC-08/BR-2a
      */
     public function publish(Issue $issue): void
     {
@@ -723,13 +724,21 @@ class Article extends Model
             $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
             $lockedArticle->transitionTo(ArticleStatus::Published);
 
-            $lockedArticle->fill([
+            $data = [
                 'issue_id' => $issue->id,
                 'published_at' => now(),
-            ])->save();
+            ];
+
+            $minter = app(DoiMinter::class);
+            if ($minter->isConfigured() && ! filled($lockedArticle->doi)) {
+                $data['doi'] = $minter->mint($lockedArticle);
+            }
+
+            $lockedArticle->fill($data)->save();
 
             OutboxEvent::log('article.published', $lockedArticle, [
                 'issue_id' => $issue->id,
+                'doi' => $lockedArticle->doi,
             ]);
 
             if (! $lockedArticle->wasRecentlyNotified('article.published')) {

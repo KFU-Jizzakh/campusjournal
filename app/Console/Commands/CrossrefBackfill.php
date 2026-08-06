@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\DepositArticleToCrossref;
 use App\Models\Article;
+use App\Services\Doi\DoiMinter;
 use Illuminate\Console\Command;
 
 /**
@@ -18,8 +19,14 @@ class CrossrefBackfill extends Command
 
     protected $description = 'Dispatch Crossref deposits for published articles without a registered DOI';
 
-    public function handle(): int
+    public function handle(DoiMinter $minter): int
     {
+        if (! $minter->isReady()) {
+            $this->error('Crossref is disabled or the prefix is not configured; DOI deposits are disabled.');
+
+            return self::FAILURE;
+        }
+
         $query = Article::query()
             ->published()
             ->whereNull('doi_registered_at');

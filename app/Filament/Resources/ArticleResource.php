@@ -8,6 +8,7 @@ use App\Filament\Resources\ArticleResource\Pages;
 use App\Jobs\DepositArticleToCrossref;
 use App\Models\Article;
 use App\Models\CrossrefDeposit;
+use App\Services\Doi\DoiMinter;
 use App\Services\Jats\JatsXmlBuilder;
 use Filament\Actions;
 use Filament\Forms;
@@ -159,6 +160,15 @@ class ArticleResource extends Resource
                     ->visible(fn (Article $record) => $record->status === ArticleStatus::Published && auth()->user()?->can('create', CrossrefDeposit::class))
                     ->requiresConfirmation()
                     ->action(function (Article $record) {
+                        if (! app(DoiMinter::class)->isReady()) {
+                            Notification::make()
+                                ->title('Crossref отключён или префикс DOI не настроен (CROSSREF_ENABLED / CROSSREF_PREFIX)')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
                         DepositArticleToCrossref::dispatch($record, auth()->id());
                         Notification::make()
                             ->title('Депонирование в Crossref поставлено в очередь')

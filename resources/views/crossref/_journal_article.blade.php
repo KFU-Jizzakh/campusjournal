@@ -49,9 +49,9 @@
             <first_page>{{ $article->pages }}</first_page>
         </pages>
     @endif
-    @if ($article->doi)
+    @if ($doi ?? $article->doi)
         <doi_data>
-            <doi>{{ $article->doi }}</doi>
+            <doi>{{ $doi ?? $article->doi }}</doi>
             <resource>{{ $resourceUrl }}</resource>
         </doi_data>
     @endif

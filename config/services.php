@@ -44,7 +44,7 @@ return [
         'depositor_name' => env('CROSSREF_DEPOSITOR_NAME'),
         'depositor_email' => env('CROSSREF_DEPOSITOR_EMAIL'),
         'registrant' => env('CROSSREF_REGISTRANT'),
-        'doi_pattern' => env('CROSSREF_DOI_PATTERN', '{prefix}/kfujournal.{year}.{volume}.{article_id}'),
+        'doi_suffix_length' => (int) env('CROSSREF_DOI_SUFFIX_LENGTH', 8),
         'crossmark' => [
             'policy_url' => env('CROSSMARK_POLICY_URL', rtrim(env('APP_URL', 'http://localhost'), '/').'/crossmark-policy'),
             'domains' => array_filter(explode(',', env('CROSSMARK_DOMAINS', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: ''))),

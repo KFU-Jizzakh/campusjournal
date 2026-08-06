@@ -13,7 +13,10 @@ beforeEach(function () {
 
 test('publishing dispatches deposit job when crossref enabled', function () {
     Queue::fake();
-    config(['services.crossref.enabled' => true]);
+    config([
+        'services.crossref.enabled' => true,
+        'services.crossref.prefix' => '10.12345',
+    ]);
 
     $eic = User::factory()->create();
     $eic->assignRole('editor-in-chief');
@@ -30,7 +33,30 @@ test('publishing dispatches deposit job when crossref enabled', function () {
 
 test('publishing does not dispatch when crossref disabled', function () {
     Queue::fake();
-    config(['services.crossref.enabled' => false]);
+    config([
+        'services.crossref.enabled' => false,
+        'services.crossref.prefix' => '10.12345',
+    ]);
+
+    $eic = User::factory()->create();
+    $eic->assignRole('editor-in-chief');
+
+    $issue = Issue::factory()->create();
+    $article = Article::factory()->approved()->create();
+
+    $this->actingAs($eic)
+        ->post(route('editorial.publish', $article), ['issue_id' => $issue->id])
+        ->assertRedirect();
+
+    Queue::assertNotPushed(DepositArticleToCrossref::class);
+});
+
+test('publishing does not dispatch when prefix is not configured', function () {
+    Queue::fake();
+    config([
+        'services.crossref.enabled' => true,
+        'services.crossref.prefix' => null,
+    ]);
 
     $eic = User::factory()->create();
     $eic->assignRole('editor-in-chief');

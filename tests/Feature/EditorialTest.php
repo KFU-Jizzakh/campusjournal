@@ -666,6 +666,46 @@ test('editor-in-chief can publish production article', function () {
         ->published_at->not->toBeNull();
 });
 
+test('publishing mints and persists an opaque DOI', function () {
+    config(['services.crossref.prefix' => '10.12345']);
+    $eic = createEic();
+    $issue = Issue::factory()->create();
+    $article = Article::factory()->approved()->create(['doi' => null]);
+
+    $this->actingAs($eic)
+        ->post(route('editorial.publish', $article), ['issue_id' => $issue->id])
+        ->assertRedirect();
+
+    $article->refresh();
+    expect($article->doi)->toMatch('/^10\.12345\/[a-z2-9]{8}$/');
+    expect($article->doi_registered_at)->toBeNull();
+});
+
+test('publishing without a configured prefix does not mint a DOI', function () {
+    config(['services.crossref.prefix' => null]);
+    $eic = createEic();
+    $issue = Issue::factory()->create();
+    $article = Article::factory()->approved()->create(['doi' => null]);
+
+    $this->actingAs($eic)
+        ->post(route('editorial.publish', $article), ['issue_id' => $issue->id])
+        ->assertRedirect();
+
+    expect($article->fresh()->doi)->toBeNull();
+});
+
+test('publishing preserves a manually set DOI', function () {
+    $eic = createEic();
+    $issue = Issue::factory()->create();
+    $article = Article::factory()->approved()->create(['doi' => '10.99999/preset']);
+
+    $this->actingAs($eic)
+        ->post(route('editorial.publish', $article), ['issue_id' => $issue->id])
+        ->assertRedirect();
+
+    expect($article->fresh()->doi)->toBe('10.99999/preset');
+});
+
 test('cannot publish accepted article directly', function () {
     $eic = createEic();
     $issue = Issue::factory()->create();

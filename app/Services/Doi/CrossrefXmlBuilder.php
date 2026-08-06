@@ -9,13 +9,15 @@ use Illuminate\Support\Facades\View;
  * PURPOSE: Renders Crossref deposit XML v5.3.1 from a
  * Blade template using article and issue metadata.
  * Crossmark metadata is always included; when an updateType
- * is provided, a <doi_updates> block is appended.
+ * is provided, a <doi_updates> block is appended. An explicit
+ * $doi overrides the article's stored DOI (used when the DOI
+ * was minted but could not be persisted yet).
  *
  * SPECIFICATION: SPEC-08/AC-4, SPEC-16/AC-5, SPEC-16/BR-7, SPEC-16/BR-8
  */
 class CrossrefXmlBuilder
 {
-    public function build(Article $article, string $batchId, ?string $updateType = null): string
+    public function build(Article $article, string $batchId, ?string $updateType = null, ?string $doi = null): string
     {
         $article->loadMissing(['authors', 'issue']);
 
@@ -34,6 +36,7 @@ class CrossrefXmlBuilder
             'article' => $article,
             'issue' => $article->issue,
             'authors' => $article->authors,
+            'doi' => $doi,
             'batchId' => $batchId,
             'timestamp' => now()->format('YmdHis'),
             'depositorName' => $config['depositor_name'] ?? 'Depositor',

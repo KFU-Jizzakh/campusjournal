@@ -13,6 +13,7 @@ use App\Models\Correction;
 use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\User;
+use App\Services\Doi\DoiMinter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -221,7 +222,7 @@ class EditorialController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        if (config('services.crossref.enabled')) {
+        if ($this->crossrefReady()) {
             DepositArticleToCrossref::dispatch($article->fresh(), $request->user()?->id);
         }
 
@@ -508,7 +509,7 @@ class EditorialController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        if (config('services.crossref.enabled')) {
+        if ($this->crossrefReady()) {
             DepositArticleToCrossref::dispatch($article->fresh(), $request->user()?->id, 'retraction');
         }
 
@@ -554,7 +555,7 @@ class EditorialController extends Controller
             ]);
         });
 
-        if (config('services.crossref.enabled')) {
+        if ($this->crossrefReady()) {
             DepositArticleToCrossref::dispatch($article->fresh()->load('corrections'), $request->user()?->id, 'correction');
         }
 
@@ -578,10 +579,22 @@ class EditorialController extends Controller
             Storage::disk('local')->delete($correction->file_path);
         }
 
-        if (config('services.crossref.enabled')) {
+        if ($this->crossrefReady()) {
             DepositArticleToCrossref::dispatch($article->fresh()->load('corrections'), $request->user()?->id, 'correction');
         }
 
         return back()->with('success', 'Исправление удалено.');
+    }
+
+    /**
+     * Whether a Crossref deposit can be dispatched: the service is
+     * enabled and the DOI prefix is configured. Used for both initial
+     * deposits on publication and Crossmark re-deposits.
+     *
+     * SPECIFICATION: SPEC-08/BR-1, SPEC-08/BR-2a, SPEC-16/AC-5
+     */
+    private function crossrefReady(): bool
+    {
+        return app(DoiMinter::class)->isReady();
     }
 }
