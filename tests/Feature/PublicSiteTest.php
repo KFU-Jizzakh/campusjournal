@@ -4,13 +4,10 @@ use App\Enums\ArticleFileLicense;
 use App\Enums\ArticleStatus;
 use App\Models\Article;
 use App\Models\ArticleAgreement;
-use App\Models\Author;
 use App\Models\Conference;
 use App\Models\CopyrightAgreement;
-use App\Models\EditorialBoardMember;
 use App\Models\Event;
 use App\Models\Issue;
-use App\Models\News;
 use App\Models\Page;
 use App\Models\User;
 
@@ -33,20 +30,29 @@ test('home page shows planned issues', function () {
         ->assertSee('Тематический номер тест');
 });
 
-test('home page shows news', function () {
-    News::factory()->create(['title' => 'Важная новость']);
-
-    $this->get(route('home'))
-        ->assertOk()
-        ->assertSee('Важная новость');
-});
-
 test('home page shows upcoming events', function () {
     Event::factory()->create(['title' => 'Будущая конференция']);
 
     $this->get(route('home'))
         ->assertOk()
         ->assertSee('Будущая конференция');
+});
+
+// --- Public nav ---
+
+test('public nav links to education and no longer to news or editorial board', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee(route('education'))
+        ->assertDontSee('/editorial-board')
+        ->assertDontSee('/news')
+        ->assertDontSee('Редколлегия')
+        ->assertDontSee('Новости');
+});
+
+test('removed sections return 404', function () {
+    $this->get('/news')->assertNotFound();
+    $this->get('/editorial-board')->assertNotFound();
 });
 
 // --- Issues ---
@@ -177,47 +183,6 @@ test('published article with agreement but no license set does not show license 
         ->assertDontSee(ArticleFileLicense::CcBy->label());
 });
 
-// --- Editorial board ---
-
-test('editorial board page loads', function () {
-    $this->get(route('editorial-board'))->assertOk();
-});
-
-test('editorial board shows members', function () {
-    $author = Author::factory()->create(['full_name' => 'Профессор Тестов']);
-    EditorialBoardMember::factory()->create(['author_id' => $author->id]);
-
-    $this->get(route('editorial-board'))
-        ->assertOk()
-        ->assertSee('Профессор Тестов');
-});
-
-// --- News ---
-
-test('news index shows published news', function () {
-    News::factory()->create(['title' => 'Published News']);
-    News::factory()->unpublished()->create(['title' => 'Draft News']);
-
-    $response = $this->get(route('news.index'));
-    $response->assertOk();
-    $response->assertSee('Published News');
-    $response->assertDontSee('Draft News');
-});
-
-test('published news can be viewed', function () {
-    $news = News::factory()->create(['title' => 'Test News Detail']);
-
-    $this->get(route('news.show', $news))
-        ->assertOk()
-        ->assertSee('Test News Detail');
-});
-
-test('unpublished news returns 404', function () {
-    $news = News::factory()->unpublished()->create();
-
-    $this->get(route('news.show', $news))->assertNotFound();
-});
-
 // --- Events ---
 
 test('events page loads', function () {
@@ -244,6 +209,19 @@ test('about page loads', function () {
         ->assertSee('О журнале');
 });
 
+test('about page shows editorial board section', function () {
+    Page::factory()->create([
+        'slug' => 'about',
+        'title' => 'О журнале',
+        'body' => '<h2>Редакционная коллегия</h2><ul><li><strong>Галимов Алмаз Мирзанурович</strong> — главный редактор.</li></ul>',
+    ]);
+
+    $this->get(route('about'))
+        ->assertOk()
+        ->assertSee('Редакционная коллегия')
+        ->assertSee('Галимов Алмаз Мирзанурович');
+});
+
 test('for-authors page loads', function () {
     Page::factory()->create(['slug' => 'for-authors', 'title' => 'Для авторов']);
 
@@ -258,6 +236,19 @@ test('contacts page loads', function () {
     $this->get(route('contacts'))
         ->assertOk()
         ->assertSee('Контакты');
+});
+
+test('education page loads', function () {
+    Page::factory()->create([
+        'slug' => 'education',
+        'title' => 'Образование',
+        'body' => '<h2>Повышение квалификации</h2><p>Программы для преподавателей.</p>',
+    ]);
+
+    $this->get(route('education'))
+        ->assertOk()
+        ->assertSee('Образование')
+        ->assertSee('Повышение квалификации');
 });
 
 // --- Conferences ---
@@ -305,4 +296,8 @@ test('past conferences are shown', function () {
 
 test('about page returns 404 when page not in db', function () {
     $this->get(route('about'))->assertNotFound();
+});
+
+test('education page returns 404 when page not in db', function () {
+    $this->get(route('education'))->assertNotFound();
 });

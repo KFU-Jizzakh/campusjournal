@@ -8,7 +8,7 @@ Status: IMPLEMENTED
 
 ## Acceptance Criteria
 
-- AC-1: The static sitemap.xml serves all public URLs (articles, issues, authors, news, conferences, events, OAI)
+- AC-1: The static sitemap.xml serves all public URLs (articles, issues, authors, conferences, events, OAI)
 - AC-2: The sitemap generation command collects URLs and writes sitemap.xml
 - AC-3: The robots.txt generation command creates the file with a link to the sitemap
 - AC-4: On the article page, citation_* meta tags for Google Scholar are output in the head
@@ -36,7 +36,7 @@ Status: IMPLEMENTED
 
 #### Scenario: Sitemap generation
 
-Given the system has published articles, issues, authors with publications, news, conferences, events
+Given the system has published articles, issues, authors with publications, conferences, events
 When  the administrator runs the sitemap generation command
 Then  sitemap.xml is created with all public URLs
 And   for each URL, priority and changefreq are specified

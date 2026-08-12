@@ -21,11 +21,6 @@ return [
     'articles_empty' => 'Статьи пока не опубликованы. Следите за обновлениями.',
     'articles_back' => 'Все статьи',
 
-    'news_title' => 'Новости — Global Campus RU',
-    'news_heading' => 'Новости',
-    'news_empty' => 'Новостей пока нет.',
-    'news_back' => 'Все новости',
-
     'events_title' => 'События — Global Campus RU',
     'events_heading' => 'События',
     'events_upcoming' => 'Предстоящие события',
@@ -40,10 +35,6 @@ return [
     'conferences_empty' => 'Конференции пока не запланированы.',
     'conferences_back' => 'Все конференции',
     'conferences_site' => 'Сайт конференции',
-
-    'editorial_board_title' => 'Редколлегия — Global Campus RU',
-    'editorial_board_heading' => 'Редакционная коллегия',
-    'editorial_board_empty' => 'Информация о редколлегии будет опубликована позже.',
 
     'search_title' => 'Поиск — Global Campus RU',
     'search_title_query' => 'Поиск: :query — Global Campus RU',

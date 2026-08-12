@@ -6,7 +6,6 @@ use App\Enums\ArticleStatus;
 use App\Models\Article;
 use App\Models\Author;
 use App\Models\Issue;
-use App\Models\News;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -24,7 +23,6 @@ afterEach(function () {
 it('generates sitemap xml via command', function () {
     $issue = Issue::factory()->create(['status' => 'published', 'published_at' => now()]);
     $article = Article::factory()->published()->create(['issue_id' => $issue->id]);
-    $news = News::factory()->create(['is_published' => true, 'published_at' => now()]);
     $author = Author::factory()->create();
     $author->articles()->attach($article->id, ['order' => 1]);
 
@@ -35,9 +33,9 @@ it('generates sitemap xml via command', function () {
     $content = File::get(public_path('sitemap.xml'));
 
     expect($content)
+        ->toContain(url('/education'))
         ->toContain(url('/articles/'.$article->id))
         ->toContain(url('/issues/'.$issue->id))
-        ->toContain(url('/news/'.$news->id))
         ->toContain(url('/authors/'.$author->id));
 });
 

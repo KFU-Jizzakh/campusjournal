@@ -4,7 +4,7 @@ The journal must expose dedicated policy pages — Peer Review Process, Publicat
 
 Depends on: —
 
-Status: PLANNED
+Status: IMPLEMENTED
 
 ## Acceptance Criteria
 

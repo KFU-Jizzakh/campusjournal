@@ -60,30 +60,6 @@
     </section>
     @endif
 
-    {{-- News --}}
-    @if($news->isNotEmpty())
-    <section class="py-12 lg:py-16 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-2xl lg:text-3xl font-bold font-serif text-primary mb-8 text-center">{{ __('nav.news') }}</h2>
-            <div class="grid md:grid-cols-3 gap-6">
-                @foreach($news as $item)
-                <article class="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition flex flex-col">
-                    <time class="text-sm text-gray-500">{{ $item->published_at?->format('d.m.Y') }}</time>
-                    <h3 class="font-bold text-lg text-gray-900 mt-2 mb-3 leading-snug flex-1">
-                        <a href="{{ route('news.show', $item) }}" class="hover:text-primary transition">{{ $item->title }}</a>
-                    </h3>
-                    <p class="text-sm text-gray-600 leading-relaxed">{{ Str::limit(strip_tags($item->body), 150) }}</p>
-                    <a href="{{ route('news.show', $item) }}" class="inline-block mt-4 text-sm text-primary font-semibold hover:underline">{{ __('site.read_more') }}</a>
-                </article>
-                @endforeach
-            </div>
-            <div class="text-center mt-8">
-                <a href="{{ route('news.index') }}" class="text-primary font-semibold hover:underline">{{ __('site.all_news') }}</a>
-            </div>
-        </div>
-    </section>
-    @endif
-
     {{-- Events --}}
     @if($events->isNotEmpty())
     <section class="py-12 lg:py-16">

@@ -6,10 +6,10 @@ use App\Models\Page;
 
 /**
  * PURPOSE: Serves static CMS pages (About, For Authors,
- * Contacts, Join, Peer Review, Publication Ethics, Archiving)
+ * Contacts, Join, Peer Review, Publication Ethics, Archiving, Education)
  * by slug lookup.
  *
- * SPECIFICATION: SPEC-20
+ * SPECIFICATION: SPEC-20, SPEC-21
  */
 class PageController extends Controller
 {
@@ -25,6 +25,19 @@ class PageController extends Controller
         $page = Page::where('slug', 'for-authors')->firstOrFail();
 
         return view('pages.for-authors', compact('page'));
+    }
+
+    /**
+     * PURPOSE: Renders the education section page listing
+     * the journal's educational services.
+     *
+     * SPECIFICATION: SPEC-21
+     */
+    public function education()
+    {
+        $page = Page::where('slug', 'education')->firstOrFail();
+
+        return view('pages.show', compact('page'));
     }
 
     public function contacts()

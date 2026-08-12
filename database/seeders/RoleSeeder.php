@@ -18,7 +18,6 @@ class RoleSeeder extends Seeder
             'publish-issue',
             'manage-users',
             'manage-settings',
-            'manage-editorial-board',
             'manage-content',
             'manage-submissions',
             'manage-doi',
@@ -35,7 +34,6 @@ class RoleSeeder extends Seeder
             'manage-section',
             'manage-issue',
             'publish-issue',
-            'manage-editorial-board',
             'manage-submissions',
             'manage-doi',
         ];

@@ -79,9 +79,8 @@
                     <a href="{{ route('about') }}" class="hover:text-gray-300 {{ request()->routeIs('about') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.about') }}</a>
                     <a href="{{ route('issues.index') }}" class="hover:text-gray-300 {{ request()->routeIs('issues.*') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.issues') }}</a>
                     <a href="{{ route('articles.index') }}" class="hover:text-gray-300 {{ request()->routeIs('articles.*') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.articles') }}</a>
-                    <a href="{{ route('editorial-board') }}" class="hover:text-gray-300 {{ request()->routeIs('editorial-board') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.editorial_board') }}</a>
                     <a href="{{ route('for-authors') }}" class="hover:text-gray-300 {{ request()->routeIs('for-authors') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.for_authors') }}</a>
-                    <a href="{{ route('news.index') }}" class="hover:text-gray-300 {{ request()->routeIs('news.*') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.news') }}</a>
+                    <a href="{{ route('education') }}" class="hover:text-gray-300 {{ request()->routeIs('education') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.education') }}</a>
                     <a href="{{ route('conferences.index') }}" class="hover:text-gray-300 {{ request()->routeIs('conferences.*') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.conferences') }}</a>
                     <a href="{{ route('events.index') }}" class="hover:text-gray-300 {{ request()->routeIs('events.*') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.events') }}</a>
                     <a href="{{ route('contacts') }}" class="hover:text-gray-300 {{ request()->routeIs('contacts') ? 'text-white font-semibold border-b-2 border-white pb-1' : '' }}">{{ __('nav.contacts') }}</a>
@@ -113,9 +112,8 @@
                 <a href="{{ route('about') }}" class="block py-2 hover:text-gray-300">{{ __('nav.about') }}</a>
                 <a href="{{ route('issues.index') }}" class="block py-2 hover:text-gray-300">{{ __('nav.issues') }}</a>
                 <a href="{{ route('articles.index') }}" class="block py-2 hover:text-gray-300">{{ __('nav.articles') }}</a>
-                <a href="{{ route('editorial-board') }}" class="block py-2 hover:text-gray-300">{{ __('nav.editorial_board') }}</a>
                 <a href="{{ route('for-authors') }}" class="block py-2 hover:text-gray-300">{{ __('nav.for_authors') }}</a>
-                <a href="{{ route('news.index') }}" class="block py-2 hover:text-gray-300">{{ __('nav.news') }}</a>
+                <a href="{{ route('education') }}" class="block py-2 hover:text-gray-300">{{ __('nav.education') }}</a>
                 <a href="{{ route('conferences.index') }}" class="block py-2 hover:text-gray-300">{{ __('nav.conferences') }}</a>
                 <a href="{{ route('events.index') }}" class="block py-2 hover:text-gray-300">{{ __('nav.events') }}</a>
                 <a href="{{ route('contacts') }}" class="block py-2 hover:text-gray-300">{{ __('nav.contacts') }}</a>
@@ -158,9 +156,8 @@
                         <li><a href="{{ route('about') }}" class="hover:text-white">{{ __('nav.about') }}</a></li>
                         <li><a href="{{ route('issues.index') }}" class="hover:text-white">{{ __('nav.issues') }}</a></li>
                         <li><a href="{{ route('articles.index') }}" class="hover:text-white">{{ __('nav.articles') }}</a></li>
-                        <li><a href="{{ route('editorial-board') }}" class="hover:text-white">{{ __('nav.editorial_board') }}</a></li>
                         <li><a href="{{ route('for-authors') }}" class="hover:text-white">{{ __('nav.for_authors') }}</a></li>
-                        <li><a href="{{ route('news.index') }}" class="hover:text-white">{{ __('nav.news') }}</a></li>
+                        <li><a href="{{ route('education') }}" class="hover:text-white">{{ __('nav.education') }}</a></li>
                         <li><a href="{{ route('conferences.index') }}" class="hover:text-white">{{ __('nav.conferences') }}</a></li>
                         <li><a href="{{ route('events.index') }}" class="hover:text-white">{{ __('nav.events') }}</a></li>
                         <li><a href="{{ route('contacts') }}" class="hover:text-white">{{ __('nav.contacts') }}</a></li>

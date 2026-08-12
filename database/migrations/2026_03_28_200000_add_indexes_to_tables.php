@@ -42,12 +42,6 @@ return new class extends Migration
                 $table->index('event_date');
             }
         });
-
-        Schema::table('news', function (Blueprint $table) {
-            if (! $this->indexExists('news', 'is_published')) {
-                $table->index('is_published');
-            }
-        });
     }
 
     public function down(): void
@@ -70,10 +64,6 @@ return new class extends Migration
         Schema::table('events', function (Blueprint $table) {
             $table->dropIndexIfExists(['is_published']);
             $table->dropIndexIfExists(['event_date']);
-        });
-
-        Schema::table('news', function (Blueprint $table) {
-            $table->dropIndexIfExists(['is_published']);
         });
     }
 

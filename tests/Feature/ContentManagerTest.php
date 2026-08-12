@@ -4,15 +4,12 @@ use App\Filament\Resources\ConferenceResource\Pages\CreateConference;
 use App\Filament\Resources\ConferenceResource\Pages\EditConference;
 use App\Filament\Resources\EventResource\Pages\CreateEvent;
 use App\Filament\Resources\EventResource\Pages\EditEvent;
-use App\Filament\Resources\NewsResource\Pages\CreateNews;
-use App\Filament\Resources\NewsResource\Pages\EditNews;
 use App\Filament\Resources\OrganizationResource\Pages\CreateOrganization;
 use App\Filament\Resources\OrganizationResource\Pages\EditOrganization;
 use App\Filament\Resources\PageResource\Pages\CreatePage;
 use App\Filament\Resources\PageResource\Pages\EditPage;
 use App\Models\Conference;
 use App\Models\Event;
-use App\Models\News;
 use App\Models\Organization;
 use App\Models\Page;
 use App\Models\User;
@@ -23,7 +20,7 @@ beforeEach(function () {
     $this->seed(RoleSeeder::class);
 });
 
-// --- Panel Access (SPEC-19/AC-2, AC-12) ---
+// --- Panel Access (SPEC-19/AC-2, AC-11) ---
 
 test('content-manager can access filament panel', function () {
     $user = User::factory()->create();
@@ -85,16 +82,7 @@ test('guest cannot access filament panel', function () {
     expect($response->status())->toBeIn([302, 403]);
 });
 
-// --- Content Resource Access (SPEC-19/AC-4, AC-5, AC-6, AC-7, AC-8) ---
-
-test('content-manager can access news', function () {
-    $user = User::factory()->create();
-    $user->assignRole('content-manager');
-
-    $this->actingAs($user)
-        ->get('/admin/news')
-        ->assertOk();
-});
+// --- Content Resource Access (SPEC-19/AC-3, AC-4, AC-5, AC-6) ---
 
 test('content-manager can access events', function () {
     $user = User::factory()->create();
@@ -132,7 +120,7 @@ test('content-manager can access organisations', function () {
         ->assertOk();
 });
 
-// --- Restricted Resource Access (SPEC-19/AC-9, AC-10, AC-11) ---
+// --- Restricted Resource Access (SPEC-19/AC-8, AC-9, AC-10) ---
 
 test('content-manager cannot access articles', function () {
     $user = User::factory()->create();
@@ -170,15 +158,6 @@ test('content-manager cannot access authors', function () {
         ->assertForbidden();
 });
 
-test('content-manager cannot access editorial board members', function () {
-    $user = User::factory()->create();
-    $user->assignRole('content-manager');
-
-    $this->actingAs($user)
-        ->get('/admin/editorial-board-members')
-        ->assertForbidden();
-});
-
 test('content-manager cannot access reviews', function () {
     $user = User::factory()->create();
     $user->assignRole('content-manager');
@@ -206,7 +185,7 @@ test('content-manager cannot access copyright agreements', function () {
         ->assertForbidden();
 });
 
-// --- Combined Roles (SPEC-19/AC-14) ---
+// --- Combined Roles (SPEC-19/AC-13) ---
 
 test('user with admin and content-manager roles can access all resources', function () {
     $user = User::factory()->create();
@@ -222,15 +201,7 @@ test('user with admin and content-manager roles can access all resources', funct
         ->assertOk();
 });
 
-// --- Create Page Access (SPEC-19/AC-4, AC-5, AC-6, AC-7, AC-8) ---
-
-test('content-manager can access news create page', function () {
-    $user = User::factory()->create()->assignRole('content-manager');
-
-    $this->actingAs($user)
-        ->get('/admin/news/create')
-        ->assertOk();
-});
+// --- Create Page Access (SPEC-19/AC-3, AC-4, AC-5, AC-6) ---
 
 test('content-manager can access events create page', function () {
     $user = User::factory()->create()->assignRole('content-manager');
@@ -264,23 +235,7 @@ test('content-manager can access organizations create page', function () {
         ->assertOk();
 });
 
-// --- Create via Livewire (SPEC-19/AC-4, AC-5, AC-6, AC-7, AC-8) ---
-
-test('content-manager can create news', function () {
-    $user = User::factory()->create()->assignRole('content-manager');
-
-    Livewire::actingAs($user)
-        ->test(CreateNews::class)
-        ->fillForm([
-            'title' => 'Test News Title',
-            'body' => '<p>Test body</p>',
-            'is_published' => true,
-        ])
-        ->call('create')
-        ->assertHasNoFormErrors();
-
-    $this->assertDatabaseHas('news', ['title' => 'Test News Title']);
-});
+// --- Create via Livewire (SPEC-19/AC-3, AC-4, AC-5, AC-6) ---
 
 test('content-manager can create event', function () {
     $user = User::factory()->create()->assignRole('content-manager');
@@ -350,16 +305,7 @@ test('content-manager can create organization', function () {
     $this->assertDatabaseHas('organizations', ['name' => 'Test Organization']);
 });
 
-// --- Edit Page Access (SPEC-19/AC-4, AC-5, AC-6, AC-7, AC-8) ---
-
-test('content-manager can access news edit page', function () {
-    $user = User::factory()->create()->assignRole('content-manager');
-    $news = News::factory()->create();
-
-    $this->actingAs($user)
-        ->get("/admin/news/{$news->id}/edit")
-        ->assertOk();
-});
+// --- Edit Page Access (SPEC-19/AC-3, AC-4, AC-5, AC-6) ---
 
 test('content-manager can access events edit page', function () {
     $user = User::factory()->create()->assignRole('content-manager');
@@ -397,20 +343,7 @@ test('content-manager can access organizations edit page', function () {
         ->assertOk();
 });
 
-// --- Update via Livewire (SPEC-19/AC-4, AC-5, AC-6, AC-7, AC-8) ---
-
-test('content-manager can update news', function () {
-    $user = User::factory()->create()->assignRole('content-manager');
-    $news = News::factory()->create(['title' => 'Original Title']);
-
-    Livewire::actingAs($user)
-        ->test(EditNews::class, ['record' => $news->id])
-        ->fillForm(['title' => 'Updated News Title'])
-        ->call('save')
-        ->assertHasNoFormErrors();
-
-    expect($news->fresh()->title)->toBe('Updated News Title');
-});
+// --- Update via Livewire (SPEC-19/AC-3, AC-4, AC-5, AC-6) ---
 
 test('content-manager can update event', function () {
     $user = User::factory()->create()->assignRole('content-manager');
@@ -464,18 +397,7 @@ test('content-manager can update organization', function () {
     expect($organization->fresh()->name)->toBe('Updated Org Name');
 });
 
-// --- Delete via Livewire (SPEC-19/AC-4, AC-5, AC-6, AC-7, AC-8) ---
-
-test('content-manager can delete news', function () {
-    $user = User::factory()->create()->assignRole('content-manager');
-    $news = News::factory()->create();
-
-    Livewire::actingAs($user)
-        ->test(EditNews::class, ['record' => $news->id])
-        ->callAction('delete');
-
-    $this->assertSoftDeleted('news', ['id' => $news->id]);
-});
+// --- Delete via Livewire (SPEC-19/AC-3, AC-4, AC-5, AC-6) ---
 
 test('content-manager can delete event', function () {
     $user = User::factory()->create()->assignRole('content-manager');
@@ -522,18 +444,6 @@ test('content-manager can delete organization', function () {
 });
 
 // --- Validation ---
-
-test('content-manager cannot create news without title', function () {
-    $user = User::factory()->create()->assignRole('content-manager');
-
-    Livewire::actingAs($user)
-        ->test(CreateNews::class)
-        ->fillForm([
-            'body' => '<p>Body without title</p>',
-        ])
-        ->call('create')
-        ->assertHasFormErrors(['title']);
-});
 
 // --- Restricted Create Page Access ---
 

@@ -6,7 +6,6 @@ use App\Models\Article;
 use App\Models\Author;
 use App\Models\Conference;
 use App\Models\Issue;
-use App\Models\News;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
@@ -15,7 +14,7 @@ use Illuminate\Support\Facades\View;
  * PURPOSE: Generates public/sitemap.xml with all public URLs
  * using low-memory cursor() traversal.
  *
- * SPECIFICATION: SPEC-11/AC-1, SPEC-11/AC-2
+ * SPECIFICATION: SPEC-11/AC-1, SPEC-11/AC-2, SPEC-21/AC-7
  */
 class GenerateSitemap extends Command
 {
@@ -29,12 +28,11 @@ class GenerateSitemap extends Command
             ['loc' => route('home'), 'changefreq' => 'daily', 'priority' => '1.0'],
             ['loc' => route('about'), 'changefreq' => 'monthly', 'priority' => '0.5'],
             ['loc' => route('for-authors'), 'changefreq' => 'monthly', 'priority' => '0.5'],
+            ['loc' => route('education'), 'changefreq' => 'monthly', 'priority' => '0.5'],
             ['loc' => route('contacts'), 'changefreq' => 'monthly', 'priority' => '0.5'],
-            ['loc' => route('editorial-board'), 'changefreq' => 'monthly', 'priority' => '0.5'],
             ['loc' => route('search'), 'changefreq' => 'monthly', 'priority' => '0.3'],
             ['loc' => route('issues.index'), 'changefreq' => 'weekly', 'priority' => '0.8'],
             ['loc' => route('articles.index'), 'changefreq' => 'weekly', 'priority' => '0.8'],
-            ['loc' => route('news.index'), 'changefreq' => 'weekly', 'priority' => '0.6'],
             ['loc' => route('events.index'), 'changefreq' => 'weekly', 'priority' => '0.6'],
             ['loc' => route('conferences.index'), 'changefreq' => 'weekly', 'priority' => '0.6'],
             ['loc' => route('oai'), 'changefreq' => 'monthly', 'priority' => '0.4'],
@@ -58,15 +56,6 @@ class GenerateSitemap extends Command
                 'priority' => '0.8',
             ]);
 
-        $news = News::published()
-            ->cursor()
-            ->map(fn (News $newsItem) => [
-                'loc' => route('news.show', $newsItem),
-                'lastmod' => $newsItem->published_at?->toDateString(),
-                'changefreq' => 'monthly',
-                'priority' => '0.6',
-            ]);
-
         $conferences = Conference::published()
             ->cursor()
             ->map(fn (Conference $conference) => [
@@ -88,7 +77,6 @@ class GenerateSitemap extends Command
         $urls = $urls
             ->merge($issues)
             ->merge($articles)
-            ->merge($news)
             ->merge($conferences)
             ->merge($authors);
 

@@ -5,7 +5,6 @@ return [
     'educational_orgs' => 'Образовательные организации',
     'go_to_site' => 'Перейти на сайт',
     'read_more' => 'Читать далее →',
-    'all_news' => 'Все новости',
     'all_events' => 'Все события',
     'submit_article' => 'Подать статью',
     'details' => 'Подробнее',

@@ -72,12 +72,17 @@ php artisan test tests/Feature/ProfileTest.php
 php artisan migrate:fresh --seed
 ```
 
+> **Deploy note:** the News and Editorial Board removals take effect on
+> already-provisioned databases with the next `php artisan migrate:fresh --seed`.
+> Orphaned `news` and `editorial_board_members` tables left by older schemas
+> are inert (no model or resource references them) and can be dropped manually.
+
 
 # Architecture
 
 ## Two distinct surfaces
 
-**Public site** (`/`, `/issues`, `/articles`, `/editorial-board`, `/events`, `/news`, `/about`, `/for-authors`, `/contacts`, `/join`) — anonymous access, read-only, served by controllers in `app/Http/Controllers/`.
+**Public site** (`/`, `/issues`, `/articles`, `/education`, `/events`, `/about`, `/for-authors`, `/contacts`, `/join`) — anonymous access, read-only, served by controllers in `app/Http/Controllers/`.
 
 **Dashboard** (`/dashboard/*`) — authenticated, permission-gated, served by controllers in `app/Http/Controllers/Dashboard/`. Three sub-areas:
 - `/dashboard/articles/*` — requires `submit-article` permission → `SubmissionController`
