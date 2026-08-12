@@ -1,6 +1,6 @@
-# SPEC-10: JATS XML Export
+# SPEC-10: Article Export (JATS, BibTeX, RIS)
 
-Export an article in JATS/NLM Publishing Tag Set 1.3 format — for aggregators, archives (PMC-style), and external systems. Available via a public URL and OAI-PMH. Supports uploading a pre-built JATS XML to replace the auto-generated one.
+Export an article in JATS/NLM Publishing Tag Set 1.3 format — for aggregators, archives (PMC-style), and external systems. Available via a public URL and OAI-PMH. Supports uploading a pre-built JATS XML to replace the auto-generated one. Articles can also be exported as BibTeX and RIS citations.
 
 Depends on: SPEC-04
 
@@ -17,12 +17,15 @@ Status: IMPLEMENTED
 - AC-7: Article references from the structured `references` table are rendered as a `<ref-list>` block with individual `<ref>` elements; each `<ref>` contains `<mixed-citation>` text and `<pub-id pub-id-type="doi">` when a DOI is available
 
 - AC-8: Journal ISSN (print and electronic) is read from the `journal_issn_print` and `journal_issn_electronic` site settings, output as `<issn pub-type="ppub">` and `<issn pub-type="epub">` respectively
+- AC-9: A published article can be exported to BibTeX; the citation key is formed from the `bibtex_key_prefix` site setting (empty by default) prepended to the article id
+- AC-10: A published article can be exported to RIS
 
 ## UI/UX Notes
 
 - Public export — only for articles in "Published" status
 - Response with Content-Disposition: attachment header with a filename
 - In Filament admin — a warning if the uploaded JATS override contains XML errors
+- The BibTeX key prefix is configured in Site Settings; only letters, digits, hyphens and underscores are accepted
 
 ## Business Rules
 
@@ -30,6 +33,8 @@ Status: IMPLEMENTED
 - BR-2: On parsing error of the uploaded JATS — fallback to generation, the user is not blocked
 - BR-3: Author affiliations are deduplicated by organization name
 - BR-4: The electronic ISSN (`journal_issn_electronic` site setting) is used for `pub-type="epub"`; the print ISSN (`journal_issn_print` site setting) for `pub-type="ppub"`
+- BR-5: The BibTeX citation key prefix is read from the `bibtex_key_prefix` site setting; when unset, no prefix is prepended
+- BR-6: The `bibtex_key_prefix` setting accepts only `[A-Za-z0-9_-]` characters; empty is allowed
 
 ## Behavior
 
@@ -88,3 +93,29 @@ And   `<pub-id pub-id-type="doi">` is present for references with a DOI
 Given a published article has no references
 When  the client requests the JATS export
 Then  a self-closing `<back/>` element is output
+
+### Rule: BibTeX export (AC-9, BR-5)
+
+#### Scenario: Export with a configured key prefix
+
+Given a published article exists
+And   the `bibtex_key_prefix` site setting is set to `gcru`
+When  the client requests the BibTeX export URL
+Then  an `@article` entry is returned with the citation key `gcru{article-id}`
+And   the response header contains Content-Disposition: attachment
+
+#### Scenario: Export without a configured key prefix
+
+Given a published article exists
+And   the `bibtex_key_prefix` site setting is empty
+When  the client requests the BibTeX export URL
+Then  the citation key is just the article id (no prefix)
+
+### Rule: RIS export (AC-10)
+
+#### Scenario: Export an article as RIS
+
+Given a published article exists
+When  the client requests the RIS export URL
+Then  a valid RIS record is returned with `TY`, `TI`, `AU`, `JO` and `ER` tags
+And   the response header contains Content-Disposition: attachment

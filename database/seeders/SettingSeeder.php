@@ -21,6 +21,7 @@ class SettingSeeder extends Seeder
             'review_deadline_days' => '30',
             'journal_issn_print' => '',
             'journal_issn_electronic' => '',
+            'bibtex_key_prefix' => '',
         ];
 
         foreach ($defaults as $key => $value) {

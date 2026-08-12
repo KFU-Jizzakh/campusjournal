@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Setting;
+use App\Rules\BibtexKeyPrefix;
 use App\Rules\Issn;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -43,6 +44,7 @@ class SiteSettings extends Page
             'review_deadline_days' => Setting::get('review_deadline_days', '30'),
             'journal_issn_print' => Setting::get('journal_issn_print', ''),
             'journal_issn_electronic' => Setting::get('journal_issn_electronic', ''),
+            'bibtex_key_prefix' => Setting::get('bibtex_key_prefix', ''),
         ]);
     }
 
@@ -114,6 +116,11 @@ class SiteSettings extends Page
                             ->rules([new Issn])
                             ->maxLength(9)
                             ->placeholder('1234-5679'),
+                        TextInput::make('bibtex_key_prefix')
+                            ->label('Префикс ключей BibTeX')
+                            ->rules([new BibtexKeyPrefix])
+                            ->maxLength(32)
+                            ->placeholder('gcru'),
                     ])->columns(2),
             ])
             ->statePath('data');

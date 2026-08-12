@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * PDF downloads, BibTeX/RIS/JATS exports, and blinded PDF
  * access for double-blind reviewers.
  *
- * SPECIFICATION: SPEC-10/AC-1, SPEC-11/AC-4, SPEC-11/AC-5, SPEC-18/AC-1, SPEC-18/AC-2
+ * SPECIFICATION: SPEC-10/AC-1, SPEC-10/AC-9, SPEC-10/AC-10, SPEC-11/AC-4, SPEC-11/AC-5, SPEC-18/AC-1, SPEC-18/AC-2
  */
 class ArticleController extends Controller
 {
@@ -86,6 +86,14 @@ class ArticleController extends Controller
         return view('articles.show', compact('article', 'authorArticles', 'authorIssues', 'publicationLicense', 'printIssn', 'electronicIssn'));
     }
 
+    /**
+     * Export a published article as a BibTeX entry.
+     *
+     * The citation key is the `bibtex_key_prefix` site setting
+     * (empty by default) prepended to the article id.
+     *
+     * SPECIFICATION: SPEC-10/AC-9, SPEC-10/BR-5
+     */
     public function exportBibtex(Article $article)
     {
         abort_unless(in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted]), 404);
@@ -97,7 +105,7 @@ class ArticleController extends Controller
             $s,
         );
 
-        $key = 'gcru'.$article->id;
+        $key = Setting::get('bibtex_key_prefix', '').$article->id;
         $authors = $escape($article->authors->pluck('full_name')->implode(' and '));
         $year = $article->issue?->year ?? $article->published_at?->year ?? '';
         $abstract = $article->abstract_en ?: $article->abstract_ru ?: '';
@@ -130,6 +138,11 @@ class ArticleController extends Controller
         ]);
     }
 
+    /**
+     * Export a published article as a RIS record.
+     *
+     * SPECIFICATION: SPEC-10/AC-10
+     */
     public function exportRis(Article $article)
     {
         abort_unless(in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted]), 404);

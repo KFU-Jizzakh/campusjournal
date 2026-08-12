@@ -4,6 +4,7 @@ use App\Enums\ArticleStatus;
 use App\Models\Article;
 use App\Models\Author;
 use App\Models\Issue;
+use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -23,11 +24,21 @@ it('exports bibtex for a published article', function () {
     $response->assertOk();
     $response->assertHeader('Content-Type', 'application/x-bibtex; charset=utf-8');
     $content = $response->getContent();
-    expect($content)->toContain('@article{gcru'.$article->id);
+    expect($content)->toContain('@article{'.$article->id);
     expect($content)->toContain('author    = {John Doe}');
     expect($content)->toContain('Test \\& Title with \\#special chars');
     expect($content)->toContain('doi       = {10.1234/test}');
     expect($content)->toContain('volume    = {2}');
+});
+
+it('uses the configured bibtex key prefix', function () {
+    Setting::set('bibtex_key_prefix', 'abc');
+    $article = Article::factory()->published()->create();
+
+    $response = $this->get("/articles/{$article->id}/export/bibtex");
+
+    $response->assertOk();
+    expect($response->getContent())->toContain('@article{abc'.$article->id);
 });
 
 it('exports ris for a published article', function () {
