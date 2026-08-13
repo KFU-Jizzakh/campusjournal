@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\CrossrefConfig;
+
 return [
 
     /*
@@ -46,8 +48,10 @@ return [
         'registrant' => env('CROSSREF_REGISTRANT'),
         'doi_suffix_length' => (int) env('CROSSREF_DOI_SUFFIX_LENGTH', 8),
         'crossmark' => [
-            'policy_url' => env('CROSSMARK_POLICY_URL', rtrim(env('APP_URL', 'http://localhost'), '/').'/crossmark-policy'),
-            'domains' => array_filter(explode(',', env('CROSSMARK_DOMAINS', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: ''))),
+            'policy_doi' => CrossrefConfig::policyDoi(env('CROSSMARK_POLICY_DOI'), env('CROSSMARK_POLICY_URL')),
+            'policy_doi_misconfigured' => CrossrefConfig::misconfigured(env('CROSSMARK_POLICY_DOI'), env('CROSSMARK_POLICY_URL')),
+            'policy_doi_invalid_variable' => CrossrefConfig::invalidVariable(env('CROSSMARK_POLICY_DOI'), env('CROSSMARK_POLICY_URL')),
+            'domains' => CrossrefConfig::domains(env('CROSSMARK_DOMAINS') ?: parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: ''),
         ],
     ],
 

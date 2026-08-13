@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Setting;
+use App\Support\CrossrefConfig;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\URL;
@@ -45,6 +46,8 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') !== 'local') {
             URL::forceScheme('https');
         }
+
+        CrossrefConfig::warnIfMisconfigured();
 
         Model::shouldBeStrict(! $this->app->isProduction());
     }

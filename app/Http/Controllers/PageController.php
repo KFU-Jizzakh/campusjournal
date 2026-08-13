@@ -54,11 +54,8 @@ class PageController extends Controller
 
     public function crossmarkPolicy()
     {
-        $config = config('services.crossref.crossmark');
-
         return view('pages.crossmark-policy', [
-            'policyUrl' => $config['policy_url'] ?? '',
-            'domains' => $config['domains'] ?? [],
+            'domains' => config('services.crossref.crossmark.domains', []),
         ]);
     }
 
