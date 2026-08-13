@@ -509,7 +509,11 @@ class EditorialController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        if ($this->crossrefReady()) {
+        if ($this->crossrefReady() && ! $this->crossmarkConfigured()) {
+            return back()->with('warning', 'Ретрекшн выполнен, но ре-депозит в Crossref не отправлен: '.$this->crossmarkSkipReason());
+        }
+
+        if ($this->crossmarkReDepositReady()) {
             DepositArticleToCrossref::dispatch($article->fresh(), $request->user()?->id, 'retraction');
         }
 
@@ -555,8 +559,12 @@ class EditorialController extends Controller
             ]);
         });
 
-        if ($this->crossrefReady()) {
-            DepositArticleToCrossref::dispatch($article->fresh()->load('corrections'), $request->user()?->id, 'correction');
+        if ($this->crossrefReady() && ! $this->crossmarkConfigured()) {
+            return back()->with('warning', 'Исправление добавлено, но ре-депозит в Crossref не отправлен: '.$this->crossmarkSkipReason());
+        }
+
+        if ($this->crossmarkReDepositReady()) {
+            DepositArticleToCrossref::dispatch($article->fresh(), $request->user()?->id, 'correction');
         }
 
         return back()->with('success', 'Исправление добавлено.');
@@ -579,22 +587,69 @@ class EditorialController extends Controller
             Storage::disk('local')->delete($correction->file_path);
         }
 
-        if ($this->crossrefReady()) {
-            DepositArticleToCrossref::dispatch($article->fresh()->load('corrections'), $request->user()?->id, 'correction');
+        if ($this->crossrefReady() && ! $this->crossmarkConfigured()) {
+            return back()->with('warning', 'Исправление удалено, но ре-депозит в Crossref не отправлен: '.$this->crossmarkSkipReason());
+        }
+
+        if ($this->crossmarkReDepositReady()) {
+            DepositArticleToCrossref::dispatch($article->fresh(), $request->user()?->id, 'correction');
         }
 
         return back()->with('success', 'Исправление удалено.');
     }
 
     /**
-     * Whether a Crossref deposit can be dispatched: the service is
-     * enabled and the DOI prefix is configured. Used for both initial
-     * deposits on publication and Crossmark re-deposits.
+     * PURPOSE: Whether a Crossref deposit can be dispatched: the service is
+     * enabled and the DOI prefix is configured. Gates the initial deposit
+     * on publication (a DOI registration is meaningful without Crossmark).
      *
-     * SPECIFICATION: SPEC-08/BR-1, SPEC-08/BR-2a, SPEC-16/AC-5
+     * SPECIFICATION: SPEC-08/BR-1, SPEC-08/BR-2a
      */
     private function crossrefReady(): bool
     {
         return app(DoiMinter::class)->isReady();
+    }
+
+    /**
+     * PURPOSE: Whether the Crossmark policy DOI is configured. A
+     * re-deposit without it would render no <crossmark>/<updates>
+     * block, so the retraction/correction would never reach Crossref.
+     *
+     * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
+     */
+    private function crossmarkConfigured(): bool
+    {
+        return config('services.crossref.crossmark.policy_doi') !== null;
+    }
+
+    /**
+     * PURPOSE: Returns the reason a skipped Crossmark re-deposit is
+     * reported in the warning flash, distinguishing an invalid policy
+     * DOI value from a simply missing one and naming the offending
+     * environment variable.
+     *
+     * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
+     */
+    private function crossmarkSkipReason(): string
+    {
+        $variable = config('services.crossref.crossmark.policy_doi_invalid_variable');
+
+        if ($variable !== null) {
+            return $variable.' задан, но не является валидным Crossref DOI (нужен формат 10.xxxx/policy).';
+        }
+
+        return 'не настроен CROSSMARK_POLICY_DOI.';
+    }
+
+    /**
+     * PURPOSE: Whether a Crossmark re-deposit (retraction/correction)
+     * can be dispatched: initial deposit readiness plus a configured
+     * Crossmark policy DOI.
+     *
+     * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
+     */
+    private function crossmarkReDepositReady(): bool
+    {
+        return $this->crossrefReady() && $this->crossmarkConfigured();
     }
 }

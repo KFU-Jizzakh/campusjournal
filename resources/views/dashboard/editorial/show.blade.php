@@ -10,6 +10,9 @@
         @if(session('error'))
             <div class="bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-lg">{{ session('error') }}</div>
         @endif
+        @if(session('warning'))
+            <div class="bg-amber-50 border border-amber-200 text-amber-700 text-sm p-4 rounded-lg">{{ session('warning') }}</div>
+        @endif
 
         {{-- Article info --}}
         <div class="bg-white rounded-lg border border-gray-200 p-6">

@@ -49,23 +49,39 @@
             <first_page>{{ $article->pages }}</first_page>
         </pages>
     @endif
+    @if ($crossmarkPolicyDoi ?? null)
+        <crossmark>
+            <crossmark_version>1</crossmark_version>
+            <crossmark_policy>{{ $crossmarkPolicyDoi }}</crossmark_policy>
+            @if (! empty($crossmarkDomains))
+                <crossmark_domains>
+                    @foreach ($crossmarkDomains as $domain)
+                        <crossmark_domain>
+                            <domain>{{ $domain }}</domain>
+                        </crossmark_domain>
+                    @endforeach
+                </crossmark_domains>
+            @endif
+            @if (($doi ?? $article->doi) && ! empty($updates))
+                <updates>
+                    @foreach ($updates as $update)
+                        <update type="{{ $update['type'] }}" date="{{ $update['date'] }}">{{ $update['doi'] }}</update>
+                    @endforeach
+                </updates>
+            @endif
+            @if (! empty($funding))
+                <custom_metadata>
+                    @include('crossref._funding', ['funding' => $funding])
+                </custom_metadata>
+            @endif
+        </crossmark>
+    @elseif (! empty($funding))
+        @include('crossref._funding', ['funding' => $funding])
+    @endif
     @if ($doi ?? $article->doi)
         <doi_data>
             <doi>{{ $doi ?? $article->doi }}</doi>
             <resource>{{ $resourceUrl }}</resource>
         </doi_data>
-    @endif
-    @if (! empty($funding))
-        @foreach ($funding as $funder)
-            <fr:program name="fundref" xmlns:fr="http://www.crossref.org/fundref.xsd">
-                <fr:assertion name="funder_name">{{ $funder['funder_name'] }}</fr:assertion>
-                @if (! empty($funder['funder_identifier']))
-                    <fr:assertion name="funder_identifier">{{ $funder['funder_identifier'] }}</fr:assertion>
-                @endif
-                @if (! empty($funder['award_number']))
-                    <fr:assertion name="award_number">{{ $funder['award_number'] }}</fr:assertion>
-                @endif
-            </fr:program>
-        @endforeach
     @endif
 </journal_article>

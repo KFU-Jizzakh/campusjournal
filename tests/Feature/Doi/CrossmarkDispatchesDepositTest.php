@@ -16,6 +16,7 @@ test('retraction dispatches crossmark deposit when crossref enabled and prefix c
     config([
         'services.crossref.enabled' => true,
         'services.crossref.prefix' => '10.12345',
+        'services.crossref.crossmark.policy_doi' => '10.5555/crossmark-policy',
     ]);
 
     $eic = User::factory()->create();
@@ -49,11 +50,84 @@ test('retraction does not dispatch crossmark deposit without a configured prefix
     Queue::assertNotPushed(DepositArticleToCrossref::class);
 });
 
+test('retraction does not dispatch crossmark deposit without a policy DOI and warns the operator', function () {
+    Queue::fake();
+    config([
+        'services.crossref.enabled' => true,
+        'services.crossref.prefix' => '10.12345',
+        'services.crossref.crossmark.policy_doi' => null,
+        'services.crossref.crossmark.policy_doi_invalid_variable' => null,
+    ]);
+
+    $eic = User::factory()->create();
+    $eic->assignRole('editor-in-chief');
+
+    $article = Article::factory()->published()->create();
+
+    $this->actingAs($eic)
+        ->from(route('editorial.show', $article))
+        ->post(route('editorial.retract', $article), ['reason' => 'Plagiarism'])
+        ->assertRedirect(route('editorial.show', $article));
+
+    Queue::assertNotPushed(DepositArticleToCrossref::class);
+    $this->get(route('editorial.show', $article))
+        ->assertSee('не настроен CROSSMARK_POLICY_DOI.');
+});
+
+test('retraction warning distinguishes an invalid policy DOI from a missing one', function () {
+    Queue::fake();
+    config([
+        'services.crossref.enabled' => true,
+        'services.crossref.prefix' => '10.12345',
+        'services.crossref.crossmark.policy_doi' => null,
+        'services.crossref.crossmark.policy_doi_invalid_variable' => 'CROSSMARK_POLICY_DOI',
+    ]);
+
+    $eic = User::factory()->create();
+    $eic->assignRole('editor-in-chief');
+
+    $article = Article::factory()->published()->create();
+
+    $this->actingAs($eic)
+        ->from(route('editorial.show', $article))
+        ->post(route('editorial.retract', $article), ['reason' => 'Plagiarism'])
+        ->assertRedirect(route('editorial.show', $article));
+
+    Queue::assertNotPushed(DepositArticleToCrossref::class);
+    $this->get(route('editorial.show', $article))
+        ->assertSee('не является валидным Crossref DOI');
+});
+
+test('retraction warning names the legacy variable when it holds the invalid value', function () {
+    Queue::fake();
+    config([
+        'services.crossref.enabled' => true,
+        'services.crossref.prefix' => '10.12345',
+        'services.crossref.crossmark.policy_doi' => null,
+        'services.crossref.crossmark.policy_doi_invalid_variable' => 'CROSSMARK_POLICY_URL',
+    ]);
+
+    $eic = User::factory()->create();
+    $eic->assignRole('editor-in-chief');
+
+    $article = Article::factory()->published()->create();
+
+    $this->actingAs($eic)
+        ->from(route('editorial.show', $article))
+        ->post(route('editorial.retract', $article), ['reason' => 'Plagiarism'])
+        ->assertRedirect(route('editorial.show', $article));
+
+    Queue::assertNotPushed(DepositArticleToCrossref::class);
+    $this->get(route('editorial.show', $article))
+        ->assertSee('CROSSMARK_POLICY_URL задан, но не является валидным Crossref DOI');
+});
+
 test('adding a correction dispatches crossmark deposit when prefix configured', function () {
     Queue::fake();
     config([
         'services.crossref.enabled' => true,
         'services.crossref.prefix' => '10.12345',
+        'services.crossref.crossmark.policy_doi' => '10.5555/crossmark-policy',
     ]);
 
     $eic = User::factory()->create();
@@ -97,11 +171,41 @@ test('adding a correction does not dispatch crossmark deposit without a configur
     Queue::assertNotPushed(DepositArticleToCrossref::class);
 });
 
+test('adding a correction does not dispatch crossmark deposit without a policy DOI and warns the operator', function () {
+    Queue::fake();
+    config([
+        'services.crossref.enabled' => true,
+        'services.crossref.prefix' => '10.12345',
+        'services.crossref.crossmark.policy_doi' => null,
+        'services.crossref.crossmark.policy_doi_invalid_variable' => null,
+    ]);
+
+    $eic = User::factory()->create();
+    $eic->assignRole('editor-in-chief');
+
+    $article = Article::factory()->published()->create();
+
+    $this->actingAs($eic)
+        ->from(route('editorial.show', $article))
+        ->post(route('editorial.corrections.store', $article), [
+            'type' => 'erratum',
+            'title' => 'Correction title',
+            'description' => 'Correction description',
+            'published_at' => now()->toDateString(),
+        ])
+        ->assertRedirect(route('editorial.show', $article));
+
+    Queue::assertNotPushed(DepositArticleToCrossref::class);
+    $this->get(route('editorial.show', $article))
+        ->assertSee('не настроен CROSSMARK_POLICY_DOI.');
+});
+
 test('deleting a correction dispatches crossmark deposit when prefix configured', function () {
     Queue::fake();
     config([
         'services.crossref.enabled' => true,
         'services.crossref.prefix' => '10.12345',
+        'services.crossref.crossmark.policy_doi' => '10.5555/crossmark-policy',
     ]);
 
     $eic = User::factory()->create();

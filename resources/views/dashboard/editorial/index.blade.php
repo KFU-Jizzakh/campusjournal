@@ -7,6 +7,9 @@
         @if(session('success'))
             <div class="bg-green-50 border border-green-200 text-green-700 text-sm p-4 rounded-lg">{{ session('success') }}</div>
         @endif
+        @if(session('warning'))
+            <div class="bg-amber-50 border border-amber-200 text-amber-700 text-sm p-4 rounded-lg">{{ session('warning') }}</div>
+        @endif
 
         <div class="flex flex-wrap gap-2 text-sm">
             <a href="{{ route('editorial.index') }}" class="px-3 py-1.5 rounded-full {{ !$status ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">

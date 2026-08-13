@@ -83,7 +83,9 @@ class ArticleController extends Controller
         $printIssn = Setting::get('journal_issn_print');
         $electronicIssn = Setting::get('journal_issn_electronic');
 
-        return view('articles.show', compact('article', 'authorArticles', 'authorIssues', 'publicationLicense', 'printIssn', 'electronicIssn'));
+        $showCrossmark = (bool) ($article->doi && config('services.crossref.crossmark.policy_doi'));
+
+        return view('articles.show', compact('article', 'authorArticles', 'authorIssues', 'publicationLicense', 'printIssn', 'electronicIssn', 'showCrossmark'));
     }
 
     /**
