@@ -11,24 +11,6 @@
             <email_address>{{ $depositorEmail }}</email_address>
         </depositor>
         <registrant>{{ $registrant }}</registrant>
-        <crossmark>
-            <crossmark_version>1</crossmark_version>
-            <crossmark_policy>{{ $crossmarkPolicyUrl }}</crossmark_policy>
-            @foreach ($crossmarkDomains as $domain)
-                <crossmark_domain>
-                    <domain>{{ $domain }}</domain>
-                </crossmark_domain>
-            @endforeach
-            @if ($updateType)
-                <doi_updates>
-                    @if ($updateType === 'retraction')
-                        <update type="retraction"/>
-                    @elseif ($updateType === 'correction')
-                        <update type="correction"/>
-                    @endif
-                </doi_updates>
-            @endif
-        </crossmark>
     </head>
     <body>
         <journal>
@@ -62,6 +44,10 @@
                 'authorNameParts' => $authorNameParts,
                 'resourceUrl' => $resourceUrl,
                 'doi' => $doi,
+                'crossmarkPolicyDoi' => $crossmarkPolicyDoi,
+                'crossmarkDomains' => $crossmarkDomains,
+                'updates' => $updates,
+                'funding' => $funding,
             ])
         </journal>
     </body>

@@ -45,6 +45,7 @@ if ($article->keywords) $jsonLd['keywords'] = implode(', ', $article->keywords);
 <meta name="citation_lastpage" content="{{ $article->last_page }}">
 @endif
 @if($article->doi)
+<meta name="dc.identifier" content="doi:{{ $article->doi }}">
 <meta name="citation_doi" content="{{ $article->doi }}">
 @endif
 @if($article->pdf_path)
@@ -105,6 +106,14 @@ if ($article->keywords) $jsonLd['keywords'] = implode(', ', $article->keywords);
                     </span>
                 </div>
             </div>
+
+            {{-- Crossmark button --}}
+            @if($showCrossmark)
+                <div class="mb-6 flex items-center gap-3">
+                    <a data-target="crossmark" title="Crossmark"><img src="https://crossmark-cdn.crossref.org/widget/v2.0/logos/CROSSMARK_Color_horizontal.svg" width="150" alt="Crossmark — проверьте статус документа"></a>
+                    <a href="{{ route('crossmark-policy') }}" class="text-xs text-gray-500 hover:text-primary underline">Что это?</a>
+                </div>
+            @endif
 
             {{-- Authors --}}
             @if($article->authors->isNotEmpty())
@@ -361,19 +370,6 @@ if ($article->keywords) $jsonLd['keywords'] = implode(', ', $article->keywords);
                 </div>
             @endif
 
-            {{-- Crossmark button --}}
-            @if($article->doi)
-                @php $crossmarkConfig = config('services.crossref.crossmark'); @endphp
-                @if(!empty($crossmarkConfig['policy_url']))
-                    <div class="mb-6 flex items-center gap-2">
-                        <a href="https://crossmark.crossref.org/dialog/?doi={{ urlencode($article->doi) }}&amp;domain={{ urlencode($crossmarkConfig['domains'][0] ?? parse_url(config('app.url'), PHP_URL_HOST) ?? 'localhost') }}&amp;date={{ $article->published_at?->format('Y-m-d') ?? now()->format('Y-m-d') }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                            Crossmark
-                        </a>
-                    </div>
-                @endif
-            @endif
-
             {{-- PDF viewer & download --}}
             @if($article->pdf_path)
                 <div class="mt-8" x-data="{ showViewer: false }">
@@ -439,3 +435,9 @@ if ($article->keywords) $jsonLd['keywords'] = implode(', ', $article->keywords);
         </div>
     </section>
 @endsection
+
+@push('scripts')
+    @if($showCrossmark)
+        <script src="https://crossmark-cdn.crossref.org/widget/v2.0/widget.js"></script>
+    @endif
+@endpush

@@ -11,7 +11,7 @@ Status: IMPLEMENTED
 - AC-1: On article publication, if Crossref is enabled in settings, a DOI registration job is automatically queued
 - AC-2: The DOI is generated at publication time from the configured prefix and a short, opaque random suffix (Crossref best practice: no readable metadata — no journal initials, dates, page numbers, or internal identifiers in the suffix). Default suffix length is 8 characters
 - AC-3: If the article already has a DOI (manually set), a new one is not generated
-- AC-4: A deposit XML v5.3.1 is built based on article metadata, authors, and issue
+- AC-4: A deposit XML v5.3.1 is built based on article metadata, authors, and issue. The optional `<crossmark>` block is rendered inside `<journal_article>` (before `<doi_data>`) — the schema 5.3.1 `head` element accepts only `doi_batch_id`, `timestamp`, `depositor`, `registrant`. `<crossmark_policy>` must be a DOI (`doi_t`); `<crossmark_domain>` elements are wrapped in `<crossmark_domains>`
 - AC-5: The XML is sent via a multipart POST request to the Crossref endpoint
 - AC-6: The result (status, HTTP code, response body) is saved in the deposits table
 - AC-7: On success — the article's DOI registration date is updated, the `article.doi_deposited` event is recorded. The DOI itself is already saved on the article from publication (AC-2)

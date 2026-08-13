@@ -77,6 +77,15 @@ php artisan migrate:fresh --seed
 > Orphaned `news` and `editorial_board_members` tables left by older schemas
 > are inert (no model or resource references them) and can be dropped manually.
 
+> **Deploy note:** CROSSMARK_POLICY_DOI must be set to a Crossref-registered DOI,
+> or the widget is hidden and re-deposits (retractions/corrections) skipped —
+> the operator sees only a warning flash. The `<update>` elements carry the
+> article's own DOI (standard in-place update when there is no separate notice
+> DOI); confirm acceptance once with a real Crossref test deposit, since
+> Crossmark/QC validation is asynchronous. Add a CrossrefDeposit row at least
+> once per week (Vue app bootstrap grabs first visible record of the latest
+> issue, so an empty issue is fine).
+
 
 # Architecture
 

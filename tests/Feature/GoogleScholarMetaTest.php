@@ -54,3 +54,62 @@ it('renders google scholar meta tags on article page', function () {
         ->assertSee('<meta name="citation_issn" content="1234-5679">', false)
         ->assertDontSee('<meta name="citation_issn" content="1234-5671">', false);
 });
+
+it('renders the official crossmark widget when doi and policy doi are configured', function () {
+    config([
+        'services.crossref.crossmark.policy_doi' => '10.5555/crossmark-policy',
+        'services.crossref.crossmark.domains' => ['journal.example'],
+    ]);
+
+    $article = Article::factory()->published()->create([
+        'title' => 'Crossmark Article',
+        'doi' => '10.1234/crossmark',
+    ]);
+
+    $response = $this->get(route('articles.show', $article));
+
+    $response
+        ->assertOk()
+        ->assertSee('<meta name="dc.identifier" content="doi:10.1234/crossmark">', false)
+        ->assertSee('<a data-target="crossmark" title="Crossmark">', false)
+        ->assertSee('CROSSMARK_Color_horizontal.svg', false)
+        ->assertSee('https://crossmark-cdn.crossref.org/widget/v2.0/widget.js', false)
+        ->assertSee(route('crossmark-policy'), false);
+});
+
+it('hides the crossmark widget for articles without a doi', function () {
+    config([
+        'services.crossref.crossmark.policy_doi' => '10.5555/crossmark-policy',
+    ]);
+
+    $article = Article::factory()->published()->create([
+        'title' => 'No DOI Article',
+        'doi' => null,
+    ]);
+
+    $response = $this->get(route('articles.show', $article));
+
+    $response
+        ->assertOk()
+        ->assertDontSee('data-target="crossmark"', false)
+        ->assertDontSee('crossmark-cdn.crossref.org', false)
+        ->assertDontSee('dc.identifier', false);
+});
+
+it('hides the crossmark widget when the policy doi is not configured', function () {
+    config([
+        'services.crossref.crossmark.policy_doi' => null,
+    ]);
+
+    $article = Article::factory()->published()->create([
+        'title' => 'No Policy Article',
+        'doi' => '10.1234/nopolicy',
+    ]);
+
+    $response = $this->get(route('articles.show', $article));
+
+    $response
+        ->assertOk()
+        ->assertDontSee('data-target="crossmark"', false)
+        ->assertDontSee('crossmark-cdn.crossref.org', false);
+});

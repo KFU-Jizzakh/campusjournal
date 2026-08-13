@@ -13,11 +13,12 @@ Status: IMPLEMENTED
 - AC-2: A workflow manager (EiC/ME) can withdraw any pre-published article — status changes to Withdrawn, reason is stored
 - AC-3: A workflow manager (EiC/ME) can retract a published article — status changes to Retracted, retraction reason is stored, article remains publicly visible with a retraction banner
 - AC-4: The editorial staff can add corrections (corrigendum/erratum/expression_of_concern) to a published article — corrections appear on the public page and in the editorial interface
-- AC-5: On retraction or correction, if Crossref is enabled and the DOI prefix is configured, the DOI is re-deposited with Crossmark update metadata (`retraction` or `correction` update type)
+- AC-5: On retraction or correction, if Crossref is enabled, the DOI prefix and the Crossmark policy DOI are configured, the DOI is re-deposited with Crossmark update metadata (`retraction` or `correction` update type). If the policy DOI is missing, no re-deposit is queued and the user is shown a warning that the Crossmark re-deposit was skipped
 - AC-6: The public article page shows a prominent retraction banner for retracted articles, lists correction notices, and includes a Crossmark button
 - AC-7: Withdrawn articles are not shown on the public site, listed only in editorial dashboard with Withdrawn status
 - AC-8: Outbox events are recorded for withdrawal (`article.withdrawn`), retraction (`article.retracted`), and correction addition (`article.correction_added`)
 - AC-9: Authors are notified of retraction and withdrawal (if performed by editor); editors are notified of author-initiated withdrawal; if no editor is assigned, managing-editors and editor-in-chief are notified instead
+- AC-10: The public article page embeds the official Crossref Crossmark widget (v2.0): `<meta name="dc.identifier" content="doi:...">` in the page head — rendered for every published article with a DOI (required by Crossref for Crossmark and a standard DOI citation meta) — a `<a data-target="crossmark">` anchor with the official button image near the article title, and the `crossmark.js` widget script loaded once per page. The button and the widget script appear only when the article has a DOI and the Crossmark policy DOI is configured
 
 ## UI/UX Notes
 
@@ -26,7 +27,7 @@ Status: IMPLEMENTED
 - Correction management UI in editorial dashboard — add, edit, delete corrections for published articles
 - Retraction banner: red background, "Статья отозвана (ретрекшн)" heading with reason text
 - Correction list: each correction shows type badge (corrigendum/erratum/expression_of_concern), title, description, date, optional PDF link
-- Crossmark button: small "Crossmark" logo/badge linking to the DOI via Crossmark service
+- Crossmark button: official Crossref widget v2.0 — `<a data-target="crossmark">` anchor with the color horizontal button image (`https://crossmark-cdn.crossref.org/widget/v2.0/logos/CROSSMARK_Color_horizontal.svg`), placed near the article title, plus a "Что это?" link to the policy page. The widget script is loaded once per page. The button must not be self-hosted, recolored, or resized (other than proportional scaling)
 
 ## Business Rules
 
@@ -36,7 +37,8 @@ Status: IMPLEMENTED
 - BR-4: Retracted articles remain publicly accessible with a retraction watermar/banner and the retraction reason
 - BR-5: Corrections can only be added to published articles by workflow managers
 - BR-6: Each correction has a type, title, description, optional PDF notice file, and publication date
-- BR-7: On retraction or correction, the Crossref DOI deposit is re-sent with Crossmark update metadata (`update_type` in XML head); for corrections, if no corrections remain after deletion, the `<doi_updates>` block is omitted. Re-deposits are dispatched only when Crossref is enabled and the DOI prefix is configured (SPEC-08/BR-2a)
+- BR-7: On retraction or correction, the Crossref DOI deposit is re-sent with Crossmark update metadata; for corrections, if no corrections remain after deletion, the `<updates>` block is omitted. Re-deposits are dispatched only when Crossref is enabled, the DOI prefix is configured (SPEC-08/BR-2a), and the Crossmark policy DOI is configured — without the policy DOI the `<updates>` block cannot be rendered, so the re-deposit is skipped and a warning flash is shown to the operator. The `<crossmark>` block is rendered inside `<journal_article>` (before `<doi_data>`, per schema 5.3.1) and only when the Crossmark policy DOI is configured. The `<updates>` block contains one `<update type="{correction_type}" date="YYYY-MM-DD">doi</update>` per remaining correction in chronological order (oldest first, ties broken by id, dated by `published_at` — falling back to today when missing) and, for retractions, a trailing `<update type="retraction" date="YYYY-MM-DD">doi</update>` (dated by `retracted_at`); the retraction update never replaces the correction updates — Crossref re-deposits replace the whole record, so corrections are preserved. `type` for corrections mirrors the correction's own type (`corrigendum`/`erratum`/`expression_of_concern`, schema-accepted values) and is `retraction` for the trailing update, so the Crossmark panel shows the precise update kind; the DOI content is the article's own DOI (the standard in-place update pattern when there is no separate notice DOI — or the explicitly minted DOI in the degraded persistence path). Crossref validates updates asynchronously: an HTTP 2xx acceptance of the deposit does not guarantee the update passed Crossmark/QC. A non-empty but invalid policy DOI (e.g. a URL) disables the `<crossmark>` block and the widget without crashing the application — configuration evaluation is side-effect free, and the misconfiguration is surfaced once per day via a `Log::warning` at application boot (`CrossrefConfig::misconfigured()`/`warnIfMisconfigured()`)
+- BR-7a: Funding metadata (`<fr:program name="fundref">`) is rendered as a single program with one `funder_name`/`funder_identifier`/`award_number` assertion per funder. When the crossmark block is present it lives inside `<custom_metadata>` (the schema 5.3.1 `journal_article` choice makes `<crossmark>` and a direct `<fr:program>` mutually exclusive); otherwise it is a direct child of `journal_article`. In both cases it precedes `<doi_data>`
 - BR-8: Crossmark update deposit uses the same DOI — it is re-deposited as an update, not a new DOI
 - BR-9: Notifications follow the existing pattern — AuthorStatusChanged for retraction/withdrawal, with one-hour throttle; if no editor is assigned, managing-editors and editor-in-chief receive author-initiated withdrawal notifications
 
@@ -133,18 +135,22 @@ Then  the action is blocked
 #### Scenario: DOIs re-deposited with Crossmark on retraction
 
 Given Crossref is enabled and the DOI prefix is configured
+And   the Crossmark policy DOI is configured
 And   the article is retracted
 When  the retraction is saved
 Then  a DOI deposit job is queued with Crossmark update type `retraction`
-And   the deposit XML includes `<crossmark>` elements with version, update type, and policy URL
+And   the deposit XML includes `<crossmark>` inside `<journal_article>` with version, policy DOI, and domains
+And   the `<updates>` block includes `<update type="retraction" date="{retracted_at}">{article_doi}</update>`
+And   if the article has corrections, the `<updates>` block also includes `<update type="{correction_type}" date="{published_at}">{article_doi}</update>` for each remaining correction, before the retraction update
 
 #### Scenario: DOIs re-deposited with Crossmark on correction
 
 Given Crossref is enabled and the DOI prefix is configured
+And   the Crossmark policy DOI is configured
 And   a correction is added to a published article
 When  the correction is saved
 Then  a DOI deposit job is queued with Crossmark update type `correction`
-And   the deposit XML includes updated `<crossmark>` elements
+And   the deposit XML includes an `<update type="{correction_type}" date="{published_at}">{article_doi}</update>` for each remaining correction
 
 #### Scenario: No re-deposit when the prefix is not configured
 
@@ -152,6 +158,15 @@ Given Crossref is enabled but the DOI prefix is not configured
 And   a retraction or correction is performed
 When  the action is saved
 Then  no DOI deposit job is queued
+
+#### Scenario: No re-deposit when the policy DOI is missing
+
+Given Crossref is enabled and the DOI prefix is configured
+But   the Crossmark policy DOI is not configured
+And   a retraction or correction is performed
+When  the action is saved
+Then  no DOI deposit job is queued
+And   a warning is flashed that the Crossmark re-deposit was skipped
 
 ## Data Model
 
@@ -195,7 +210,9 @@ Published → Retracted
 
 ```php
 'crossmark' => [
-    'policy_url' => env('CROSSMARK_POLICY_URL', url('/crossmark-policy')),
-    'domains' => array_filter(explode(',', env('CROSSMARK_DOMAINS', ''))),
+    'policy_doi' => App\Support\CrossrefConfig::policyDoi(env('CROSSMARK_POLICY_DOI'), env('CROSSMARK_POLICY_URL')),
+    'domains' => App\Support\CrossrefConfig::domains(env('CROSSMARK_DOMAINS', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: '')),
 ],
 ```
+
+`policy_doi` is a Crossref-registered policy DOI (schema type `doi_t`, pattern `10.[0-9]{4,9}/...`) — a plain URL is not accepted by the schema. `CrossrefConfig::policyDoi()` validates the value against the `doi_t` pattern and returns `null` for anything malformed (so an invalid value disables the crossmark block and the widget instead of producing a schema-invalid deposit); it falls back to the deprecated `CROSSMARK_POLICY_URL` variable when `CROSSMARK_POLICY_DOI` is unset. `CrossrefConfig::domains()` trims the list and keeps only entries matching the schema's `cm_domain` pattern (dotted hostname, 4–1024 chars), dropping values like `localhost`. The public `/crossmark-policy` page remains as the human-readable policy statement.
