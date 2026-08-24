@@ -1,4 +1,4 @@
-{!! '<?xml version="1.0" encoding="UTF-8"?>' !!}
+{!! '<' . '?xml version="1.0" encoding="UTF-8"?' . '>' !!}
 <doi_batch version="5.3.1"
            xmlns="http://www.crossref.org/schema/5.3.1"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
