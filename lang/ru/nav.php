@@ -15,6 +15,7 @@ return [
     'reviews' => 'Рецензии',
     'editorial' => 'Редакция',
     'profile' => 'Профиль',
+    'personal_account' => 'Личный кабинет',
     'logout' => 'Выйти',
     'dashboard' => 'Главная',
     'site' => 'На сайт',
