@@ -6,6 +6,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\URL;
 
 /**
  * PURPOSE: Email notification in Russian asking the user to confirm
@@ -34,5 +35,27 @@ class VerifyEmailNotification extends VerifyEmail implements ShouldQueue
             ->action('Подтвердить email', $verificationUrl)
             ->line('Если вы не регистрировались на сайте, просто проигнорируйте это письмо.')
             ->salutation('С уважением, редакция журнала');
+    }
+
+    /**
+     * PURPOSE: Builds an absolute verification link whose signature covers
+     * only the path and query string, so it still validates when a
+     * TLS-terminating reverse proxy forwards the request over plain HTTP.
+     *
+     * SPECIFICATION: SPEC-23/AC-10, SPEC-23/BR-5
+     */
+    protected function verificationUrl($notifiable)
+    {
+        $relativeUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(config('auth.verification.expire', 60)),
+            [
+                'id' => $notifiable->getKey(),
+                'hash' => sha1($notifiable->getEmailForVerification()),
+            ],
+            absolute: false
+        );
+
+        return rtrim(config('app.url'), '/').$relativeUrl;
     }
 }

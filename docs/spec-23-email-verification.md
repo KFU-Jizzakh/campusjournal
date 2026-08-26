@@ -17,6 +17,7 @@ Status: IMPLEMENTED
 - AC-7: A link with an invalid hash does not verify the email
 - AC-8: When an admin changes a user's email address in the Filament panel, verification is reset and a new verification email is sent to the new address
 - AC-9: An admin can manually mark a user as verified or unverified in the Filament panel via a toggle; toggling does not send a verification email
+- AC-10: The signed verification link works behind a TLS-terminating reverse proxy: validation must not depend on the scheme/host as seen by the application
 
 ## UI/UX Notes
 
@@ -28,6 +29,7 @@ Status: IMPLEMENTED
 - BR-2: Seeded system users (admin, editorial staff) are considered verified and are not affected
 - BR-3: Opening an already-used or expired link does not re-verify and does not break anything
 - BR-4: Verification emails are sent through the notification system (queued); production requires a configured SMTP mailer and a running queue worker
+- BR-5: Signature validation is relative (path + query only) so that a link signed as `https://` still validates when the reverse proxy forwards the request as plain HTTP
 
 ## Behavior
 
@@ -77,6 +79,13 @@ Given: the user opens a verification link after it expired (60 minutes)
 When:  the link is followed
 Then:  the request is rejected with 403
 And:   the email is NOT marked as verified
+
+#### Scenario: Verification link behind a reverse proxy (AC-10, BR-5)
+
+Given: the site runs behind a TLS-terminating reverse proxy and the link was generated as `https://`
+When:  the user follows the link and the application receives the request as `http://` with a different host
+Then:  the signature is accepted
+And:   the email is marked as verified
 
 ### Rule: Email change (AC-5)
 

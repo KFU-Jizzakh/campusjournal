@@ -24,7 +24,8 @@ test('email can be verified', function () {
     $verificationUrl = URL::temporarySignedRoute(
         'verification.verify',
         now()->addMinutes(60),
-        ['id' => $user->id, 'hash' => sha1($user->email)]
+        ['id' => $user->id, 'hash' => sha1($user->email)],
+        absolute: false
     );
 
     $response = $this->actingAs($user)->get($verificationUrl);
@@ -34,13 +35,35 @@ test('email can be verified', function () {
     $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
 });
 
+test('verification link works behind a TLS-terminating reverse proxy', function () {
+    $user = User::factory()->unverified()->create();
+
+    config(['app.url' => 'https://journal.example.com']);
+
+    $notification = new VerifyEmailNotification;
+    preg_match_all('/href="([^"]+)"/', $notification->toMail($user)->render(), $matches);
+    $verificationUrl = collect($matches[1])
+        ->map(fn ($url) => html_entity_decode($url))
+        ->first(fn ($url) => str_contains($url, '/verify-email/'));
+
+    expect($verificationUrl)->toStartWith('https://journal.example.com/verify-email/');
+
+    $path = parse_url($verificationUrl, PHP_URL_PATH).'?'.parse_url($verificationUrl, PHP_URL_QUERY);
+
+    $this->actingAs($user)->get($path)
+        ->assertRedirect(route('dashboard', absolute: false).'?verified=1');
+
+    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
 test('email is not verified with invalid hash', function () {
     $user = User::factory()->unverified()->create();
 
     $verificationUrl = URL::temporarySignedRoute(
         'verification.verify',
         now()->addMinutes(60),
-        ['id' => $user->id, 'hash' => sha1('wrong-email')]
+        ['id' => $user->id, 'hash' => sha1('wrong-email')],
+        absolute: false
     );
 
     $this->actingAs($user)->get($verificationUrl);
@@ -54,7 +77,8 @@ test('email is not verified with expired link', function () {
     $verificationUrl = URL::temporarySignedRoute(
         'verification.verify',
         now()->subMinutes(1),
-        ['id' => $user->id, 'hash' => sha1($user->email)]
+        ['id' => $user->id, 'hash' => sha1($user->email)],
+        absolute: false
     );
 
     $this->actingAs($user)->get($verificationUrl)->assertForbidden();
