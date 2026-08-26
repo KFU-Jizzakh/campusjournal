@@ -2,8 +2,6 @@
     <h3 class="font-semibold text-gray-900 mb-1">{{ __('profile.personal_data') }}</h3>
     <p class="text-sm text-gray-500 mb-4">{{ __('profile.personal_data_hint') }}</p>
 
-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">@csrf</form>
-
     <form method="post" action="{{ route('profile.update') }}" class="space-y-4">
         @csrf
         @method('patch')
@@ -30,17 +28,6 @@
             <x-input-label for="email" value="{{ __('profile.email') }}" />
             <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
             <x-input-error class="mt-1" :messages="$errors->get('email')" />
-            @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div class="mt-2">
-                    <p class="text-sm text-gray-600">
-                        {{ __('auth.email_unverified') }}
-                        <button form="send-verification" class="text-primary hover:underline">{{ __('auth.resend_verification') }}</button>
-                    </p>
-                    @if (session('status') === 'verification-link-sent')
-                        <p class="mt-1 text-sm text-green-600">{{ __('auth.verification_sent') }}</p>
-                    @endif
-                </div>
-            @endif
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Notifications\VerifyEmailNotification;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -23,6 +25,42 @@ test('new users can register', function () {
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('dashboard', absolute: false));
+});
+
+test('registration sends verification email', function () {
+    Notification::fake();
+
+    $this->post('/register', [
+        'last_name' => 'Иванов',
+        'first_name' => 'Иван',
+        'email' => 'test@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'privacy' => true,
+    ]);
+
+    $user = User::where('email', 'test@example.com')->first();
+
+    expect($user)->not->toBeNull();
+    expect($user->hasVerifiedEmail())->toBeFalse();
+
+    Notification::assertSentTo($user, VerifyEmailNotification::class);
+});
+
+test('unverified user is redirected from dashboard to verification notice', function () {
+    $user = User::factory()->unverified()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertRedirect(route('verification.notice'));
+});
+
+test('verified user can access dashboard', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk();
 });
 
 test('registered user gets author role', function () {

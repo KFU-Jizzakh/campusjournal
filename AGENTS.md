@@ -77,6 +77,18 @@ php artisan migrate:fresh --seed
 > Orphaned `news` and `editorial_board_members` tables left by older schemas
 > are inert (no model or resource references them) and can be dropped manually.
 
+> **Deploy note:** email verification (registration, re-send, email change,
+> Filament-created users) requires a real SMTP mailer — `MAIL_MAILER=log`
+> (default) only writes verification emails to the log, so users cannot
+> confirm their accounts until SMTP is configured in `.env`. Verification
+> emails are queued (`QUEUE_CONNECTION=database`), so a queue worker
+> (`php artisan queue:work`, or `composer dev`) must be running as well.
+> Users registered before email verification was introduced have
+> `email_verified_at = NULL`; after deploy they are redirected to
+> `/verify-email` on protected routes and self-recover via the resend link,
+> or an admin can verify them manually via the "Email подтверждён" toggle
+> in the Filament user form.
+
 > **Deploy note:** CROSSMARK_POLICY_DOI must be set to a Crossref-registered DOI,
 > or the widget is hidden and re-deposits (retractions/corrections) skipped —
 > the operator sees only a warning flash. Retractions/corrections performed

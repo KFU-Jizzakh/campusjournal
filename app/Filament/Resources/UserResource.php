@@ -51,6 +51,12 @@ class UserResource extends Resource
                 ->dehydrateStateUsing(fn ($state) => Hash::make($state))
                 ->dehydrated(fn ($state) => filled($state))
                 ->visibleOn('create'),
+            Forms\Components\Toggle::make('email_verified_at')
+                ->label('Email подтверждён')
+                ->formatStateUsing(fn ($state) => (bool) $state)
+                ->dehydrateStateUsing(fn ($state) => $state ? now() : null)
+                ->dehydrated(fn ($state, $record) => $record === null || $state !== (bool) $record->getOriginal('email_verified_at'))
+                ->helperText('Ручное подтверждение email (например, при недоступном SMTP)'),
             Forms\Components\CheckboxList::make('roles')
                 ->label('Роли')
                 ->relationship('roles', 'name')
@@ -84,6 +90,11 @@ class UserResource extends Resource
                     ->label('Email')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('email_verified_at')
+                    ->label('Email подтверждён')
+                    ->state(fn (User $user): string => $user->email_verified_at ? 'Да' : 'Нет')
+                    ->badge()
+                    ->color(fn (string $state) => $state === 'Да' ? 'success' : 'warning'),
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Роли')
                     ->badge(),

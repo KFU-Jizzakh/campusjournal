@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use App\Notifications\VerifyEmailNotification;
+use Illuminate\Support\Facades\Notification;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -41,6 +43,41 @@ test('email verification resets when email changes', function () {
 
     $user->refresh();
     expect($user->email)->toBe('newemail@example.com');
+    expect($user->email_verified_at)->toBeNull();
+});
+
+test('verification email is sent when email changes', function () {
+    $user = User::factory()->create();
+
+    Notification::fake();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'last_name' => 'Test',
+            'first_name' => 'User',
+            'email' => 'newemail@example.com',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $user->refresh();
+
+    Notification::assertSentTo($user, VerifyEmailNotification::class);
+});
+
+test('no verification email when email stays same', function () {
+    $user = User::factory()->create();
+
+    Notification::fake();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'last_name' => 'Test',
+            'first_name' => 'User',
+            'email' => $user->email,
+        ])
+        ->assertSessionHasNoErrors();
+
+    Notification::assertNothingSent();
 });
 
 test('email verification status unchanged when email stays same', function () {

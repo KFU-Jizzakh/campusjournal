@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Notifications\VerifyEmailNotification;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,9 +22,9 @@ use Spatie\Permission\Traits\HasRoles;
  * PURPOSE: Authenticated user identity with Spatie roles/permissions,
  * Filament admin panel integration, and optional profile.
  */
-#[Fillable(['email', 'password', 'notification_preferences'])]
+#[Fillable(['email', 'password', 'email_verified_at', 'notification_preferences'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements FilamentUser, HasName
+class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, SoftDeletes;
@@ -39,6 +41,16 @@ class User extends Authenticatable implements FilamentUser, HasName
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasRole('admin') || $this->hasPermissionTo('manage-content');
+    }
+
+    /**
+     * PURPOSE: Queues the Russian verification email to the user's address.
+     *
+     * SPECIFICATION: SPEC-23/AC-1, AC-3, AC-5, AC-6, AC-8
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new VerifyEmailNotification);
     }
 
     public function getUserName(): string

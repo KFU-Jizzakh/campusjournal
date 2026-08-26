@@ -30,8 +30,9 @@ class ProfileController extends Controller
         $data = $request->validated();
 
         $user->email = $data['email'];
+        $emailChanged = $user->isDirty('email');
 
-        if ($user->isDirty('email')) {
+        if ($emailChanged) {
             $user->email_verified_at = null;
         }
 
@@ -43,6 +44,10 @@ class ProfileController extends Controller
         ];
 
         $user->save();
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
 
         $user->profile()->updateOrCreate(
             ['user_id' => $user->id],

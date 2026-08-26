@@ -88,6 +88,10 @@ class UserSeeder extends Seeder
                 ]
             );
 
+            if ($user->email_verified_at === null) {
+                $user->update(['email_verified_at' => now()]);
+            }
+
             $user->assignRole($data['role']);
 
             Profile::firstOrCreate(

@@ -4,8 +4,11 @@ namespace App\Providers;
 
 use App\Models\Setting;
 use App\Support\CrossrefConfig;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -19,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Event::listen(Registered::class, SendEmailVerificationNotification::class);
+
         View::composer('layouts.public', function ($view) {
             $view->with('siteSettings', [
                 'email' => Setting::get('contact_email', 'liceum9zd@yandex.ru'),
