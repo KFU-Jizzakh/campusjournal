@@ -29,7 +29,9 @@ class ArticleController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        $categories = Category::orderBy('sort_order')->get();
+        $categories = Category::whereHas('articles', fn ($q) => $q->published())
+            ->orderBy('sort_order')
+            ->get();
 
         return view('articles.index', compact('articles', 'categories'));
     }
