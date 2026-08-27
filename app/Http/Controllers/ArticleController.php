@@ -19,12 +19,19 @@ use Illuminate\Support\Facades\Storage;
  */
 class ArticleController extends Controller
 {
+    /**
+     * PURPOSE: Lists published articles with optional category and keyword
+     * filters and exposes the active keyword with a filter-clearing URL.
+     */
     public function index()
     {
+        $keyword = request('keyword');
+        $keyword = is_string($keyword) ? $keyword : null;
+
         $articles = Article::published()
             ->with('authors', 'category', 'issue')
             ->when(request('category'), fn ($q, $id) => $q->where('category_id', $id))
-            ->when(request('keyword'), fn ($q, $kw) => $q->whereJsonContains('keywords', $kw))
+            ->when($keyword, fn ($q, $kw) => $q->whereJsonContains('keywords', $kw))
             ->orderByDesc('published_at')
             ->paginate(12)
             ->withQueryString();
@@ -33,7 +40,10 @@ class ArticleController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('articles.index', compact('articles', 'categories'));
+        $activeKeyword = $keyword;
+        $clearKeywordUrl = route('articles.index', array_filter(['category' => request('category')]));
+
+        return view('articles.index', compact('articles', 'categories', 'activeKeyword', 'clearKeywordUrl'));
     }
 
     public function show(Article $article)

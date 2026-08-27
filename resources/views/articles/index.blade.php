@@ -9,19 +9,29 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1 class="text-3xl font-bold font-serif text-primary mb-6">{{ __('pages.articles_heading') }}</h1>
 
-            {{-- Category filter --}}
-            @if($categories->isNotEmpty())
+            {{-- Filters --}}
+            @if($categories->isNotEmpty() || $activeKeyword)
                 <div class="flex flex-wrap gap-2 mb-8">
-                    <a href="{{ route('articles.index') }}"
-                       class="text-sm px-3 py-1.5 rounded transition {{ !request('category') ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                        {{ __('pages.articles_all') }}
-                    </a>
-                    @foreach($categories as $category)
-                        <a href="{{ route('articles.index', ['category' => $category->id]) }}"
-                           class="text-sm px-3 py-1.5 rounded transition {{ request('category') == $category->id ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                            {{ $category->name }}
+                    @if($categories->isNotEmpty())
+                        <a href="{{ route('articles.index') }}"
+                           class="text-sm px-3 py-1.5 rounded transition {{ !request('category') && !$activeKeyword ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            {{ __('pages.articles_all') }}
                         </a>
-                    @endforeach
+                        @foreach($categories as $category)
+                            <a href="{{ route('articles.index', ['category' => $category->id]) }}"
+                               class="text-sm px-3 py-1.5 rounded transition {{ request('category') == $category->id ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                {{ $category->name }}
+                            </a>
+                        @endforeach
+                    @endif
+                    @if($activeKeyword)
+                        <a href="{{ $clearKeywordUrl }}"
+                           class="text-sm px-3 py-1.5 rounded bg-primary text-white inline-flex items-center gap-1.5 hover:bg-primary-light transition"
+                           title="{{ __('pages.articles_clear_filter') }}">
+                            {{ __('pages.articles_keyword_filter', ['keyword' => $activeKeyword]) }}
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </a>
+                    @endif
                 </div>
             @endif
 

@@ -18,6 +18,8 @@ return [
     'articles_og_description' => 'Научные статьи журнала Global Campus RU',
     'articles_heading' => 'Статьи',
     'articles_all' => 'Все',
+    'articles_keyword_filter' => 'Ключевое слово: :keyword',
+    'articles_clear_filter' => 'Убрать фильтр',
     'articles_empty' => 'Статьи пока не опубликованы. Следите за обновлениями.',
     'articles_back' => 'Все статьи',
 
