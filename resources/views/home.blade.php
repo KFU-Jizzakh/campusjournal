@@ -37,29 +37,6 @@
         </div>
     </section>
 
-    {{-- Planned Issues --}}
-    @if($plannedIssues->isNotEmpty())
-    <section class="py-12 lg:py-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-2xl lg:text-3xl font-bold font-serif text-primary mb-8 text-center">{{ __('site.thematic_issues') }}</h2>
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                @foreach($plannedIssues as $issue)
-                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition">
-                    <div class="text-sm text-accent font-semibold mb-2">
-                        @if($issue->number && $issue->year)
-                            №{{ $issue->number }} ({{ $issue->year }})
-                        @endif
-                    </div>
-                    <h3 class="font-bold text-lg text-gray-900 mb-3">{{ $issue->title }}</h3>
-                    <p class="text-sm text-gray-600 leading-relaxed">{{ Str::limit($issue->description, 150) }}</p>
-                    <a href="{{ route('issues.show', $issue) }}" class="inline-block mt-4 text-sm text-primary font-semibold hover:underline">{{ __('site.details') }}</a>
-                </div>
-                @endforeach
-            </div>
-        </div>
-    </section>
-    @endif
-
     {{-- Events --}}
     @if($events->isNotEmpty())
     <section class="py-12 lg:py-16">

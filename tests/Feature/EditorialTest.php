@@ -649,7 +649,7 @@ test('copyedited file download returns 404 when not uploaded', function () {
 
 test('editor-in-chief can publish production article', function () {
     $eic = createEic();
-    $issue = Issue::factory()->create();
+    $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create();
 
     $this->actingAs($eic)
@@ -666,10 +666,40 @@ test('editor-in-chief can publish production article', function () {
         ->published_at->not->toBeNull();
 });
 
+test('cannot publish article into non-published issue', function () {
+    $eic = createEic();
+    $issue = Issue::factory()->create(['status' => 'planned']);
+    $article = Article::factory()->approved()->create();
+
+    $this->actingAs($eic)
+        ->post(route('editorial.publish', $article), [
+            'issue_id' => $issue->id,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    $article->refresh();
+    expect($article->status)->toBe(ArticleStatus::Approved);
+    expect($article->issue_id)->toBeNull();
+});
+
+test('dashboard publish form lists only published issues', function () {
+    $eic = createEic();
+    Issue::factory()->create(['status' => 'planned', 'title' => 'Hidden Planned Issue']);
+    $published = Issue::factory()->create(['status' => 'published', 'title' => 'Visible Published Issue']);
+    $article = Article::factory()->approved()->create();
+
+    $this->actingAs($eic)
+        ->get(route('editorial.show', $article))
+        ->assertOk()
+        ->assertSee('Visible Published Issue')
+        ->assertDontSee('Hidden Planned Issue');
+});
+
 test('publishing mints and persists an opaque DOI', function () {
     config(['services.crossref.prefix' => '10.12345']);
     $eic = createEic();
-    $issue = Issue::factory()->create();
+    $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create(['doi' => null]);
 
     $this->actingAs($eic)
@@ -684,7 +714,7 @@ test('publishing mints and persists an opaque DOI', function () {
 test('publishing without a configured prefix does not mint a DOI', function () {
     config(['services.crossref.prefix' => null]);
     $eic = createEic();
-    $issue = Issue::factory()->create();
+    $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create(['doi' => null]);
 
     $this->actingAs($eic)
@@ -696,7 +726,7 @@ test('publishing without a configured prefix does not mint a DOI', function () {
 
 test('publishing preserves a manually set DOI', function () {
     $eic = createEic();
-    $issue = Issue::factory()->create();
+    $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create(['doi' => '10.99999/preset']);
 
     $this->actingAs($eic)
@@ -708,7 +738,7 @@ test('publishing preserves a manually set DOI', function () {
 
 test('cannot publish accepted article directly', function () {
     $eic = createEic();
-    $issue = Issue::factory()->create();
+    $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->accepted()->create();
 
     $this->actingAs($eic)
@@ -721,7 +751,7 @@ test('cannot publish accepted article directly', function () {
 
 test('cannot publish non-production article', function () {
     $eic = createEic();
-    $issue = Issue::factory()->create();
+    $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->inReview()->create();
 
     $this->actingAs($eic)
@@ -734,7 +764,7 @@ test('cannot publish non-production article', function () {
 
 test('user without publish-issue permission cannot publish', function () {
     $editor = createSectionEditor();
-    $issue = Issue::factory()->create();
+    $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create(['editor_id' => $editor->id]);
 
     $this->actingAs($editor)

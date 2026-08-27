@@ -78,7 +78,7 @@ class EditorialController extends Controller
 
         $sectionEditors = User::role('section-editor')->with('profile')->orderBy('email')->get();
         $reviewers = User::permission('review-article')->with('profile')->orderBy('email')->get();
-        $issues = Issue::orderByDesc('year')->orderByDesc('number')->get();
+        $issues = Issue::published()->orderByDesc('year')->orderByDesc('number')->get();
 
         $user = $request->user();
         $showAssignEditor = $article->isSubmitted() && $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);

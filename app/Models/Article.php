@@ -19,6 +19,7 @@ use App\Exceptions\GalleyNotAwaitingApprovalException;
 use App\Exceptions\GalleyNotProductionException;
 use App\Exceptions\GalleyPdfNotUploadedException;
 use App\Exceptions\InvalidTransitionException;
+use App\Exceptions\IssueNotPublishedException;
 use App\Exceptions\MissingBlindedPdfException;
 use App\Exceptions\MissingCompletedReviewsException;
 use App\Exceptions\NotSectionEditorException;
@@ -81,6 +82,32 @@ class Article extends Model
             'keywords' => 'array',
             'funding' => 'array',
         ];
+    }
+
+    /**
+     * PURPOSE: Guard the public visibility invariant — a published
+     * or retracted article cannot be saved against an issue that
+     * has not been published.
+     *
+     * SPECIFICATION: SPEC-24/BR-1
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $article) {
+            if (! $article->issue_id) {
+                return;
+            }
+
+            if (! in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted], true)) {
+                return;
+            }
+
+            $issue = Issue::query()->whereKey($article->issue_id)->first();
+
+            if ($issue && ! $issue->isPublished()) {
+                throw new IssueNotPublishedException;
+            }
+        });
     }
 
     public function issue(): BelongsTo
@@ -710,14 +737,19 @@ class Article extends Model
     /**
      * Publish the article — assign to an issue, set published_at,
      * mint and persist a DOI if none exists, and transition to
-     * Published status. Requires prior author galley approval (BR-1).
+     * Published status. Requires prior author galley approval (BR-1)
+     * and a published issue (SPEC-24/BR-1).
      *
-     * SPECIFICATION: SPEC-04/AC-6, SPEC-04/BR-6, SPEC-04/BR-7, SPEC-13/BR-1, SPEC-08/AC-2, SPEC-08/BR-2a
+     * SPECIFICATION: SPEC-04/AC-6, SPEC-04/BR-6, SPEC-04/BR-7, SPEC-13/BR-1, SPEC-08/AC-2, SPEC-08/BR-2a, SPEC-24/BR-1
      */
     public function publish(Issue $issue): void
     {
         if ($this->status !== ArticleStatus::Approved) {
             throw new GalleyApprovalRequiredException;
+        }
+
+        if (! $issue->isPublished()) {
+            throw new IssueNotPublishedException;
         }
 
         DB::transaction(function () use ($issue) {

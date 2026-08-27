@@ -51,13 +51,6 @@ if ($issue->number) $jsonLd['issueNumber'] = $issue->number;
                 </div>
             @endif
 
-            @if($issue->status !== 'published')
-                <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-6 text-center">
-                    <p class="font-semibold text-lg mb-1">{{ __('pages.issue_unpublished') }}</p>
-                    <p class="text-sm text-blue-600">{{ __('pages.issue_unpublished_hint') }}</p>
-                </div>
-            @else
-
             @if($issue->pdf_path)
                 <div class="mb-8">
                     <a href="{{ Storage::url($issue->pdf_path) }}" class="inline-block bg-accent hover:bg-accent-light text-white px-6 py-3 rounded font-semibold transition" target="_blank">
@@ -91,7 +84,6 @@ if ($issue->number) $jsonLd['issueNumber'] = $issue->number;
                 <div class="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
                     <p class="text-gray-600">{{ __('pages.issue_no_articles') }}</p>
                 </div>
-            @endif
             @endif
         </div>
     </section>

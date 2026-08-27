@@ -65,6 +65,7 @@ return [
     'error_send_to_copyediting_status' => 'Статья не может быть отправлена на корректуру.',
     'error_send_to_production_status' => 'Статья не может быть отправлена в производство.',
     'error_publish_status' => 'Статья не может быть опубликована.',
+    'error_issue_not_published' => 'Опубликованную статью можно разместить только в опубликованном выпуске.',
     'error_review_accept_status' => 'Только ожидающие рецензии могут быть приняты.',
     'error_review_decline_status' => 'Только ожидающие рецензии могут быть отклонены.',
     'error_review_complete_status' => 'Только активные рецензии могут быть завершены.',

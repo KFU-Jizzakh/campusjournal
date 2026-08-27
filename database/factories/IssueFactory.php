@@ -15,7 +15,9 @@ class IssueFactory extends Factory
             'number' => fake()->numberBetween(1, 4),
             'year' => fake()->year(),
             'title' => fake()->sentence(3),
-            'status' => 'planned',
+            // Most tests need a published issue; callers that need
+            // another status must set it explicitly.
+            'status' => 'published',
         ];
     }
 }

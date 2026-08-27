@@ -37,6 +37,7 @@ class OaiSetResolver
 
             $issues = Issue::query()
                 ->whereHas('articles', fn ($q) => $q->published())
+                ->published()
                 ->orderByDesc('year')
                 ->orderByDesc('volume')
                 ->orderByDesc('number')

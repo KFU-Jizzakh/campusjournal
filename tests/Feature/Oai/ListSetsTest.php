@@ -24,3 +24,12 @@ test('lists category and issue sets with published articles', function () {
     expect($body)->toContain('<setSpec>issue:'.$issue->id.'</setSpec>');
     expect($body)->not->toContain('category:empty');
 });
+
+test('does not list planned issues as sets', function () {
+    $planned = Issue::factory()->create(['status' => 'planned', 'title' => 'Upcoming Issue']);
+
+    $body = $this->get('/oai?verb=ListSets')->getContent();
+
+    expect($body)->not->toContain('issue:'.$planned->id);
+    expect($body)->not->toContain('Upcoming Issue');
+});

@@ -3,28 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
-use App\Models\Issue;
 use App\Models\Organization;
 
 /**
- * PURPOSE: Serves the public homepage with the latest issue,
- * planned issues, upcoming events, and partner organisations.
+ * PURPOSE: Serves the public homepage with upcoming events
+ * and partner organisations. Planned issues are intentionally
+ * not shown (SPEC-24/AC-3).
+ *
+ * SPECIFICATION: SPEC-24/AC-3
  */
 class HomeController extends Controller
 {
     public function index()
     {
-        $latestIssue = Issue::published()
-            ->orderByDesc('year')
-            ->orderByDesc('number')
-            ->first();
-
-        $plannedIssues = Issue::where('status', 'planned')
-            ->orderBy('year')
-            ->orderBy('number')
-            ->take(4)
-            ->get();
-
         $events = Event::published()
             ->upcoming()
             ->orderBy('event_date')
@@ -33,8 +24,6 @@ class HomeController extends Controller
 
         $organizations = Organization::orderBy('sort_order')->get();
 
-        return view('home', compact(
-            'latestIssue', 'plannedIssues', 'events', 'organizations'
-        ));
+        return view('home', compact('events', 'organizations'));
     }
 }

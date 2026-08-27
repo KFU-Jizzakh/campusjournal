@@ -17,7 +17,7 @@ test('home page loads successfully', function () {
     $this->get(route('home'))->assertOk();
 });
 
-test('home page shows planned issues', function () {
+test('home page does not show planned issues', function () {
     $issue = Issue::factory()->create([
         'status' => 'planned',
         'title' => 'Тематический номер тест',
@@ -27,7 +27,7 @@ test('home page shows planned issues', function () {
 
     $this->get(route('home'))
         ->assertOk()
-        ->assertSee('Тематический номер тест');
+        ->assertDontSee('Тематический номер тест');
 });
 
 test('home page shows upcoming events', function () {
@@ -71,6 +71,18 @@ test('issue show page loads', function () {
     $issue = Issue::factory()->create(['status' => 'published']);
 
     $this->get(route('issues.show', $issue))->assertOk();
+});
+
+test('planned issue page returns 404', function () {
+    $issue = Issue::factory()->create(['status' => 'planned']);
+
+    $this->get(route('issues.show', $issue))->assertNotFound();
+});
+
+test('in-progress issue page returns 404', function () {
+    $issue = Issue::factory()->create(['status' => 'in_progress']);
+
+    $this->get(route('issues.show', $issue))->assertNotFound();
 });
 
 test('issue show displays published articles', function () {
