@@ -33,13 +33,13 @@ class SiteSettings extends Page
     public function mount(): void
     {
         $this->form->fill([
-            'contact_email' => Setting::get('contact_email', 'liceum9zd@yandex.ru'),
-            'contact_phone' => Setting::get('contact_phone', '+7 (995) 285-83-21'),
-            'contact_phone_raw' => Setting::get('contact_phone_raw', '+79952858321'),
-            'social_vk' => Setting::get('social_vk', 'https://vk.com/public220986216'),
-            'social_telegram' => Setting::get('social_telegram', 'https://t.me/asooaspp'),
-            'social_whatsapp' => Setting::get('social_whatsapp', 'https://api.whatsapp.com/message/5YSFA5VES7O2J1'),
-            'social_rutube' => Setting::get('social_rutube', 'https://rutube.ru/channel/26854854'),
+            'contact_email' => Setting::get('contact_email', ''),
+            'contact_phone' => Setting::get('contact_phone', ''),
+            'contact_phone_raw' => Setting::get('contact_phone_raw', ''),
+            'social_vk' => Setting::get('social_vk', ''),
+            'social_telegram' => Setting::get('social_telegram', ''),
+            'social_whatsapp' => Setting::get('social_whatsapp', ''),
+            'social_rutube' => Setting::get('social_rutube', ''),
             'review_response_days' => Setting::get('review_response_days', '7'),
             'review_deadline_days' => Setting::get('review_deadline_days', '30'),
             'journal_issn_print' => Setting::get('journal_issn_print', ''),
