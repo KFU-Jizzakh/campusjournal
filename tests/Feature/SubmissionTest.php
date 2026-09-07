@@ -36,6 +36,28 @@ function createAuthor(): User
     return $user;
 }
 
+function authorContactFields(array $overrides = []): array
+{
+    return array_merge([
+        'author_email' => 'ivanov@example.test',
+        'author_phone' => '+7 (900) 123-45-67',
+        'author_country' => 'Россия',
+        'author_city' => 'Казань',
+        'author_website' => 'https://ivanov.test',
+    ], $overrides);
+}
+
+function coauthorContactFields(array $overrides = []): array
+{
+    return array_merge([
+        'email' => 'coauthor@example.test',
+        'phone' => '+7 (900) 111-22-33',
+        'country' => 'Казахстан',
+        'city' => 'Алматы',
+        'website' => 'https://petrov.test',
+    ], $overrides);
+}
+
 test('author can view submission create form', function () {
     $this->actingAs(createAuthor())
         ->get(route('submissions.create'))
@@ -72,6 +94,7 @@ test('author can submit an article', function () {
             'author_degree' => 'к.н.',
             'author_position' => 'доцент',
             'author_organization' => 'КФУ',
+            ...authorContactFields(),
             'author_orcid' => '0000-0001-2345-6789',
             'agreement_accepted' => 'on',
         ])
@@ -89,10 +112,122 @@ test('author can submit an article', function () {
     Notification::assertSentTo($author, AuthorSubmissionReceived::class);
 });
 
+test('submission stores author contact details', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($author)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с контактами',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(['author_email' => 'contact@example.test', 'author_website' => 'https://ivanov.test']),
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    $primaryAuthor = Author::where('user_id', $author->id)->first();
+
+    expect($primaryAuthor)
+        ->not->toBeNull()
+        ->email->toBe('contact@example.test')
+        ->phone->toBe('+7 (900) 123-45-67')
+        ->country->toBe('Россия')
+        ->city->toBe('Казань')
+        ->website->toBe('https://ivanov.test');
+
+    $pivot = Article::first()->authors()->first()->pivot;
+
+    expect($pivot)
+        ->email->toBe('contact@example.test')
+        ->phone->toBe('+7 (900) 123-45-67')
+        ->country->toBe('Россия')
+        ->city->toBe('Казань')
+        ->website->toBe('https://ivanov.test');
+});
+
+test('submission stores coauthor contact details', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($author)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с соавтором',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'coauthors' => [
+                ['full_name' => 'Петров Пётр', ...coauthorContactFields(['website' => 'https://petrov.test'])],
+            ],
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    $coauthor = Author::where('full_name', 'Петров Пётр')->first();
+
+    expect($coauthor)
+        ->not->toBeNull()
+        ->email->toBe('coauthor@example.test')
+        ->phone->toBe('+7 (900) 111-22-33')
+        ->country->toBe('Казахстан')
+        ->city->toBe('Алматы')
+        ->website->toBe('https://petrov.test');
+
+    $pivot = Article::first()->authors()->where('author_id', $coauthor->id)->first()->pivot;
+
+    expect($pivot)
+        ->email->toBe('coauthor@example.test')
+        ->phone->toBe('+7 (900) 111-22-33')
+        ->country->toBe('Казахстан')
+        ->city->toBe('Алматы')
+        ->website->toBe('https://petrov.test');
+});
+
 test('submission validation requires mandatory fields', function () {
     $this->actingAs(createAuthor())
         ->post(route('submissions.store'), [])
-        ->assertSessionHasErrors(['title', 'abstract_ru', 'category_id', 'pdf_file', 'author_name', 'agreement_accepted']);
+        ->assertSessionHasErrors(['title', 'abstract_ru', 'category_id', 'pdf_file', 'author_name', 'author_email', 'author_phone', 'author_country', 'author_city', 'agreement_accepted']);
+});
+
+test('submission rejects invalid phone and country', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($author)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с ошибками',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(['author_phone' => 'не-номер', 'author_country' => 'Атлантида', 'author_city' => '']),
+            'agreement_accepted' => 'on',
+        ])
+        ->assertSessionHasErrors(['author_phone', 'author_country', 'author_city']);
+});
+
+test('submission rejects missing coauthor contact details', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($author)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с соавтором',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'coauthors' => [
+                ['full_name' => 'Петров Пётр'],
+            ],
+            'agreement_accepted' => 'on',
+        ])
+        ->assertSessionHasErrors(['coauthors.0.email', 'coauthors.0.phone', 'coauthors.0.country', 'coauthors.0.city']);
 });
 
 test('author can view own submission', function () {
@@ -145,6 +280,7 @@ test('author can edit article in revision status', function () {
             'abstract_ru' => 'Новая аннотация',
             'category_id' => $category->id,
             'author_name' => 'Иванов Иван Иванович',
+            ...authorContactFields(),
             'agreement_accepted' => 'on',
         ])
         ->assertRedirect();
@@ -172,10 +308,47 @@ test('updating draft article does not change status to submitted', function () {
             'abstract_ru' => 'Updated abstract',
             'category_id' => $category->id,
             'author_name' => 'Иванов Иван Иванович',
+            ...authorContactFields(),
         ])
         ->assertRedirect();
 
     expect($article->refresh()->status)->toBe(ArticleStatus::Draft);
+});
+
+test('update stores changed author contact details', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+    $article = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::Draft,
+        'category_id' => $category->id,
+    ]);
+
+    $this->actingAs($author)
+        ->put(route('submissions.update', $article), [
+            'title' => $article->title,
+            'abstract_ru' => $article->abstract_ru ?? 'abstract',
+            'category_id' => $category->id,
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(['author_email' => 'updated@example.test', 'author_country' => 'Беларусь', 'author_city' => 'Минск']),
+        ])
+        ->assertRedirect();
+
+    $primaryAuthor = Author::where('user_id', $author->id)->first();
+
+    expect($primaryAuthor)
+        ->not->toBeNull()
+        ->email->toBe('updated@example.test')
+        ->country->toBe('Беларусь')
+        ->city->toBe('Минск');
+
+    $pivot = $article->refresh()->authors()->first()->pivot;
+
+    expect($pivot)
+        ->email->toBe('updated@example.test')
+        ->country->toBe('Беларусь')
+        ->city->toBe('Минск')
+        ->website->toBe('https://ivanov.test');
 });
 
 test('submission rejects duplicate orcid between author and coauthor', function () {
@@ -189,9 +362,10 @@ test('submission rejects duplicate orcid between author and coauthor', function 
             'category_id' => $category->id,
             'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
             'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
             'author_orcid' => '0000-0001-2345-6789',
             'coauthors' => [
-                ['full_name' => 'Петров Пётр', 'orcid' => '0000-0001-2345-6789'],
+                ['full_name' => 'Петров Пётр', ...coauthorContactFields(), 'orcid' => '0000-0001-2345-6789'],
             ],
             'agreement_accepted' => 'on',
         ])
@@ -209,9 +383,10 @@ test('submission rejects duplicate orcid between coauthors', function () {
             'category_id' => $category->id,
             'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
             'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
             'coauthors' => [
-                ['full_name' => 'Петров Пётр', 'orcid' => '0000-0002-3456-7890'],
-                ['full_name' => 'Сидоров Сидор', 'orcid' => '0000-0002-3456-7890'],
+                ['full_name' => 'Петров Пётр', ...coauthorContactFields(), 'orcid' => '0000-0002-3456-7890'],
+                ['full_name' => 'Сидоров Сидор', ...coauthorContactFields(), 'orcid' => '0000-0002-3456-7890'],
             ],
             'agreement_accepted' => 'on',
         ])
@@ -234,8 +409,9 @@ test('updating article cleans up orphaned coauthors', function () {
             'abstract_ru' => $article->abstract_ru ?? 'abstract',
             'category_id' => $category->id,
             'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
             'coauthors' => [
-                ['full_name' => 'Петров Пётр'],
+                ['full_name' => 'Петров Пётр', ...coauthorContactFields()],
             ],
         ])
         ->assertRedirect();
@@ -250,6 +426,7 @@ test('updating article cleans up orphaned coauthors', function () {
             'abstract_ru' => $article->abstract_ru ?? 'abstract',
             'category_id' => $category->id,
             'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
         ])
         ->assertRedirect();
 
@@ -279,8 +456,9 @@ test('coauthor shared with another article is not deleted', function () {
             'abstract_ru' => $article1->abstract_ru ?? 'abstract',
             'category_id' => $category->id,
             'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
             'coauthors' => [
-                ['full_name' => 'Сидоров Сидор'],
+                ['full_name' => 'Сидоров Сидор', ...coauthorContactFields()],
             ],
         ]);
 
@@ -296,6 +474,7 @@ test('coauthor shared with another article is not deleted', function () {
             'abstract_ru' => $article1->abstract_ru ?? 'abstract',
             'category_id' => $category->id,
             'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
         ]);
 
     // Coauthor is still attached to article2, so should NOT be deleted
@@ -321,6 +500,7 @@ test('pdf replacement deletes old file', function () {
             'abstract_ru' => $article->abstract_ru,
             'category_id' => $category->id,
             'author_name' => 'Иванов Иван Иванович',
+            ...authorContactFields(),
             'pdf_file' => UploadedFile::fake()->create('new.pdf', 512, 'application/pdf'),
         ])
         ->assertRedirect();
@@ -349,11 +529,13 @@ test('submission notifies coauthor linked via ORCID', function () {
             'category_id' => $category->id,
             'pdf_file' => UploadedFile::fake()->create('paper.pdf', 100, 'application/pdf'),
             'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
             'keywords' => 'test',
             'agreement_accepted' => 'on',
             'coauthors' => [
                 [
                     'full_name' => 'Петров Пётр',
+                    ...coauthorContactFields(),
                     'orcid' => '0000-0002-1234-5678',
                 ],
             ],
@@ -362,4 +544,374 @@ test('submission notifies coauthor linked via ORCID', function () {
 
     Notification::assertSentTo($submitter, AuthorSubmissionReceived::class);
     Notification::assertSentTo($coauthorUser, AuthorSubmissionReceived::class);
+});
+
+test('author can submit a second article reusing their own orcid', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+
+    $payload = function (string $title) use ($category) {
+        return [
+            'title' => $title,
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'author_orcid' => '0000-0001-2345-6789',
+            'agreement_accepted' => 'on',
+        ];
+    };
+
+    $this->actingAs($author)
+        ->post(route('submissions.store'), $payload('Первая статья'))
+        ->assertRedirect();
+
+    $this->actingAs($author)
+        ->post(route('submissions.store'), $payload('Вторая статья'))
+        ->assertRedirect();
+
+    expect(Article::count())->toBe(2);
+});
+
+test('author contact details are snapshotted per article', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+
+    $submit = function (string $title, string $email, string $phone, string $website) use ($author, $category) {
+        $this->actingAs($author)
+            ->post(route('submissions.store'), [
+                'title' => $title,
+                'abstract_ru' => 'Аннотация',
+                'category_id' => $category->id,
+                'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+                'author_name' => 'Иванов Иван',
+                'agreement_accepted' => 'on',
+                ...authorContactFields(['author_email' => $email, 'author_phone' => $phone, 'author_website' => $website]),
+            ])
+            ->assertRedirect();
+
+        return Article::where('title', $title)->first();
+    };
+
+    $articleA = $submit('Статья A', 'article-a@example.test', '+7 (900) 111-11-11', 'https://a.test');
+    $articleB = $submit('Статья B', 'article-b@example.test', '+7 (900) 222-22-22', 'https://b.test');
+
+    $pivotA = $articleA->authors()->first()->pivot;
+    $pivotB = $articleB->authors()->first()->pivot;
+
+    expect($pivotA)
+        ->email->toBe('article-a@example.test')
+        ->phone->toBe('+7 (900) 111-11-11')
+        ->website->toBe('https://a.test');
+    expect($pivotB)
+        ->email->toBe('article-b@example.test')
+        ->phone->toBe('+7 (900) 222-22-22')
+        ->website->toBe('https://b.test');
+
+    // The shared authors row mirrors the latest submission, while each
+    // article keeps its own snapshot.
+    expect(Author::where('user_id', $author->id)->first()->email)
+        ->toBe('article-b@example.test');
+    expect(Author::where('user_id', $author->id)->first()->website)
+        ->toBe('https://b.test');
+
+    // Submission detail page shows the article's own snapshot, not the
+    // contact from the newer article.
+    $this->actingAs($author)
+        ->get(route('submissions.show', $articleA))
+        ->assertOk()
+        ->assertSee('article-a@example.test')
+        ->assertSee('+7 (900) 111-11-11')
+        ->assertSee('https://a.test')
+        ->assertDontSee('article-b@example.test')
+        ->assertDontSee('+7 (900) 222-22-22')
+        ->assertDontSee('https://b.test');
+});
+
+test('draft edit form prefills the article own contact snapshot', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+
+    $articleA = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::Draft,
+        'category_id' => $category->id,
+    ]);
+    $articleB = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::Draft,
+        'category_id' => $category->id,
+    ]);
+
+    $payload = fn (string $title, string $email, string $phone, string $website) => [
+        'title' => $title,
+        'abstract_ru' => 'Аннотация',
+        'category_id' => $category->id,
+        'author_name' => 'Иванов Иван',
+        ...authorContactFields(['author_email' => $email, 'author_phone' => $phone, 'author_website' => $website]),
+    ];
+
+    $this->actingAs($author)
+        ->put(route('submissions.update', $articleA), $payload('Черновик A', 'draft-a@example.test', '+7 (900) 111-11-11', 'https://draft-a.test'))
+        ->assertRedirect();
+
+    $this->actingAs($author)
+        ->put(route('submissions.update', $articleB), $payload('Черновик B', 'draft-b@example.test', '+7 (900) 222-22-22', 'https://draft-b.test'))
+        ->assertRedirect();
+
+    $this->actingAs($author)
+        ->get(route('submissions.edit', $articleA))
+        ->assertOk()
+        ->assertSee('draft-a@example.test')
+        ->assertSee('+7 (900) 111-11-11')
+        ->assertSee('https://draft-a.test')
+        ->assertDontSee('draft-b@example.test')
+        ->assertDontSee('+7 (900) 222-22-22')
+        ->assertDontSee('https://draft-b.test');
+});
+
+test('coauthor can submit their own article reusing their orcid', function () {
+    $submitter = createAuthor();
+    $coauthorUser = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Общая статья',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Петров Пётр',
+                    ...coauthorContactFields(),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    // Coauthor ORCID rows are not linked to a user account. They count as
+    // claimable by the coauthor themselves: submitting with the same email
+    // that was snapshotted on the unlinked row is allowed.
+    expect(Author::where('orcid', '0000-0002-1234-5678')->whereNull('user_id')->exists())->toBeTrue();
+
+    $this->actingAs($coauthorUser)
+        ->post(route('submissions.store'), [
+            'title' => 'Собственная статья',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Петров Пётр',
+            ...authorContactFields(['author_email' => 'coauthor@example.test']),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    expect(Article::count())->toBe(2);
+    expect(Author::where('orcid', '0000-0002-1234-5678')->where('user_id', $coauthorUser->id)->exists())->toBeTrue();
+});
+
+test('user cannot claim an unlinked orcid with a different email', function () {
+    $submitter = createAuthor();
+    $otherUser = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Общая статья',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Петров Пётр',
+                    ...coauthorContactFields(),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    // A different email does not prove ownership of the unlinked ORCID row,
+    // so the claim must be rejected.
+    $this->actingAs($otherUser)
+        ->post(route('submissions.store'), [
+            'title' => 'Чужая статья',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Петров Пётр',
+            ...authorContactFields(['author_email' => 'other@example.test']),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
+        ->assertSessionHasErrors('author_orcid');
+
+    expect(Article::count())->toBe(1);
+});
+
+test('user can claim an unlinked orcid row without an email snapshot', function () {
+    $submitter = createAuthor();
+    $claimer = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с соавтором',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Петров Пётр',
+                    ...coauthorContactFields(),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    // Legacy rows have a NULL email snapshot; they cannot prove ownership
+    // either way and must not permanently block a claim.
+    Author::where('orcid', '0000-0002-1234-5678')->whereNull('user_id')->update(['email' => null]);
+
+    $this->actingAs($claimer)
+        ->post(route('submissions.store'), [
+            'title' => 'Заявка на чужой ORCID без email',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Петров Пётр',
+            ...authorContactFields(['author_email' => 'claimer@example.test']),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    expect(Article::count())->toBe(2);
+});
+
+test('user can reuse their orcid after the unlinked row email diverges', function () {
+    $submitter = createAuthor();
+    $owner = createAuthor();
+    $thirdSubmitter = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с соавтором-владельцем ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Петров Пётр',
+                    ...coauthorContactFields(['email' => 'owner@example.test']),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    // The coauthor claims the ORCID by submitting with the same email.
+    $this->actingAs($owner)
+        ->post(route('submissions.store'), [
+            'title' => 'Собственная статья владельца ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Петров Пётр',
+            ...authorContactFields(['author_email' => 'owner@example.test']),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    // A later submission lists the coauthor with a different email, which
+    // rewrites the unlinked row and diverges it from the claimed one.
+    $this->actingAs($thirdSubmitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с соавтором по рассинхроненному email',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Сидоров Сидор',
+            ...authorContactFields(['author_email' => 'third@example.test']),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Петров Пётр',
+                    ...coauthorContactFields(['email' => 'third-listing@example.test']),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    // The owner still submits with their own ORCID, now from a new email.
+    $this->actingAs($owner)
+        ->post(route('submissions.store'), [
+            'title' => 'Вторая статья владельца ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Петров Пётр',
+            ...authorContactFields(['author_email' => 'owner-new@example.test']),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    expect(Article::count())->toBe(4);
+    expect(Author::where('orcid', '0000-0002-1234-5678')->where('user_id', $owner->id)->exists())->toBeTrue();
+});
+
+test('submission page shows author contact details when pivot snapshot is missing', function () {
+    $author = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($author)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья для проверки контактов',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    $article = Article::first();
+
+    // Legacy rows predating the contact snapshot have a NULL pivot snapshot;
+    // the detail page must fall back to the shared authors row.
+    $article->authors()->updateExistingPivot($article->authors->first()->id, [
+        'email' => null,
+        'phone' => null,
+        'country' => null,
+        'city' => null,
+        'website' => null,
+    ]);
+
+    $this->actingAs($author)
+        ->get(route('submissions.show', $article))
+        ->assertOk()
+        ->assertSee('ivanov@example.test')
+        ->assertSee('https://ivanov.test');
 });

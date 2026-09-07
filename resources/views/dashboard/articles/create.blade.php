@@ -117,36 +117,74 @@
 
         <div class="bg-white rounded-lg border border-gray-200 p-6" x-data="{
             coauthors: @json(old('coauthors', [])),
-            addCoauthor() { this.coauthors.push({ full_name: '', degree: '', position: '', organization: '', orcid: '' }); },
+            addCoauthor() { this.coauthors.push({ full_name: '', degree: '', position: '', organization: '', country: '', city: '', email: '', phone: '', website: '', orcid: '' }); },
             removeCoauthor(i) { this.coauthors.splice(i, 1); }
         }">
-            <h3 class="font-semibold text-gray-900 mb-4">Авторы</h3>
+            <h3 class="font-semibold text-gray-900 mb-4">{{ __('author.heading') }}</h3>
 
             <div class="border border-gray-100 rounded-lg p-4 mb-4">
-                <div class="text-xs text-gray-400 uppercase font-medium mb-3">{{ __('article.main_author') }}</div>
+                <div class="text-xs text-gray-400 uppercase font-medium mb-3">{{ __('author.main_author') }}</div>
                 <div class="space-y-3">
                     <div>
-                        <x-input-label for="author_name" :value="__('article.full_name')" />
-                        <x-text-input id="author_name" name="author_name" type="text" class="mt-1 block w-full" :value="old('author_name', auth()->user()->full_name)" required />
+                        <x-input-label for="author_name" :value="__('author.full_name')" />
+                        <x-text-input id="author_name" name="author_name" type="text" class="mt-1 block w-full" :value="old('author_name', $existingAuthor?->full_name ?? auth()->user()->full_name)" required />
                         <x-input-error :messages="$errors->get('author_name')" class="mt-1" />
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <x-input-label for="author_degree" :value="__('article.degree')" />
-                            <x-text-input id="author_degree" name="author_degree" type="text" class="mt-1 block w-full" :value="old('author_degree')" />
+                            <x-input-label for="author_degree" :value="__('author.degree')" />
+                            <x-text-input id="author_degree" name="author_degree" type="text" class="mt-1 block w-full" :value="old('author_degree', $existingAuthor?->degree)" />
+                            <x-input-error :messages="$errors->get('author_degree')" class="mt-1" />
                         </div>
                         <div>
-                            <x-input-label for="author_position" :value="__('article.position')" />
-                            <x-text-input id="author_position" name="author_position" type="text" class="mt-1 block w-full" :value="old('author_position')" />
+                            <x-input-label for="author_position" :value="__('author.position')" />
+                            <x-text-input id="author_position" name="author_position" type="text" class="mt-1 block w-full" :value="old('author_position', $existingAuthor?->position)" />
+                            <x-input-error :messages="$errors->get('author_position')" class="mt-1" />
                         </div>
                     </div>
                     <div>
-                        <x-input-label for="author_organization" :value="__('article.affiliation')" />
-                        <x-text-input id="author_organization" name="author_organization" type="text" class="mt-1 block w-full" :value="old('author_organization')" />
+                        <x-input-label for="author_organization" :value="__('author.affiliation')" />
+                        <x-text-input id="author_organization" name="author_organization" type="text" class="mt-1 block w-full" :value="old('author_organization', $existingAuthor?->organization)" />
+                        <x-input-error :messages="$errors->get('author_organization')" class="mt-1" />
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <x-input-label for="author_country" :value="__('author.country')" />
+                            <select id="author_country" name="author_country" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" required>
+                                <option value="">{{ __('author.select_country') }}</option>
+                                @foreach($countries as $country)
+                                    <option value="{{ $country->value }}" {{ old('author_country', $existingAuthor?->country) === $country->value ? 'selected' : '' }}>{{ $country->value }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('author_country')" class="mt-1" />
+                        </div>
+                        <div>
+                            <x-input-label for="author_city" :value="__('author.city')" />
+                            <x-text-input id="author_city" name="author_city" type="text" class="mt-1 block w-full" :value="old('author_city', $existingAuthor?->city)" required />
+                            <x-input-error :messages="$errors->get('author_city')" class="mt-1" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <x-input-label for="author_email" :value="__('author.email')" />
+                            <x-text-input id="author_email" name="author_email" type="email" class="mt-1 block w-full" :value="old('author_email', $existingAuthor?->email ?? auth()->user()->email)" required />
+                            <x-input-error :messages="$errors->get('author_email')" class="mt-1" />
+                        </div>
+                        <div>
+                            <x-input-label for="author_phone" :value="__('author.phone')" />
+                            <x-text-input id="author_phone" name="author_phone" type="text" class="mt-1 block w-full" :value="old('author_phone', $existingAuthor?->phone)" placeholder="+7 (999) 123-45-67" required />
+                            <x-input-error :messages="$errors->get('author_phone')" class="mt-1" />
+                        </div>
                     </div>
                     <div>
-                        <x-input-label for="author_orcid" :value="__('article.orcid')" />
-                        <x-text-input id="author_orcid" name="author_orcid" type="text" class="mt-1 block w-full" :value="old('author_orcid')" placeholder="0000-0000-0000-0000" />
+                        <x-input-label for="author_website" :value="__('author.url')" />
+                        <x-text-input id="author_website" name="author_website" type="url" class="mt-1 block w-full" :value="old('author_website', $existingAuthor?->website)" placeholder="https://…" />
+                        <x-input-error :messages="$errors->get('author_website')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="author_orcid" :value="__('author.orcid')" />
+                        <x-text-input id="author_orcid" name="author_orcid" type="text" class="mt-1 block w-full" :value="old('author_orcid', $existingAuthor?->orcid)" placeholder="0000-0000-0000-0000" />
+                        <x-input-error :messages="$errors->get('author_orcid')" class="mt-1" />
                     </div>
                 </div>
             </div>
@@ -155,29 +193,58 @@
                 <div class="border border-gray-100 rounded-lg p-4 mb-4">
                     <div class="flex items-center justify-between mb-3">
                         <div class="text-xs text-gray-400 uppercase font-medium" x-text="'Соавтор ' + (index + 1)"></div>
-                        <button type="button" @click="removeCoauthor(index)" class="text-xs text-red-500 hover:text-red-700">{{ __('article.remove_coauthor') }}</button>
+                        <button type="button" @click="removeCoauthor(index)" class="text-xs text-red-500 hover:text-red-700">{{ __('author.remove_coauthor') }}</button>
                     </div>
                     <div class="space-y-3">
                         <div>
-                            <x-input-label :value="__('article.full_name')" />
+                            <x-input-label :value="__('author.full_name')" />
                             <input type="text" :name="'coauthors[' + index + '][full_name]'" x-model="coauthor.full_name" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <x-input-label :value="__('article.degree')" />
+                                <x-input-label :value="__('author.degree')" />
                                 <input type="text" :name="'coauthors[' + index + '][degree]'" x-model="coauthor.degree" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
                             </div>
                             <div>
-                                <x-input-label :value="__('article.position')" />
+                                <x-input-label :value="__('author.position')" />
                                 <input type="text" :name="'coauthors[' + index + '][position]'" x-model="coauthor.position" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
                             </div>
                         </div>
                         <div>
-                            <x-input-label :value="__('article.affiliation')" />
+                            <x-input-label :value="__('author.affiliation')" />
                             <input type="text" :name="'coauthors[' + index + '][organization]'" x-model="coauthor.organization" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
                         </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <x-input-label :value="__('author.country')" />
+                                <select :name="'coauthors[' + index + '][country]'" x-model="coauthor.country" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm">
+                                    <option value="">{{ __('author.select_country') }}</option>
+                                    @foreach($countries as $country)
+                                        <option value="{{ $country->value }}">{{ $country->value }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <x-input-label :value="__('author.city')" />
+                                <input type="text" :name="'coauthors[' + index + '][city]'" x-model="coauthor.city" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <x-input-label :value="__('author.email')" />
+                                <input type="email" :name="'coauthors[' + index + '][email]'" x-model="coauthor.email" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
+                            </div>
+                            <div>
+                                <x-input-label :value="__('author.phone')" />
+                                <input type="text" :name="'coauthors[' + index + '][phone]'" x-model="coauthor.phone" required placeholder="+7 (999) 123-45-67" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
+                            </div>
+                        </div>
                         <div>
-                            <x-input-label :value="__('article.orcid')" />
+                            <x-input-label :value="__('author.url')" />
+                            <input type="url" :name="'coauthors[' + index + '][website]'" x-model="coauthor.website" placeholder="https://…" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
+                        </div>
+                        <div>
+                            <x-input-label :value="__('author.orcid')" />
                             <input type="text" :name="'coauthors[' + index + '][orcid]'" x-model="coauthor.orcid" placeholder="0000-0000-0000-0000" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" />
                         </div>
                     </div>
@@ -185,10 +252,10 @@
             </template>
 
             @if($errors->has('coauthors.*'))
-                <p class="text-sm text-red-600 mb-3">{{ __('article.check_coauthors') }}</p>
+                <p class="text-sm text-red-600 mb-3">{{ __('author.check_coauthors') }}</p>
             @endif
 
-            <button type="button" @click="addCoauthor()" class="text-sm text-primary hover:underline">{{ __('article.add_coauthor') }}</button>
+            <button type="button" @click="addCoauthor()" class="text-sm text-primary hover:underline">{{ __('author.add_coauthor') }}</button>
         </div>
 
         @if($agreement)

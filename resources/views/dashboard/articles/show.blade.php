@@ -41,7 +41,7 @@
 
             @if($article->authors->isNotEmpty())
                 <div class="mb-4">
-                    <h4 class="text-xs font-medium text-gray-400 uppercase mb-1">{{ __('article.coauthors_label') }}</h4>
+                    <h4 class="text-xs font-medium text-gray-400 uppercase mb-1">{{ __('author.coauthors_label') }}</h4>
                     @foreach($article->authors as $author)
                         <div class="text-sm text-gray-700">
                             <span class="font-medium">{{ $author->full_name }}</span>
@@ -50,6 +50,13 @@
                             @endif
                             @if($author->organization)
                                 <span class="text-gray-400">({{ $author->organization }})</span>
+                            @endif
+                            @if($loop->first && ($author->displayEmail() || $author->displayPhone() || $author->displayWebsite()))
+                                <div class="text-xs text-gray-400 mt-0.5">
+                                    {{ __('author.email') }}: {{ $author->displayEmail() ?: '—' }} ·
+                                    {{ __('author.phone') }}: {{ $author->displayPhone() ?: '—' }} ·
+                                    {{ __('author.url') }}: {{ $author->displayWebsite() ?: '—' }}
+                                </div>
                             @endif
                         </div>
                     @endforeach

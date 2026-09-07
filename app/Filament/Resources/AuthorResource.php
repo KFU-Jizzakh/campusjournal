@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Country;
 use App\Filament\Resources\AuthorResource\Pages;
 use App\Models\Author;
 use Filament\Actions;
@@ -10,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rule;
 
 class AuthorResource extends Resource
 {
@@ -41,6 +43,11 @@ class AuthorResource extends Resource
             Forms\Components\TextInput::make('degree')->label('Ученая степень')->maxLength(255),
             Forms\Components\TextInput::make('position')->label('Должность')->maxLength(255),
             Forms\Components\TextInput::make('organization')->label('Организация')->maxLength(255),
+            Forms\Components\Select::make('country')->label('Страна')
+                ->options(collect(Country::cases())->pluck('value', 'value'))
+                ->rules([Rule::enum(Country::class)]),
+            Forms\Components\TextInput::make('city')->label('Город')->maxLength(255),
+            Forms\Components\TextInput::make('phone')->label('Телефон')->maxLength(25),
             Forms\Components\Textarea::make('bio')->label('Биография')->rows(4)->columnSpanFull(),
             Forms\Components\FileUpload::make('photo_path')->label('Фото')->disk('public')->directory('authors/photos')->image(),
             Forms\Components\TextInput::make('email')->label('Email')->email()->maxLength(255),

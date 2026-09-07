@@ -209,7 +209,7 @@ class Article extends Model
     public function authors(): BelongsToMany
     {
         return $this->belongsToMany(Author::class, 'article_author')
-            ->withPivot('order')
+            ->withPivot('order', 'email', 'phone', 'country', 'city', 'website')
             ->orderByPivot('order');
     }
 
@@ -987,7 +987,9 @@ class Article extends Model
 
     /**
      * Sync primary author (from submitter) and coauthors via pivot table.
-     * Cleans up orphaned coauthors no longer attached to any article.
+     * Contact details are snapshotted onto the article_author pivot so
+     * each article keeps the data as submitted. Cleans up orphaned
+     * coauthors no longer attached to any article.
      *
      * SPECIFICATION: SPEC-01/AC-1, SPEC-01/BR-4
      */
@@ -1000,16 +1002,29 @@ class Article extends Model
         $primaryAuthor = Author::updateOrCreate(
             ['user_id' => $submitter->id],
             [
-                'email' => $submitter->email,
+                'email' => $authorData['email'] ?? $submitter->email,
                 'full_name' => $authorData['full_name'],
                 'degree' => $authorData['degree'] ?? null,
                 'position' => $authorData['position'] ?? null,
                 'organization' => $authorData['organization'] ?? null,
                 'orcid' => $authorData['orcid'] ?? null,
+                'phone' => $authorData['phone'] ?? null,
+                'country' => $authorData['country'] ?? null,
+                'city' => $authorData['city'] ?? null,
+                'website' => $authorData['website'] ?? null,
             ]
         );
 
-        $authors = [$primaryAuthor->id => ['order' => 1]];
+        $authors = [
+            $primaryAuthor->id => [
+                'order' => 1,
+                'email' => $authorData['email'] ?? $submitter->email,
+                'phone' => $authorData['phone'] ?? null,
+                'country' => $authorData['country'] ?? null,
+                'city' => $authorData['city'] ?? null,
+                'website' => $authorData['website'] ?? null,
+            ],
+        ];
 
         foreach ($coauthorsData as $index => $coauthorData) {
             $attrs = [
@@ -1018,6 +1033,11 @@ class Article extends Model
                 'position' => $coauthorData['position'] ?? null,
                 'organization' => $coauthorData['organization'] ?? null,
                 'orcid' => $coauthorData['orcid'] ?? null,
+                'email' => $coauthorData['email'] ?? null,
+                'phone' => $coauthorData['phone'] ?? null,
+                'country' => $coauthorData['country'] ?? null,
+                'city' => $coauthorData['city'] ?? null,
+                'website' => $coauthorData['website'] ?? null,
             ];
 
             if (! empty($coauthorData['orcid'])) {
@@ -1026,7 +1046,14 @@ class Article extends Model
                 $coauthor = Author::create($attrs);
             }
 
-            $authors[$coauthor->id] = ['order' => $index + 2];
+            $authors[$coauthor->id] = [
+                'order' => $index + 2,
+                'email' => $coauthorData['email'] ?? null,
+                'phone' => $coauthorData['phone'] ?? null,
+                'country' => $coauthorData['country'] ?? null,
+                'city' => $coauthorData['city'] ?? null,
+                'website' => $coauthorData['website'] ?? null,
+            ];
         }
 
         $this->authors()->sync($authors);

@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\Country;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\Author;
 use App\Models\Category;
 use App\Models\CopyrightAgreement;
+use App\Models\User;
 use App\Notifications\AuthorSubmissionReceived;
+use App\Rules\ClaimableOrcid;
 use App\Rules\Orcid;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,12 +27,14 @@ use Illuminate\Validation\ValidationException;
  */
 class SubmissionController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
         $categories = Category::orderBy('sort_order')->get();
         $agreement = CopyrightAgreement::current();
+        $countries = Country::cases();
+        $existingAuthor = Author::where('user_id', $request->user()->id)->first();
 
-        return view('dashboard.articles.create', compact('categories', 'agreement'));
+        return view('dashboard.articles.create', compact('categories', 'agreement', 'countries', 'existingAuthor'));
     }
 
     public function store(Request $request)
@@ -41,17 +46,7 @@ class SubmissionController extends Controller
             'category_id' => 'required|exists:categories,id',
             'keywords' => 'nullable|string|max:1000',
             'pdf_file' => 'required|file|mimetypes:application/pdf|max:51200',
-            'author_name' => 'required|string|max:255',
-            'author_degree' => 'nullable|string|max:255',
-            'author_position' => 'nullable|string|max:255',
-            'author_organization' => 'nullable|string|max:255',
-            'author_orcid' => ['nullable', 'string', 'max:50', new Orcid, 'unique:authors,orcid'],
-            'coauthors' => 'nullable|array',
-            'coauthors.*.full_name' => 'required|string|max:255',
-            'coauthors.*.degree' => 'nullable|string|max:255',
-            'coauthors.*.position' => 'nullable|string|max:255',
-            'coauthors.*.organization' => 'nullable|string|max:255',
-            'coauthors.*.orcid' => ['nullable', 'string', 'max:50', new Orcid],
+            ...$this->authorRules($request->user(), $request->input('author_email')),
             'references' => 'nullable|string|max:10000',
             ...$this->fundingRules(),
             'agreement_accepted' => 'accepted',
@@ -85,6 +80,11 @@ class SubmissionController extends Controller
                     'degree' => $validated['author_degree'] ?? null,
                     'position' => $validated['author_position'] ?? null,
                     'organization' => $validated['author_organization'] ?? null,
+                    'email' => $validated['author_email'],
+                    'phone' => $validated['author_phone'],
+                    'country' => $validated['author_country'],
+                    'city' => $validated['author_city'],
+                    'website' => $validated['author_website'] ?? null,
                     'orcid' => $validated['author_orcid'] ?? null,
                 ],
                 $validated['coauthors'] ?? [],
@@ -131,16 +131,27 @@ class SubmissionController extends Controller
         $article->load(['authors', 'references']);
         $categories = Category::orderBy('sort_order')->get();
         $agreement = $article->isRevision() ? CopyrightAgreement::current() : null;
+        $countries = Country::cases();
+        $primaryAuthor = $article->authors->first();
+        $coauthorsData = old('coauthors', $article->authors->skip(1)->map(fn (Author $author) => [
+            'full_name' => $author->full_name,
+            'degree' => $author->degree,
+            'position' => $author->position,
+            'organization' => $author->organization,
+            'email' => $author->pivot?->email,
+            'phone' => $author->pivot?->phone,
+            'country' => $author->pivot?->country,
+            'city' => $author->pivot?->city,
+            'website' => $author->pivot?->website,
+            'orcid' => $author->orcid,
+        ])->values()->toArray());
 
-        return view('dashboard.articles.edit', compact('article', 'categories', 'agreement'));
+        return view('dashboard.articles.edit', compact('article', 'categories', 'agreement', 'countries', 'primaryAuthor', 'coauthorsData'));
     }
 
     public function update(Request $request, Article $article)
     {
         $this->authorize('update', $article);
-
-        // Get current author's ORCID to exclude from unique check
-        $currentAuthor = Author::where('user_id', $request->user()->id)->first();
 
         $validated = $request->validate([
             'title' => 'required|string|max:500',
@@ -149,23 +160,7 @@ class SubmissionController extends Controller
             'category_id' => 'required|exists:categories,id',
             'keywords' => 'nullable|string|max:1000',
             'pdf_file' => 'nullable|file|mimetypes:application/pdf|max:51200',
-            'author_name' => 'required|string|max:255',
-            'author_degree' => 'nullable|string|max:255',
-            'author_position' => 'nullable|string|max:255',
-            'author_organization' => 'nullable|string|max:255',
-            'author_orcid' => [
-                'nullable',
-                'string',
-                'max:50',
-                new Orcid,
-                Rule::unique('authors', 'orcid')->ignore($currentAuthor?->id),
-            ],
-            'coauthors' => 'nullable|array',
-            'coauthors.*.full_name' => 'required|string|max:255',
-            'coauthors.*.degree' => 'nullable|string|max:255',
-            'coauthors.*.position' => 'nullable|string|max:255',
-            'coauthors.*.organization' => 'nullable|string|max:255',
-            'coauthors.*.orcid' => ['nullable', 'string', 'max:50', new Orcid],
+            ...$this->authorRules($request->user(), $request->input('author_email')),
             'references' => 'nullable|string|max:10000',
             ...$this->fundingRules(),
         ]);
@@ -211,6 +206,11 @@ class SubmissionController extends Controller
                     'degree' => $validated['author_degree'] ?? null,
                     'position' => $validated['author_position'] ?? null,
                     'organization' => $validated['author_organization'] ?? null,
+                    'email' => $validated['author_email'],
+                    'phone' => $validated['author_phone'],
+                    'country' => $validated['author_country'],
+                    'city' => $validated['author_city'],
+                    'website' => $validated['author_website'] ?? null,
                     'orcid' => $validated['author_orcid'] ?? null,
                 ],
                 $validated['coauthors'] ?? [],
@@ -288,6 +288,33 @@ class SubmissionController extends Controller
         }
 
         return redirect()->route('dashboard')->with('success', 'Статья отозвана.');
+    }
+
+    private function authorRules(User $user, ?string $authorEmail = null): array
+    {
+        return [
+            'author_name' => 'required|string|max:255',
+            'author_degree' => 'nullable|string|max:255',
+            'author_position' => 'nullable|string|max:255',
+            'author_organization' => 'nullable|string|max:255',
+            'author_email' => 'required|email|max:255',
+            'author_phone' => ['required', 'string', 'max:25', 'regex:/^[+\d][\d\s()\-]{5,24}$/'],
+            'author_country' => ['required', Rule::enum(Country::class)],
+            'author_city' => 'required|string|max:255',
+            'author_website' => 'nullable|url|max:255',
+            'author_orcid' => ['nullable', 'string', 'max:50', new Orcid, new ClaimableOrcid($user, $authorEmail)],
+            'coauthors' => 'nullable|array',
+            'coauthors.*.full_name' => 'required|string|max:255',
+            'coauthors.*.degree' => 'nullable|string|max:255',
+            'coauthors.*.position' => 'nullable|string|max:255',
+            'coauthors.*.organization' => 'nullable|string|max:255',
+            'coauthors.*.email' => 'required|email|max:255',
+            'coauthors.*.phone' => ['required', 'string', 'max:25', 'regex:/^[+\d][\d\s()\-]{5,24}$/'],
+            'coauthors.*.country' => ['required', Rule::enum(Country::class)],
+            'coauthors.*.city' => 'required|string|max:255',
+            'coauthors.*.website' => 'nullable|url|max:255',
+            'coauthors.*.orcid' => ['nullable', 'string', 'max:50', new Orcid],
+        ];
     }
 
     private function fundingRules(): array

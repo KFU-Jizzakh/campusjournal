@@ -21,6 +21,13 @@ class ArticleAgreement extends Model
 {
     const UPDATED_AT = null;
 
+    protected function casts(): array
+    {
+        return [
+            'created_at' => 'datetime',
+        ];
+    }
+
     public function article(): BelongsTo
     {
         return $this->belongsTo(Article::class);

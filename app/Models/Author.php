@@ -11,9 +11,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * PURPOSE: Article authorship metadata with ORCID, SPIN, degree,
- * and organisation, linked to User and pivotable to Articles.
+ * organisation, contact details and affiliation location, linked
+ * to User and pivotable to Articles.
  */
-#[Fillable(['user_id', 'full_name', 'first_name', 'last_name', 'degree', 'position', 'organization', 'bio', 'photo_path', 'orcid', 'email', 'spin_code', 'author_id_elibrary', 'website'])]
+#[Fillable(['user_id', 'full_name', 'first_name', 'last_name', 'degree', 'position', 'organization', 'bio', 'photo_path', 'orcid', 'email', 'spin_code', 'phone', 'country', 'city', 'author_id_elibrary', 'website'])]
 class Author extends Model
 {
     use HasFactory, SoftDeletes;
@@ -26,8 +27,23 @@ class Author extends Model
     public function articles(): BelongsToMany
     {
         return $this->belongsToMany(Article::class, 'article_author')
-            ->withPivot('order')
+            ->withPivot('order', 'email', 'phone', 'country', 'city', 'website')
             ->orderByPivot('order');
+    }
+
+    public function displayEmail(): ?string
+    {
+        return $this->pivot?->email ?? $this->email;
+    }
+
+    public function displayPhone(): ?string
+    {
+        return $this->pivot?->phone ?? $this->phone;
+    }
+
+    public function displayWebsite(): ?string
+    {
+        return $this->pivot?->website ?? $this->website;
     }
 
     public function getNamePartsAttribute(): array

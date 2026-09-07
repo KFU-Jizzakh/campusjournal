@@ -49,7 +49,7 @@
                     <thead>
                         <tr class="text-left text-xs text-gray-400 uppercase border-b border-gray-100">
                             <th class="px-5 py-3 font-medium">{{ __('dashboard.title_col') }}</th>
-                            <th class="px-5 py-3 font-medium">{{ __('article.main_author') }}</th>
+                            <th class="px-5 py-3 font-medium">{{ __('author.main_author') }}</th>
                             <th class="px-5 py-3 font-medium">{{ __('dashboard.status_col') }}</th>
                             <th class="px-5 py-3 font-medium">{{ __('dashboard.editor_col') }}</th>
                             <th class="px-5 py-3 font-medium">{{ __('dashboard.date_col') }}</th>

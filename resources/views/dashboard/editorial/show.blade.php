@@ -24,10 +24,10 @@
             <h4 class="text-lg text-gray-900 mb-3">{{ $article->title }}</h4>
 
             <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm mb-4">
-                <div class="flex gap-2"><dt class="text-gray-400">{{ __('article.main_author') }}:</dt><dd class="text-gray-900">{{ $article->submitter?->full_name }}</dd></div>
+                <div class="flex gap-2"><dt class="text-gray-400">{{ __('author.main_author') }}:</dt><dd class="text-gray-900">{{ $article->submitter?->full_name }}</dd></div>
                 <div class="flex gap-2"><dt class="text-gray-400">{{ __('dashboard.section_col') }}:</dt><dd class="text-gray-900">{{ $article->category?->name ?? '—' }}</dd></div>
                 <div class="flex gap-2"><dt class="text-gray-400">{{ __('article.submitted_at') }}</dt><dd class="text-gray-900">{{ $article->submitted_at?->format('d.m.Y H:i') }}</dd></div>
-                <div class="flex gap-2"><dt class="text-gray-400">{{ __('article.coauthors_label') }}</dt><dd class="text-gray-900">{{ $article->authors->pluck('full_name')->join(', ') ?: '—' }}</dd></div>
+                <div class="flex gap-2"><dt class="text-gray-400">{{ __('author.coauthors_label') }}</dt><dd class="text-gray-900">{{ $article->authors->pluck('full_name')->join(', ') ?: '—' }}</dd></div>
             </dl>
 
             @if($article->abstract_ru)

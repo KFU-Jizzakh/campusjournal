@@ -337,7 +337,14 @@ class ArticleSeeder extends Seeder
             // Привязка авторов с порядком
             foreach ($authorsList as $order => $authorModel) {
                 if ($authorModel && ! $article->authors()->where('author_id', $authorModel->id)->exists()) {
-                    $article->authors()->attach($authorModel->id, ['order' => $order + 1]);
+                    $article->authors()->attach($authorModel->id, [
+                        'order' => $order + 1,
+                        'email' => $authorModel->email,
+                        'phone' => $authorModel->phone,
+                        'country' => $authorModel->country,
+                        'city' => $authorModel->city,
+                        'website' => $authorModel->website,
+                    ]);
                 }
             }
 

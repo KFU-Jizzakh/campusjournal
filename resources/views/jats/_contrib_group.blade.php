@@ -22,8 +22,8 @@
             @foreach ($affIds as $id)
                 <xref ref-type="aff" rid="{{ $id }}"/>
             @endforeach
-            @if ($author->email)
-                <email>{{ $author->email }}</email>
+            @if ($author->pivot?->email)
+                <email>{{ $author->pivot->email }}</email>
             @endif
         </contrib>
     @endforeach

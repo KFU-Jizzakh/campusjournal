@@ -85,6 +85,19 @@ php artisan migrate:fresh --seed
 > CrossrefDeposit row at least once per week (Vue app bootstrap grabs first
 > visible record of the latest issue, so an empty issue is fine).
 
+> **Deploy note:** author contact details (email, phone, country, city,
+> website) are
+> snapshotted on the `article_author` pivot by the
+> `add_contact_snapshot_to_article_author_table` migration, which backfills
+> existing rows from the `authors` table. Drafts/Revisions created before the
+> contact fields were required may contain coauthors without contact details
+> (NULL email/phone/country/city); such an article cannot be saved until the
+> author fills those fields in once (website stays optional). JATS export and
+> the submission detail page read the per-article pivot snapshot, while the
+> shared `authors` row
+> still mirrors the latest submitted contact for the public author profile
+> and new-submission prefill.
+
 
 # Architecture
 
