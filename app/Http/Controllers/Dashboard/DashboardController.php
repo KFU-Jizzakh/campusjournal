@@ -55,7 +55,11 @@ class DashboardController extends Controller
         $coauthoredArticles = $user->coauthoredArticles()
             ->with('category', 'issue')
             ->orderByDesc('created_at')
-            ->get();
+            ->get()
+            ->map(fn (Article $article) => [
+                'article' => $article,
+                'url' => $user->can('view', $article) ? route('submissions.show', $article) : null,
+            ]);
 
         $myReviews = $user->reviews()
             ->with('article')

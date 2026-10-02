@@ -18,7 +18,15 @@ class ArticlePolicy
 {
     public function view(User $user, Article $article): bool
     {
-        return $article->submitted_by === $user->id;
+        if ($article->submitted_by === $user->id) {
+            return true;
+        }
+
+        if ($article->isDraft()) {
+            return false;
+        }
+
+        return $article->authors()->where('user_id', $user->id)->exists();
     }
 
     public function update(User $user, Article $article): bool

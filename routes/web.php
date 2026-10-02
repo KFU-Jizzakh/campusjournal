@@ -86,13 +86,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('permission:submit-article')->group(function () {
         Route::get('/dashboard/articles/create', [SubmissionController::class, 'create'])->name('submissions.create');
         Route::post('/dashboard/articles', [SubmissionController::class, 'store'])->name('submissions.store');
-        Route::get('/dashboard/articles/{article}', [SubmissionController::class, 'show'])->name('submissions.show');
         Route::get('/dashboard/articles/{article}/edit', [SubmissionController::class, 'edit'])->name('submissions.edit');
         Route::put('/dashboard/articles/{article}', [SubmissionController::class, 'update'])->name('submissions.update');
 
         // Article file uploads
         Route::post('/dashboard/articles/{article}/files', [ArticleFileController::class, 'store'])->name('article-files.store');
     });
+
+    // Submission page — gated by the ArticlePolicy::view (submitter or
+    // credited coauthor), so coauthors can follow notification links.
+    Route::get('/dashboard/articles/{article}', [SubmissionController::class, 'show'])->name('submissions.show');
 
     // Article file management (delete)
     Route::delete('/dashboard/article-files/{file}', [ArticleFileController::class, 'destroy'])->name('article-files.destroy')->middleware('permission:submit-article|manage-submissions');

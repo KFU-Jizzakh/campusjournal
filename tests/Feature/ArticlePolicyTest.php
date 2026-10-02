@@ -2,6 +2,7 @@
 
 use App\Enums\ArticleStatus;
 use App\Models\Article;
+use App\Models\Author;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 
@@ -23,6 +24,30 @@ test('other user cannot view article', function () {
     $article = Article::factory()->create();
 
     expect($user->can('view', $article))->toBeFalse();
+});
+
+test('coauthor can view non-draft article', function () {
+    $user = User::factory()->create();
+    $article = Article::factory()->submitted()->create();
+    $article->authors()->attach(Author::factory()->create(['user_id' => $user->id])->id);
+
+    expect($user->can('view', $article))->toBeTrue();
+});
+
+test('coauthor cannot view draft article', function () {
+    $user = User::factory()->create();
+    $article = Article::factory()->create(['status' => ArticleStatus::Draft]);
+    $article->authors()->attach(Author::factory()->create(['user_id' => $user->id])->id);
+
+    expect($user->can('view', $article))->toBeFalse();
+});
+
+test('coauthor cannot update article', function () {
+    $user = User::factory()->create();
+    $article = Article::factory()->revision()->create();
+    $article->authors()->attach(Author::factory()->create(['user_id' => $user->id])->id);
+
+    expect($user->can('update', $article))->toBeFalse();
 });
 
 // --- update ---

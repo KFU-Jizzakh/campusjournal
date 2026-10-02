@@ -184,17 +184,23 @@
                         <th class="px-5 py-3 font-medium">{{ __('dashboard.section_col') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('dashboard.status_col') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('dashboard.date_col') }}</th>
+                        <th class="px-5 py-3"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                    @foreach($coauthoredArticles as $article)
+                    @foreach($coauthoredArticles as $row)
                     <tr class="hover:bg-gray-50 transition">
-                        <td class="px-5 py-3 font-medium text-gray-900">{{ Str::limit($article->title, 60) }}</td>
-                        <td class="px-5 py-3 text-gray-500">{{ $article->category?->name }}</td>
+                        <td class="px-5 py-3 font-medium text-gray-900">{{ Str::limit($row['article']->title, 60) }}</td>
+                        <td class="px-5 py-3 text-gray-500">{{ $row['article']->category?->name }}</td>
                         <td class="px-5 py-3">
-                            <x-status-badge :color="$article->status->color()" :label="$article->status->label()" />
+                            <x-status-badge :color="$row['article']->status->color()" :label="$row['article']->status->label()" />
                         </td>
-                        <td class="px-5 py-3 text-gray-400 text-xs">{{ $article->submitted_at?->format('d.m.Y') }}</td>
+                        <td class="px-5 py-3 text-gray-400 text-xs">{{ $row['article']->submitted_at?->format('d.m.Y') }}</td>
+                        <td class="px-5 py-3 text-right">
+                            @if($row['url'])
+                                <a href="{{ $row['url'] }}" class="text-primary hover:underline text-sm">{{ __('common.open') }}</a>
+                            @endif
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>

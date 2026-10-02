@@ -29,8 +29,9 @@ class DiscussionPolicy
         }
 
         if ($discussion->scope === DiscussionScope::Article
-            && $article->submitted_by === $user->id
-            && ! $discussion->review_id) {
+            && ! $discussion->review_id
+            && ($article->submitted_by === $user->id
+                || $article->authors()->where('user_id', $user->id)->exists())) {
             return true;
         }
 
