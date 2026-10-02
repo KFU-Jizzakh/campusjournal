@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\ArticleStatus;
+use App\Enums\ReviewStatus;
+use App\Exceptions\ReviewerRoleRemovalBlockedException;
 use App\Notifications\VerifyEmailNotification;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -130,6 +132,41 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * PURPOSE: Adds the reviewer role (self-registration, idempotent).
+     */
+    public function becomeReviewer(): void
+    {
+        $this->assignRole('reviewer');
+    }
+
+    /**
+     * PURPOSE: Drops the reviewer role. Blocked while the user has
+     * active review assignments (pending or in progress).
+     *
+     * SPECIFICATION: Throws ReviewerRoleRemovalBlockedException.
+     */
+    public function stopBeingReviewer(): void
+    {
+        $hasActiveReviews = $this->reviews()
+            ->whereIn('status', [ReviewStatus::Pending, ReviewStatus::InProgress])
+            ->exists();
+
+        if ($hasActiveReviews) {
+            throw new ReviewerRoleRemovalBlockedException;
+        }
+
+        $this->removeRole('reviewer');
+    }
+
+    /**
+     * PURPOSE: Whether the reviewer self-registration setting is open.
+     */
+    public static function reviewerRegistrationOpen(): bool
+    {
+        return Setting::get('reviewer_self_registration', '1') === '1';
     }
 
     public function profile(): HasOne

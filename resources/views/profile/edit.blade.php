@@ -17,6 +17,10 @@
         </div>
 
         <div class="bg-white rounded-lg border border-gray-200 p-6">
+            @include('profile.partials.update-reviewer-role')
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
             @include('profile.partials.delete-user-form')
         </div>
     </div>

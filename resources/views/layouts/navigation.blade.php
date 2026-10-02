@@ -47,6 +47,17 @@
                                     @endforeach
                                 </div>
                             @endif
+                            @if(count($roleSwitchOptions ?? []) > 1)
+                                <form method="POST" action="{{ route('dashboard.active-role') }}" class="mt-3">
+                                    @csrf
+                                    <label class="block text-[10px] uppercase tracking-wide text-gray-400">{{ __('nav.working_as') }}</label>
+                                    <select name="role" onchange="this.form.submit()" class="mt-1 block w-full rounded-md border-gray-300 text-xs focus:border-primary focus:ring-primary">
+                                        @foreach($roleSwitchOptions as $option)
+                                            <option value="{{ $option['slug'] }}" {{ ($activeRole ?? 'all') === $option['slug'] ? 'selected' : '' }}>{{ $option['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </form>
+                            @endif
                         </div>
                         <x-dropdown-link :href="route('profile.edit')">{{ __('nav.profile') }}</x-dropdown-link>
                         <form method="POST" action="{{ route('logout') }}">

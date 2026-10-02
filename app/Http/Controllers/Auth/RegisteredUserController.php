@@ -23,6 +23,7 @@ class RegisteredUserController extends Controller
     {
         return view('auth.register', [
             'countries' => Country::cases(),
+            'reviewerRegistrationOpen' => User::reviewerRegistrationOpen(),
         ]);
     }
 
@@ -40,6 +41,7 @@ class RegisteredUserController extends Controller
             'country' => ['nullable', Rule::enum(Country::class)],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'privacy' => ['accepted'],
+            'become_reviewer' => ['nullable', 'boolean'],
         ]);
 
         $user = DB::transaction(function () use ($request) {
@@ -49,6 +51,10 @@ class RegisteredUserController extends Controller
             ]);
 
             $user->assignRole('author');
+
+            if (User::reviewerRegistrationOpen() && $request->boolean('become_reviewer')) {
+                $user->becomeReviewer();
+            }
 
             Profile::create([
                 'user_id' => $user->id,

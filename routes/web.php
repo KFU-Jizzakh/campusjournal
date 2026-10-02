@@ -74,10 +74,12 @@ Route::get('/article-files/{file}/download', [ArticleFileController::class, 'dow
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/reviewer-role', [ProfileController::class, 'updateReviewerRole'])->name('profile.reviewer-role.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/active-role', [DashboardController::class, 'setActiveRole'])->name('dashboard.active-role');
 
     // Galley PDF download (auth only)
     Route::get('/articles/{article}/galley-pdf', [ArticleController::class, 'galleyPdf'])->name('articles.galley-pdf');

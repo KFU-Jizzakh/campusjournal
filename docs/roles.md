@@ -121,6 +121,18 @@ the "Главная" item (computed from the same inbox builder).
 - **Test users** (password `password1234` for all): `admin@`, `galimov@`
   (editor-in-chief), `managing@`, `section@`, `reviewer@`, `author@`,
   `content@` — all at `globalcampus.local`.
+- **Reviewer self-registration**: when the
+  `reviewer_self_registration` setting is open (Filament → Site Settings),
+  users can take the reviewer role via the registration form or the profile
+  toggle, and drop it anytime — except while they have active (pending or
+  in-progress) review assignments (`ReviewerRoleRemovalBlockedException`).
+  Self-registered reviewers appear in the assignment select with the same
+  workload card as appointed ones.
+- **Active role switcher**: users with two or more roles
+  can pick a working role in the user menu ("Работать как"). The choice is
+  session-scoped and only filters which task families the dashboard and the
+  nav counter show (author / reviewer / editorial); it never narrows real
+  permissions, and an invalid or stale value falls back to "all roles".
 - **Multiple roles stack**: e.g. a user with both `section-editor` and
   `editor-in-chief` gets the wider leadership scope (`RoleSeeder`-aware
   checks in `DashboardInbox::editorialArticles`).

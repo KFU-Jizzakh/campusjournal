@@ -28,8 +28,12 @@ class DashboardWatchlist
      *
      * @return Collection<int, InboxItem>
      */
-    public static function for(User $user): Collection
+    public static function for(User $user, ?string $activeRole = null): Collection
     {
+        if ($activeRole === 'author' || $activeRole === 'reviewer') {
+            return collect();
+        }
+
         if (! DashboardInbox::canManageSubmissions($user)) {
             return collect();
         }
@@ -55,8 +59,12 @@ class DashboardWatchlist
      *
      * @return Collection<int, InboxItem>
      */
-    public static function deadlines(User $user): Collection
+    public static function deadlines(User $user, ?string $activeRole = null): Collection
     {
+        if ($activeRole === 'author' || $activeRole === 'reviewer') {
+            return collect();
+        }
+
         if (! DashboardInbox::canManageSubmissions($user)) {
             return collect();
         }

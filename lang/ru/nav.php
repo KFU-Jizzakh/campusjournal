@@ -22,4 +22,6 @@ return [
     'login' => 'Войти',
     'register' => 'Регистрация',
     'sections' => 'Разделы',
+    'working_as' => 'Работать как',
+    'working_as_all' => 'Все роли',
 ];

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Country;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +22,42 @@ class ProfileController extends Controller
         return view('profile.edit', [
             'user' => $request->user()->load('profile'),
             'countries' => Country::cases(),
+            'isReviewer' => $request->user()->hasRole('reviewer'),
+            'reviewerRegistrationOpen' => User::reviewerRegistrationOpen(),
         ]);
+    }
+
+    /**
+     * PURPOSE: Self-service reviewer role toggle.
+     * Enabling requires the reviewer_self_registration setting to be
+     * open; disabling is always allowed but blocked while the user has
+     * active review assignments (domain exception).
+     */
+    public function updateReviewerRole(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'wants_to_review' => ['required', 'boolean'],
+        ]);
+
+        $user = $request->user();
+
+        if ($data['wants_to_review']) {
+            if (! User::reviewerRegistrationOpen()) {
+                return back()->with('error', __('profile.reviewer_role_closed'));
+            }
+
+            $user->becomeReviewer();
+
+            return back()->with('success', __('profile.reviewer_role_on'));
+        }
+
+        try {
+            $user->stopBeingReviewer();
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', __('profile.reviewer_role_off'));
     }
 
     public function update(ProfileUpdateRequest $request): RedirectResponse

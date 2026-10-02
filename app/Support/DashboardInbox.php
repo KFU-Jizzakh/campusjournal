@@ -28,10 +28,10 @@ class DashboardInbox
 {
     /**
      * Per-request memoization of computed inbox collections, keyed by
-     * user id. Prevents duplicate computation when the navigation
-     * composer and the dashboard controller both build the inbox.
-     * NOTE: static state — must be flushed between tests, and per
-     * request under any long-running runtime (e.g. Octane).
+     * "user id | task family". Prevents duplicate computation when the
+     * navigation composer and the dashboard controller both build the
+     * inbox. NOTE: static state — must be flushed between tests, and
+     * per request under any long-running runtime (e.g. Octane).
      */
     private static array $cache = [];
 
@@ -81,9 +81,40 @@ class DashboardInbox
         return $query;
     }
 
-    public static function for(User $user): Collection
+    public static function for(User $user, ?string $activeRole = null): Collection
     {
-        return self::$cache[$user->id] ??= self::build($user);
+        $family = self::familyOf($activeRole) ?? 'all';
+
+        return self::$cache[$user->id.'|'.$family] ??= self::build($user, $family);
+    }
+
+    /**
+     * PURPOSE: The session-stored active working role, validated against the user's actual roles. Null
+     * means "all roles" (or a stale/invalid session value).
+     */
+    public static function activeRoleFor(User $user): ?string
+    {
+        $role = session('active_role');
+
+        if (! is_string($role) || $role === 'all') {
+            return null;
+        }
+
+        return $user->hasRole($role) ? $role : null;
+    }
+
+    /**
+     * PURPOSE: Task family shown while working "as" the given role.
+     * Purely presentational — real permissions never narrow.
+     */
+    private static function familyOf(?string $activeRole): ?string
+    {
+        return match ($activeRole) {
+            'author' => 'author',
+            'reviewer' => 'reviewer',
+            'section-editor', 'editor-in-chief', 'managing-editor', 'admin' => 'editorial',
+            default => null,
+        };
     }
 
     /**
@@ -91,25 +122,34 @@ class DashboardInbox
      * badge. Counts via cheap queries and one eager-loaded editorial
      * pass — no item building for discussions.
      */
-    public static function countFor(User $user): int
+    public static function countFor(User $user, ?string $activeRole = null): int
     {
-        $count = $user->submittedArticles()
-            ->whereIn('status', [
-                ArticleStatus::Draft,
-                ArticleStatus::Revision,
-                ArticleStatus::AwaitingApproval,
-            ])
-            ->count()
-            + $user->reviews()
-                ->whereIn('status', [ReviewStatus::Pending, ReviewStatus::InProgress])
-                ->count()
-            + Discussion::root()
-                ->unresolved()
-                ->visibleTo($user)
-                ->unreadBy($user)
-                ->count();
+        $family = self::familyOf($activeRole) ?? 'all';
+        $count = 0;
 
-        if (self::canManageSubmissions($user)) {
+        if ($family === 'all' || $family === 'author') {
+            $count += $user->submittedArticles()
+                ->whereIn('status', [
+                    ArticleStatus::Draft,
+                    ArticleStatus::Revision,
+                    ArticleStatus::AwaitingApproval,
+                ])
+                ->count();
+        }
+
+        if ($family === 'all' || $family === 'reviewer') {
+            $count += $user->reviews()
+                ->whereIn('status', [ReviewStatus::Pending, ReviewStatus::InProgress])
+                ->count();
+        }
+
+        $count += Discussion::root()
+            ->unresolved()
+            ->visibleTo($user)
+            ->unreadBy($user)
+            ->count();
+
+        if (($family === 'all' || $family === 'editorial') && self::canManageSubmissions($user)) {
             $count += self::editorialArticles($user)
                 ->with('reviews')
                 ->whereIn('status', [
@@ -128,12 +168,23 @@ class DashboardInbox
         return $count;
     }
 
-    private static function build(User $user): Collection
+    private static function build(User $user, string $family = 'all'): Collection
     {
-        return collect()
-            ->merge(self::authorItems($user))
-            ->merge(self::reviewerItems($user))
-            ->merge(self::editorialItems($user))
+        $items = collect();
+
+        if ($family === 'all' || $family === 'author') {
+            $items = $items->merge(self::authorItems($user));
+        }
+
+        if ($family === 'all' || $family === 'reviewer') {
+            $items = $items->merge(self::reviewerItems($user));
+        }
+
+        if ($family === 'all' || $family === 'editorial') {
+            $items = $items->merge(self::editorialItems($user));
+        }
+
+        return $items
             ->merge(self::discussionItems($user))
             ->sort(InboxItem::sortCompare(...))
             ->values();

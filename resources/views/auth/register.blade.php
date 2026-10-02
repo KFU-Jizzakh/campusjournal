@@ -67,6 +67,16 @@
             <x-input-error :messages="$errors->get('privacy')" class="mt-1.5" />
         </div>
 
+        @if($reviewerRegistrationOpen)
+            <div>
+                <label class="flex items-start gap-2">
+                    <input id="become_reviewer" type="checkbox" name="become_reviewer" value="1" class="mt-1 rounded border-gray-300 text-primary shadow-sm focus:ring-primary" {{ old('become_reviewer') ? 'checked' : '' }} />
+                    <span class="text-sm text-gray-600">{{ __('auth.become_reviewer') }}</span>
+                </label>
+                <x-input-error :messages="$errors->get('become_reviewer')" class="mt-1.5" />
+            </div>
+        @endif
+
         <div class="flex items-center justify-between pt-2">
             <a class="text-sm text-gray-500 hover:text-primary transition" href="{{ route('login') }}">{{ __('auth.already_registered') }}</a>
             <x-primary-button>{{ __('auth.register_button') }}</x-primary-button>

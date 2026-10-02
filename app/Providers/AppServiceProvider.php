@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Setting;
+use App\Models\User;
 use App\Support\CrossrefConfig;
 use App\Support\DashboardInbox;
 use Illuminate\Auth\Events\Registered;
@@ -48,7 +49,24 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.navigation', function ($view) {
             $user = auth()->user();
 
-            $view->with('inboxCount', $user ? DashboardInbox::countFor($user) : 0);
+            if (! $user) {
+                $view->with(['inboxCount' => 0, 'activeRole' => null, 'roleSwitchOptions' => []]);
+
+                return;
+            }
+
+            $activeRole = DashboardInbox::activeRoleFor($user);
+            $roleNames = $user->getRoleNames();
+
+            $roleSwitchOptions = $roleNames->count() > 1
+                ? collect([['slug' => 'all', 'label' => __('nav.working_as_all')]])
+                    ->merge($roleNames->map(fn (string $slug) => ['slug' => $slug, 'label' => User::roleLabel($slug)]))
+                    ->all()
+                : [];
+
+            $view->with('inboxCount', DashboardInbox::countFor($user, $activeRole))
+                ->with('activeRole', $activeRole)
+                ->with('roleSwitchOptions', $roleSwitchOptions);
         });
 
         Blade::directive('purify', function (string $expression) {

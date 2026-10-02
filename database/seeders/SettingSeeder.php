@@ -22,6 +22,7 @@ class SettingSeeder extends Seeder
             'journal_issn_print' => '',
             'journal_issn_electronic' => '',
             'bibtex_key_prefix' => '',
+            'reviewer_self_registration' => '1',
         ];
 
         foreach ($defaults as $key => $value) {

@@ -19,7 +19,7 @@ Status: IMPLEMENTED
 
 - In Filament admin article form — a `Repeater` block instead of a single `Textarea` for `references_list`
 - Each repeater item: a `Textarea` for the raw reference text, a read-only `TextInput` for the extracted DOI, a read-only `TextInput` for the citation count
-- Author dashboard — a `textarea` (one reference per line, same as OJS)
+- Author dashboard — a `textarea` (one reference per line)
 - Existing articles' `references_list` data is migrated: one row per line, DOIs extracted
 
 ## Business Rules

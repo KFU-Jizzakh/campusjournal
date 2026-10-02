@@ -25,11 +25,13 @@ class DashboardController extends Controller
 
         $showEditorial = DashboardInbox::canManageSubmissions($user);
 
-        $inbox = DashboardInbox::for($user);
+        $activeRole = DashboardInbox::activeRoleFor($user);
 
-        $reviewDeadlines = $showEditorial ? DashboardWatchlist::deadlines($user) : collect();
+        $inbox = DashboardInbox::for($user, $activeRole);
 
-        $watchlist = $showEditorial ? DashboardWatchlist::for($user) : collect();
+        $reviewDeadlines = $showEditorial ? DashboardWatchlist::deadlines($user, $activeRole) : collect();
+
+        $watchlist = $showEditorial ? DashboardWatchlist::for($user, $activeRole) : collect();
 
         $issueAssembly = null;
 
@@ -93,5 +95,27 @@ class DashboardController extends Controller
             'editorialCounts',
             'search',
         ));
+    }
+
+    /**
+     * PURPOSE: Stores the user's "work as" role choice.
+     * The value only filters dashboard task families — it
+     * never narrows real permissions. Unknown roles fall back to 'all'.
+     */
+    public function setActiveRole(Request $request)
+    {
+        $data = $request->validate([
+            'role' => ['required', 'string', 'max:64'],
+        ]);
+
+        $user = $request->user();
+        $role = $data['role'];
+
+        $request->session()->put(
+            'active_role',
+            $role === 'all' || $user->hasRole($role) ? $role : 'all'
+        );
+
+        return back();
     }
 }

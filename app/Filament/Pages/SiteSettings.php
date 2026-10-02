@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Rules\BibtexKeyPrefix;
 use App\Rules\Issn;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -45,6 +46,7 @@ class SiteSettings extends Page
             'journal_issn_print' => Setting::get('journal_issn_print', ''),
             'journal_issn_electronic' => Setting::get('journal_issn_electronic', ''),
             'bibtex_key_prefix' => Setting::get('bibtex_key_prefix', ''),
+            'reviewer_self_registration' => Setting::get('reviewer_self_registration', '1'),
         ]);
     }
 
@@ -102,6 +104,11 @@ class SiteSettings extends Page
                             ->minValue(1)
                             ->maxValue(90)
                             ->required(),
+                        Toggle::make('reviewer_self_registration')
+                            ->label('Самозапись рецензентов')
+                            ->helperText('Позволяет пользователям самостоятельно получать и снимать роль рецензента (регистрация и профиль)')
+                            ->formatStateUsing(fn ($state): bool => (string) $state === '1')
+                            ->dehydrateStateUsing(fn ($state): string => $state ? '1' : '0'),
                     ])->columns(2),
 
                 Section::make('Информация о журнале')
