@@ -73,6 +73,45 @@ class Discussion extends Model
         return $query->where('is_resolved', false);
     }
 
+    /**
+     * PURPOSE: SQL mirror of DiscussionPolicy::view for list queries —
+     * filters threads to those the user may see (leadership: all;
+     * section-editor: threads on assigned articles; article-scope:
+     * submitter or credited coauthor; review-bound: the reviewer).
+     *
+     * SPECIFICATION: Must stay in parity with DiscussionPolicy::view.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor'])) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $query) use ($user) {
+            if ($user->hasRole('section-editor')) {
+                $query->orWhereHas('article', fn (Builder $article) => $article->where('editor_id', $user->id));
+            }
+
+            $query->orWhere(fn (Builder $discussion) => $discussion
+                ->where('scope', DiscussionScope::Article)
+                ->whereNull('review_id')
+                ->whereHas('article', fn (Builder $article) => $article
+                    ->where('submitted_by', $user->id)
+                    ->orWhereHas('authors', fn (Builder $authors) => $authors->where('user_id', $user->id))));
+
+            $query->orWhereHas('review', fn (Builder $review) => $review->where('reviewer_id', $user->id));
+        });
+    }
+
+    /**
+     * PURPOSE: Threads the user has not read (no read marker in the
+     * discussion_user_reads pivot).
+     */
+    public function scopeUnreadBy(Builder $query, User $user): Builder
+    {
+        return $query->whereDoesntHave('readUsers', fn (Builder $readers) => $readers->where('users.id', $user->id));
+    }
+
     public function isRoot(): bool
     {
         return $this->parent_id === null;

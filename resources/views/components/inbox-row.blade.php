@@ -20,7 +20,7 @@
                 <button type="submit" class="text-sm text-green-600 hover:text-green-800 font-medium">{{ $item->primaryForm->label }}</button>
             </form>
             @if($item->secondaryForm)
-                <form method="POST" action="{{ $item->secondaryForm->url }}" class="inline" @if($item->secondaryForm->confirm) onsubmit="return confirm('{{ $item->secondaryForm->confirm }}');" @endif>
+                <form method="POST" action="{{ $item->secondaryForm->url }}" class="inline" @if($item->secondaryForm->confirm) onsubmit="return confirm({{ \Illuminate\Support\Js::from($item->secondaryForm->confirm) }});" @endif>
                     @csrf
                     <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">{{ $item->secondaryForm->label }}</button>
                 </form>

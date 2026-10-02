@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\DashboardInbox;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,6 +18,10 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+// DashboardInbox memoizes its collections in static per-request state;
+// flush it so inbox results never leak between tests in one process.
+beforeEach(fn () => DashboardInbox::flush())->in('Feature');
 
 /*
 |--------------------------------------------------------------------------

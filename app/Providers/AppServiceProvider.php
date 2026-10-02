@@ -8,6 +8,7 @@ use App\Support\DashboardInbox;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
@@ -24,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(Registered::class, SendEmailVerificationNotification::class);
+
+        // DashboardInbox memoizes per request — reset at the request
+        // boundary so the static cache never leaks across requests
+        // (tests run many requests per process; Octane persists state).
+        Event::listen(RequestHandled::class, fn () => DashboardInbox::flush());
 
         View::composer('layouts.public', function ($view) {
             $view->with('siteSettings', [
@@ -42,7 +48,7 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.navigation', function ($view) {
             $user = auth()->user();
 
-            $view->with('inboxCount', $user ? DashboardInbox::for($user)->count() : 0);
+            $view->with('inboxCount', $user ? DashboardInbox::countFor($user) : 0);
         });
 
         Blade::directive('purify', function (string $expression) {

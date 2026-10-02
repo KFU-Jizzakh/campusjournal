@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ReviewStatus;
 use App\Models\Article;
 use App\Models\Review;
 use App\Models\User;
@@ -130,8 +131,10 @@ test('deadlines lists overdue and upcoming reviews sorted by due date', function
     $deadlines = DashboardWatchlist::deadlines($editor);
 
     expect($deadlines)->toHaveCount(2)
+        // Pending invitations are driven by the response deadline,
+        // not the review submission deadline.
         ->and($deadlines->first()->sortDate->toDateTimeString())
-        ->toBe($overdue->review_due_at->toDateTimeString())
+        ->toBe($overdue->response_due_at->toDateTimeString())
         ->and($deadlines->first()->urgency)->toBe('overdue')
         ->and($deadlines->last()->title)->toBe($other->title);
 });
@@ -175,4 +178,28 @@ test('days in status reflects days since last activity', function () {
     expect($article->daysInStatus())->toBe(9);
 
     Carbon::setTestNow();
+});
+
+test('deadlines show response deadline for pending invitation without review due date', function () {
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+
+    $article = Article::factory()->inReview()->create([
+        'editor_id' => $editor->id,
+    ]);
+
+    $invitation = Review::factory()->create([
+        'article_id' => $article->id,
+        'status' => ReviewStatus::Pending,
+        'response_due_at' => now()->addDays(3),
+        'review_due_at' => null,
+    ]);
+
+    $deadlines = DashboardWatchlist::deadlines($editor);
+
+    expect($deadlines)->toHaveCount(1)
+        ->and($deadlines->first()->deadlineLabel)->toBe('Ответ до '.$invitation->response_due_at->format('d.m.Y'))
+        ->and($deadlines->first()->urgency)->toBe('urgent')
+        ->and($deadlines->first()->sortDate->toDateTimeString())
+        ->toBe($invitation->response_due_at->toDateTimeString());
 });

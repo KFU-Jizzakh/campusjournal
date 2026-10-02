@@ -27,16 +27,42 @@ use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 class DashboardInbox
 {
     /**
+     * Per-request memoization of computed inbox collections, keyed by
+     * user id. Prevents duplicate computation when the navigation
+     * composer and the dashboard controller both build the inbox.
+     * NOTE: static state — must be flushed between tests, and per
+     * request under any long-running runtime (e.g. Octane).
+     */
+    private static array $cache = [];
+
+    /**
+     * PURPOSE: Tolerant permission check — false when the permission
+     * tables are unseeded (e.g. auth-only pages in tests).
+     */
+    public static function can(User $user, string $permission): bool
+    {
+        try {
+            return $user->hasPermissionTo($permission);
+        } catch (PermissionDoesNotExist) {
+            return false;
+        }
+    }
+
+    /**
      * PURPOSE: Whether the user may act editorially. Tolerant of
      * unseeded permission tables (e.g. auth-only pages in tests).
      */
     public static function canManageSubmissions(User $user): bool
     {
-        try {
-            return $user->hasPermissionTo('manage-submissions');
-        } catch (PermissionDoesNotExist) {
-            return false;
-        }
+        return self::can($user, 'manage-submissions');
+    }
+
+    /**
+     * PURPOSE: Drop the per-request memoized inbox collections.
+     */
+    public static function flush(): void
+    {
+        self::$cache = [];
     }
 
     /**
@@ -56,6 +82,53 @@ class DashboardInbox
     }
 
     public static function for(User $user): Collection
+    {
+        return self::$cache[$user->id] ??= self::build($user);
+    }
+
+    /**
+     * PURPOSE: Number of actionable inbox entries for the navigation
+     * badge. Counts via cheap queries and one eager-loaded editorial
+     * pass — no item building for discussions.
+     */
+    public static function countFor(User $user): int
+    {
+        $count = $user->submittedArticles()
+            ->whereIn('status', [
+                ArticleStatus::Draft,
+                ArticleStatus::Revision,
+                ArticleStatus::AwaitingApproval,
+            ])
+            ->count()
+            + $user->reviews()
+                ->whereIn('status', [ReviewStatus::Pending, ReviewStatus::InProgress])
+                ->count()
+            + Discussion::root()
+                ->unresolved()
+                ->visibleTo($user)
+                ->unreadBy($user)
+                ->count();
+
+        if (self::canManageSubmissions($user)) {
+            $count += self::editorialArticles($user)
+                ->with('reviews')
+                ->whereIn('status', [
+                    ArticleStatus::Submitted,
+                    ArticleStatus::InReview,
+                    ArticleStatus::Accepted,
+                    ArticleStatus::Copyediting,
+                    ArticleStatus::Production,
+                    ArticleStatus::Approved,
+                ])
+                ->get()
+                ->filter(fn (Article $article) => self::editorialItem($user, $article) !== null)
+                ->count();
+        }
+
+        return $count;
+    }
+
+    private static function build(User $user): Collection
     {
         return collect()
             ->merge(self::authorItems($user))
@@ -199,7 +272,7 @@ class DashboardInbox
 
         return match ($article->status) {
             ArticleStatus::Submitted => self::submissionItem($article, $base),
-            ArticleStatus::InReview => $article->canBeDecided()
+            ArticleStatus::InReview => self::hasCompletedReview($article)
                 ? new InboxItem(
                     ...$base,
                     task: __('dashboard.inbox.task.decide'),
@@ -316,18 +389,30 @@ class DashboardInbox
         );
     }
 
+    /**
+     * PURPOSE: Whether the article has at least one completed review.
+     * Uses the eager-loaded `reviews` collection (callers run
+     * `->with('reviews')`) — avoids the per-article query that
+     * `Article::canBeDecided()` would trigger inside lists.
+     */
+    public static function hasCompletedReview(Article $article): bool
+    {
+        return $article->reviews->contains(
+            fn (Review $review) => $review->status === ReviewStatus::Completed
+        );
+    }
+
     /** @return array<int, InboxItem> */
     private static function discussionItems(User $user): array
     {
         return Discussion::root()
             ->unresolved()
-            ->with('article', 'review', 'readUsers')
+            ->visibleTo($user)
+            ->unreadBy($user)
+            ->with('article', 'review')
             ->latest('updated_at')
             ->limit(50)
             ->get()
-            ->reject(fn (Discussion $discussion) => $discussion->readUsers
-                ->contains(fn (User $reader) => $reader->id === $user->id))
-            ->filter(fn (Discussion $discussion) => $discussion->isVisibleTo($user))
             ->map(function (Discussion $discussion) use ($user) {
                 $url = self::discussionUrl($user, $discussion);
 
@@ -369,7 +454,7 @@ class DashboardInbox
         return null;
     }
 
-    private static function responseUrgency(Review $review): string
+    public static function responseUrgency(Review $review): string
     {
         if ($review->isResponseOverdue()) {
             return 'overdue';
@@ -385,7 +470,7 @@ class DashboardInbox
         };
     }
 
-    private static function responseDeadlineLabel(Review $review): ?string
+    public static function responseDeadlineLabel(Review $review): ?string
     {
         if ($review->response_due_at === null) {
             return null;

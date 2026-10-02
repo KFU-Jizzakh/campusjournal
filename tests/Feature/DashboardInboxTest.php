@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Models\Discussion;
 use App\Models\Review;
 use App\Models\User;
+use App\Support\DashboardInbox;
 use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
@@ -297,4 +298,35 @@ test('dashboard shows empty inbox state and hides counter for roleless user', fu
         ->assertOk()
         ->assertSee('Всё сделано. Задач, требующих внимания, нет.')
         ->assertDontSee('inbox-count');
+});
+
+test('inbox result is memoized per user within a request', function () {
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole('reviewer');
+
+    Review::factory()->withDeadlines()->create([
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::Pending,
+    ]);
+
+    expect(DashboardInbox::for($reviewer))
+        ->toBe(DashboardInbox::for($reviewer))
+        ->and(DashboardInbox::countFor($reviewer))
+        ->toBe(DashboardInbox::for($reviewer)->count());
+});
+
+test('countFor matches inbox count for editor with mixed workload', function () {
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+
+    Article::factory()->submitted()->create([
+        'editor_id' => $editor->id,
+    ]);
+
+    Article::factory()->accepted()->create([
+        'editor_id' => $editor->id,
+    ]);
+
+    expect(DashboardInbox::countFor($editor))
+        ->toBe(DashboardInbox::for($editor)->count());
 });

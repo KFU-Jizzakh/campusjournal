@@ -70,9 +70,16 @@ class DashboardWatchlist
         return Review::with('article', 'reviewer.profile')
             ->whereIn('article_id', $articleIds)
             ->whereIn('status', [ReviewStatus::Pending, ReviewStatus::InProgress])
-            ->whereNotNull('review_due_at')
-            ->where('review_due_at', '<=', now()->addWeek())
+            ->where(fn ($query) => $query
+                ->where(fn ($inner) => $inner
+                    ->whereNotNull('review_due_at')
+                    ->where('review_due_at', '<=', now()->addWeek()))
+                ->orWhere(fn ($inner) => $inner
+                    ->where('status', ReviewStatus::Pending)
+                    ->whereNotNull('response_due_at')
+                    ->where('response_due_at', '<=', now()->addWeek())))
             ->orderBy('review_due_at')
+            ->orderBy('response_due_at')
             ->get()
             ->map(fn (Review $review) => new InboxItem(
                 title: $review->article?->title ?? '',
@@ -81,11 +88,17 @@ class DashboardWatchlist
                 ]),
                 url: route('editorial.show', $review->article_id),
                 actionLabel: __('dashboard.inbox.action.open'),
-                urgency: self::dueUrgency($review),
-                deadlineLabel: $review->deadlineLabel(),
+                urgency: $review->status === ReviewStatus::Pending
+                    ? DashboardInbox::responseUrgency($review)
+                    : self::dueUrgency($review),
+                deadlineLabel: $review->status === ReviewStatus::Pending
+                    ? DashboardInbox::responseDeadlineLabel($review)
+                    : $review->deadlineLabel(),
                 badgeLabel: $review->status->label(),
                 badgeColor: $review->status->color(),
-                sortDate: $review->review_due_at,
+                sortDate: $review->status === ReviewStatus::Pending
+                    ? $review->response_due_at
+                    : $review->review_due_at,
             ));
     }
 
@@ -125,7 +138,7 @@ class DashboardWatchlist
 
     private static function inReviewItem(Article $article, array $base): ?InboxItem
     {
-        if ($article->canBeDecided()) {
+        if (DashboardInbox::hasCompletedReview($article)) {
             return null; // actionable — already surfaced by the inbox
         }
 

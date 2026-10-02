@@ -33,7 +33,7 @@ class DashboardController extends Controller
 
         $issueAssembly = null;
 
-        if ($user->hasPermissionTo('publish-issue')) {
+        if (DashboardInbox::can($user, 'publish-issue')) {
             $issueAssembly = [
                 'issue' => Issue::published()->withCount('articles')->latest('published_at')->first(),
                 'ready' => Article::query()
@@ -44,13 +44,15 @@ class DashboardController extends Controller
             ];
         }
 
+        $search = $request->query('q');
+
         $myArticles = $user->submittedArticles()
             ->with('category', 'issue')
-            ->when($request->query('q'), fn ($query, $search) => $query->where('title', 'ilike', "%{$search}%"))
+            ->when($search, fn ($query, $term) => $query->where(fn ($inner) => $inner
+                ->where('title', 'ilike', "%{$term}%")
+                ->orWhereHas('authors', fn ($authors) => $authors->where('full_name', 'ilike', "%{$term}%"))))
             ->orderByDesc('created_at')
             ->get();
-
-        $search = $request->query('q');
 
         $coauthoredArticles = $user->coauthoredArticles()
             ->with('category', 'issue')
