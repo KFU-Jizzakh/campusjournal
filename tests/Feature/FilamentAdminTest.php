@@ -2,6 +2,7 @@
 
 use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
 use Database\Seeders\RoleSeeder;
@@ -179,4 +180,17 @@ test('creating verified user in filament skips verification email', function () 
     expect($user->hasVerifiedEmail())->toBeTrue();
 
     Notification::assertNotSentTo($user, VerifyEmailNotification::class);
+});
+
+test('user list shows localized role labels instead of slugs', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $eic = User::factory()->create();
+    $eic->assignRole('editor-in-chief');
+
+    Livewire::actingAs($admin)
+        ->test(ListUsers::class)
+        ->assertSee('Главный редактор')
+        ->assertDontSee('editor-in-chief');
 });

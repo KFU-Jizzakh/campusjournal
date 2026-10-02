@@ -37,6 +37,17 @@
                         </button>
                     </x-slot>
                     <x-slot name="content">
+                        <div class="px-4 py-3 border-b border-gray-100">
+                            <div class="text-sm font-medium text-gray-900">{{ Auth::user()->full_name }}</div>
+                            <div class="text-xs text-gray-500">{{ Auth::user()->email }}</div>
+                            @if(count(Auth::user()->roleBadges()) > 0)
+                                <div class="mt-2 flex flex-wrap gap-1 user-role-badges">
+                                    @foreach(Auth::user()->roleBadges() as $badge)
+                                        <x-status-badge :color="$badge['color']" :label="$badge['label']" />
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
                         <x-dropdown-link :href="route('profile.edit')">{{ __('nav.profile') }}</x-dropdown-link>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -69,6 +80,13 @@
         <div class="border-t border-white/10 px-4 py-3">
             <div class="text-sm text-white">{{ Auth::user()->full_name }}</div>
             <div class="text-xs text-white/50">{{ Auth::user()->email }}</div>
+            @if(count(Auth::user()->roleBadges()) > 0)
+                <div class="mt-2 flex flex-wrap gap-1 user-role-badges">
+                    @foreach(Auth::user()->roleBadges() as $badge)
+                        <x-status-badge :color="$badge['color']" :label="$badge['label']" />
+                    @endforeach
+                </div>
+            @endif
             <div class="mt-2 flex gap-4 text-xs">
                 <a href="{{ route('profile.edit') }}" class="text-white/60 hover:text-white">{{ __('nav.profile') }}</a>
                 <a href="{{ route('home') }}" class="text-white/60 hover:text-white">{{ __('nav.site') }}</a>

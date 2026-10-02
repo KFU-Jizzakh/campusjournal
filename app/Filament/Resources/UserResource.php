@@ -97,6 +97,7 @@ class UserResource extends Resource
                     ->color(fn (string $state) => $state === 'Да' ? 'success' : 'warning'),
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Роли')
+                    ->formatStateUsing(fn (string $state): string => User::roleLabel($state))
                     ->badge(),
             ])
             ->defaultSort('profile.last_name')

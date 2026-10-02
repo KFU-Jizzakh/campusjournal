@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -28,6 +29,34 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, SoftDeletes;
+
+    /**
+     * Display order of roles by descending importance.
+     * Roles not listed here are rendered last, alphabetically.
+     */
+    private const ROLE_ORDER = [
+        'admin',
+        'editor-in-chief',
+        'managing-editor',
+        'section-editor',
+        'content-manager',
+        'reviewer',
+        'author',
+    ];
+
+    /**
+     * Badge colors keyed by role slug (palette of x-status-badge).
+     * Unknown roles fall back to 'gray'.
+     */
+    private const ROLE_COLORS = [
+        'admin' => 'danger',
+        'editor-in-chief' => 'danger',
+        'managing-editor' => 'info',
+        'section-editor' => 'info',
+        'content-manager' => 'warning',
+        'reviewer' => 'gray',
+        'author' => 'success',
+    ];
 
     protected function casts(): array
     {
@@ -66,6 +95,39 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function getFullNameAttribute(): string
     {
         return $this->profile?->full_name ?: $this->email;
+    }
+
+    /**
+     * PURPOSE: Localized display label for a role slug, shared by the
+     * dashboard navigation badges and the Filament user table.
+     *
+     * SPECIFICATION: Falls back to a humanized slug when no translation exists.
+     */
+    public static function roleLabel(string $role): string
+    {
+        $label = __("roles.{$role}");
+
+        return $label === "roles.{$role}" ? Str::headline($role) : $label;
+    }
+
+    /**
+     * PURPOSE: Role badges (label + status-badge color) for the dashboard
+     * navigation, ordered by descending role importance.
+     *
+     * SPECIFICATION: Returns an empty array when the user has no roles.
+     */
+    public function roleBadges(): array
+    {
+        return collect($this->getRoleNames())
+            ->sortBy(fn (string $role) => array_search($role, self::ROLE_ORDER, strict: true) === false
+                ? PHP_INT_MAX
+                : array_search($role, self::ROLE_ORDER, strict: true))
+            ->map(fn (string $role) => [
+                'label' => self::roleLabel($role),
+                'color' => self::ROLE_COLORS[$role] ?? 'gray',
+            ])
+            ->values()
+            ->all();
     }
 
     public function profile(): HasOne
