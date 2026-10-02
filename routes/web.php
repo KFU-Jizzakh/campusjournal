@@ -109,6 +109,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Editorial workflow (requires manage-submissions permission)
     Route::middleware('permission:manage-submissions')->group(function () {
         Route::get('/dashboard/editorial', [EditorialController::class, 'index'])->name('editorial.index');
+        Route::get('/dashboard/editorial/stats', [EditorialController::class, 'stats'])->name('editorial.stats');
         Route::get('/dashboard/editorial/{article}', [EditorialController::class, 'show'])->name('editorial.show');
         Route::post('/dashboard/editorial/{article}/assign-editor', [EditorialController::class, 'assignEditor'])->name('editorial.assign-editor');
         Route::post('/dashboard/editorial/{article}/assign-reviewer', [EditorialController::class, 'assignReviewer'])->name('editorial.assign-reviewer');

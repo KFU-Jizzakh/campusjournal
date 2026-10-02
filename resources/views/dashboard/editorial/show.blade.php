@@ -49,6 +49,20 @@
             @endif
         </div>
 
+        {{-- Workflow timeline --}}
+        @if($timelineSteps = $article->workflowSteps())
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-4">{{ __('dashboard.timeline_heading') }}</h3>
+                <x-article-timeline :steps="$timelineSteps" />
+            </div>
+        @endif
+
+        {{-- Production checklist --}}
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 class="font-semibold text-gray-900 mb-4">{{ __('dashboard.checklist_heading') }}</h3>
+            <x-article-checklist :items="$article->productionChecklist()" />
+        </div>
+
         {{-- Funding --}}
         @if(!empty($article->funding))
             <div class="bg-white rounded-lg border border-gray-200 p-6">
@@ -345,8 +359,8 @@
                         <x-input-label for="editor_id" :value="__('dashboard.assign_editor')" />
                         <select id="editor_id" name="editor_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" required>
                             <option value="">{{ __('dashboard.select_editor') }}</option>
-                            @foreach($sectionEditors as $editor)
-                                <option value="{{ $editor->id }}">{{ $editor->full_name }}</option>
+                            @foreach($editorOptions as $id => $label)
+                                <option value="{{ $id }}">{{ $label }}</option>
                             @endforeach
                         </select>
                         <x-input-error :messages="$errors->get('editor_id')" class="mt-1" />
@@ -415,8 +429,8 @@
                         <x-input-label for="reviewer_id" :value="__('dashboard.assign_reviewer')" />
                         <select id="reviewer_id" name="reviewer_id" {{ $article->needsBlindedPdf() ? 'disabled' : '' }} class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" {{ $article->needsBlindedPdf() ? '' : 'required' }}>
                             <option value="">{{ __('dashboard.select_reviewer') }}</option>
-                            @foreach($reviewers as $reviewer)
-                                <option value="{{ $reviewer->id }}">{{ $reviewer->full_name }}</option>
+                            @foreach($reviewerOptions as $id => $label)
+                                <option value="{{ $id }}">{{ $label }}</option>
                             @endforeach
                         </select>
                         <x-input-error :messages="$errors->get('reviewer_id')" class="mt-1" />

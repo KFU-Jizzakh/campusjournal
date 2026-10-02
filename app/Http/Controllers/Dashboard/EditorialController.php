@@ -14,7 +14,10 @@ use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\User;
 use App\Services\Doi\DoiMinter;
+use App\Support\EditorialStats;
+use App\Support\ReviewerStats;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -32,6 +35,7 @@ class EditorialController extends Controller
     {
         $user = $request->user();
         $status = $request->query('status');
+        $search = $request->query('q');
 
         $query = Article::submitted()
             ->with('submitter.profile', 'editor.profile', 'category')
@@ -43,6 +47,12 @@ class EditorialController extends Controller
 
         if ($status) {
             $query->where('status', $status);
+        }
+
+        if ($search) {
+            $query->where(fn ($inner) => $inner
+                ->where('title', 'ilike', "%{$search}%")
+                ->orWhereHas('authors', fn ($authors) => $authors->where('full_name', 'ilike', "%{$search}%")));
         }
 
         $articles = $query->paginate(20)->withQueryString();
@@ -67,7 +77,9 @@ class EditorialController extends Controller
             ->selectRaw('count(*) filter (where status = ?) as retracted', [ArticleStatus::Retracted->value])
             ->first();
 
-        return view('dashboard.editorial.index', compact('articles', 'counts', 'status'));
+        $showStats = $user->hasPermissionTo('publish-issue');
+
+        return view('dashboard.editorial.index', compact('articles', 'counts', 'status', 'search', 'showStats'));
     }
 
     public function show(Request $request, Article $article)
@@ -79,6 +91,9 @@ class EditorialController extends Controller
         $sectionEditors = User::role('section-editor')->with('profile')->orderBy('email')->get();
         $reviewers = User::permission('review-article')->with('profile')->orderBy('email')->get();
         $issues = Issue::published()->orderByDesc('year')->orderByDesc('number')->get();
+
+        $editorOptions = self::editorOptions($sectionEditors);
+        $reviewerOptions = self::reviewerOptions($reviewers);
 
         $user = $request->user();
         $showAssignEditor = $article->isSubmitted() && $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
@@ -96,8 +111,92 @@ class EditorialController extends Controller
             });
 
         return view('dashboard.editorial.show', compact(
-            'article', 'sectionEditors', 'reviewers', 'issues', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections'
+            'article', 'sectionEditors', 'reviewers', 'issues', 'editorOptions', 'reviewerOptions', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections'
         ));
+    }
+
+    /**
+     * PURPOSE: Section-editor select options annotated with each editor's
+     * current workload (active articles) for balanced assignment.
+     *
+     * @param  Collection<int, User>  $sectionEditors
+     * @return array<int, string>
+     */
+    private static function editorOptions($sectionEditors): array
+    {
+        $load = collect(EditorialStats::sectionEditorLoad())->keyBy(fn (array $row) => $row['user']->id);
+
+        return $sectionEditors
+            ->mapWithKeys(fn (User $editor) => [
+                $editor->id => $editor->full_name.' — '
+                    .__('dashboard.assign_card.active', ['count' => $load[$editor->id]['active'] ?? 0]),
+            ])
+            ->all();
+    }
+
+    /**
+     * PURPOSE: Reviewer select options annotated with workload, turnaround
+     * and decline stats so editors pick reviewers informed.
+     *
+     * @param  Collection<int, User>  $reviewers
+     * @return array<int, string>
+     */
+    private static function reviewerOptions($reviewers): array
+    {
+        $stats = ReviewerStats::map($reviewers);
+
+        return $reviewers
+            ->mapWithKeys(function (User $reviewer) use ($stats) {
+                $row = $stats[$reviewer->id] ?? ['active' => 0, 'avg_days' => null, 'declines_year' => 0];
+
+                $label = $reviewer->full_name.' — '
+                    .__('dashboard.assign_card.active', ['count' => $row['active']]);
+
+                if ($row['avg_days'] !== null) {
+                    $label .= ' · '.__('dashboard.assign_card.avg', ['count' => $row['avg_days']]);
+                }
+
+                return [$reviewer->id => $label.' · '.__('dashboard.assign_card.declines', ['count' => $row['declines_year']])];
+            })
+            ->all();
+    }
+
+    /**
+     * PURPOSE: Journal analytics for EiC/managing editors: pipeline funnel,
+     * decision and turnaround averages, section-editor workload.
+     *
+     * SPECIFICATION: Gated by the publish-issue permission.
+     */
+    public function stats(Request $request)
+    {
+        abort_unless($request->user()->hasPermissionTo('publish-issue'), 403);
+
+        $funnel = collect(EditorialStats::funnel())
+            ->reject(fn (int $count, string $status) => $status === ArticleStatus::Draft->value)
+            ->map(function (int $count, string $status) {
+                $enum = ArticleStatus::from($status);
+
+                return [
+                    'label' => $enum->label(),
+                    'color' => $enum->color(),
+                    'count' => $count,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $max = max(1, max(array_column($funnel, 'count')));
+
+        foreach ($funnel as &$row) {
+            $row['percent'] = (int) round($row['count'] / $max * 100);
+        }
+
+        return view('dashboard.editorial.stats', [
+            'funnel' => $funnel,
+            'avgDaysToDecision' => EditorialStats::avgDaysToDecision(),
+            'avgTurnaround' => EditorialStats::avgReviewerTurnaround(),
+            'sectionLoad' => EditorialStats::sectionEditorLoad(),
+        ]);
     }
 
     public function assignEditor(Request $request, Article $article)

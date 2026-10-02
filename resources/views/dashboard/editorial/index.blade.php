@@ -11,6 +11,23 @@
             <div class="bg-amber-50 border border-amber-200 text-amber-700 text-sm p-4 rounded-lg">{{ session('warning') }}</div>
         @endif
 
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <form method="GET" action="{{ route('editorial.index') }}" class="flex items-center gap-2">
+                @if($status)
+                    <input type="hidden" name="status" value="{{ $status }}">
+                @endif
+                <input type="text" name="q" value="{{ $search }}" placeholder="{{ __('dashboard.search_placeholder') }}"
+                       class="w-full sm:w-80 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-primary focus:ring-primary">
+                <button type="submit" class="shrink-0 text-sm px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-800 transition">{{ __('dashboard.search_button') }}</button>
+                @if($search)
+                    <a href="{{ route('editorial.index', $status ? ['status' => $status] : []) }}" class="shrink-0 text-sm text-gray-400 hover:text-gray-600">{{ __('dashboard.search_reset') }}</a>
+                @endif
+            </form>
+            @if($showStats)
+                <a href="{{ route('editorial.stats') }}" class="shrink-0 text-sm text-primary hover:underline">{{ __('dashboard.stats.link') }}</a>
+            @endif
+        </div>
+
         <div class="flex flex-wrap gap-2 text-sm">
             <a href="{{ route('editorial.index') }}" class="px-3 py-1.5 rounded-full {{ !$status ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
                 {{ __('dashboard.filter_all') }} {{ $counts->total }}
