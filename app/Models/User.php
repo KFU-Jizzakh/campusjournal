@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ArticleStatus;
 use App\Notifications\VerifyEmailNotification;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -10,6 +11,7 @@ use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -143,6 +145,18 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function submittedArticles(): HasMany
     {
         return $this->hasMany(Article::class, 'submitted_by');
+    }
+
+    /**
+     * PURPOSE: Non-draft articles where the user is a credited coauthor
+     * (via the Author profile) but not the submitter. Read-only in the
+     * dashboard — the view page is only open to the submitter.
+     */
+    public function coauthoredArticles(): Builder
+    {
+        return Article::whereHas('authors', fn (Builder $query) => $query->where('user_id', $this->id))
+            ->where('submitted_by', '!=', $this->id)
+            ->where('status', '!=', ArticleStatus::Draft);
     }
 
     public function reviews(): HasMany

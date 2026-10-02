@@ -4,7 +4,7 @@
             <div class="flex items-center gap-6">
                 <a href="{{ route('home') }}" class="text-white font-bold text-lg">{{ config('app.name') }}</a>
                 <div class="hidden sm:flex items-center gap-1 text-sm">
-                    <a href="{{ route('dashboard') }}" class="px-3 py-1.5 rounded text-sm {{ request()->routeIs('dashboard') ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white hover:bg-white/10' }} transition">{{ __('nav.dashboard') }}</a>
+                    <a href="{{ route('dashboard') }}" class="px-3 py-1.5 rounded text-sm {{ request()->routeIs('dashboard') ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white hover:bg-white/10' }} transition">{{ __('nav.dashboard') }}@if(($inboxCount ?? 0) > 0)<span class="inbox-count ml-1 inline-flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full min-w-4 h-4 px-1">{{ $inboxCount > 9 ? '9+' : $inboxCount }}</span>@endif</a>
                     <a href="{{ route('submissions.create') }}" class="px-3 py-1.5 rounded text-sm {{ request()->routeIs('submissions.create') ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white hover:bg-white/10' }} transition">{{ __('nav.submit_article') }}</a>
                     @if(auth()->user()->hasRole('reviewer'))
                     <a href="{{ route('reviews.index') }}" class="px-3 py-1.5 rounded text-sm {{ request()->routeIs('reviews.*') ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white hover:bg-white/10' }} transition">{{ __('nav.reviews') }}</a>
@@ -68,7 +68,7 @@
 
     <div x-show="open" x-cloak class="sm:hidden bg-primary-dark border-t border-white/10">
         <div class="px-3 py-2 space-y-1">
-            <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded text-sm {{ request()->routeIs('dashboard') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white' }}">{{ __('nav.dashboard') }}</a>
+            <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded text-sm {{ request()->routeIs('dashboard') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white' }}">{{ __('nav.dashboard') }}@if(($inboxCount ?? 0) > 0)<span class="inbox-count ml-1 inline-flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full min-w-4 h-4 px-1">{{ $inboxCount > 9 ? '9+' : $inboxCount }}</span>@endif</a>
             <a href="{{ route('submissions.create') }}" class="block px-3 py-2 rounded text-sm {{ request()->routeIs('submissions.create') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white' }}">{{ __('nav.submit_article') }}</a>
             @if(auth()->user()->hasRole('reviewer'))
             <a href="{{ route('reviews.index') }}" class="block px-3 py-2 rounded text-sm {{ request()->routeIs('reviews.*') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white' }}">{{ __('nav.reviews') }}</a>

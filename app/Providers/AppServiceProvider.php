@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Setting;
 use App\Support\CrossrefConfig;
+use App\Support\DashboardInbox;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,12 @@ class AppServiceProvider extends ServiceProvider
                 'print_issn' => Setting::get('journal_issn_print'),
                 'electronic_issn' => Setting::get('journal_issn_electronic'),
             ]);
+        });
+
+        View::composer('layouts.navigation', function ($view) {
+            $user = auth()->user();
+
+            $view->with('inboxCount', $user ? DashboardInbox::for($user)->count() : 0);
         });
 
         Blade::directive('purify', function (string $expression) {

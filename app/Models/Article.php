@@ -44,6 +44,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -1210,6 +1211,124 @@ class Article extends Model
     {
         return $this->isInReview()
             && $this->reviews()->where('status', ReviewStatus::Completed)->exists();
+    }
+
+    /**
+     * Days since the last recorded activity — the "no movement"
+     * signal for pipeline monitoring.
+     */
+    public function daysInStatus(): int
+    {
+        return $this->updated_at->diffInDays(now());
+    }
+
+    /**
+     * PURPOSE: Visual lifecycle stepper for the article page — steps
+     * from submission to publication with per-step state and date.
+     *
+     * SPECIFICATION: Empty for drafts and withdrawn articles; rejected
+     * articles terminate the stepper at the decision step.
+     *
+     * @return array<int, array{key: string, label: string, state: string, date: Carbon|null}>
+     */
+    public function workflowSteps(): array
+    {
+        $progress = match ($this->status) {
+            ArticleStatus::Submitted => 1,
+            ArticleStatus::InReview => 2,
+            ArticleStatus::Revision, ArticleStatus::Rejected => 3,
+            ArticleStatus::Accepted, ArticleStatus::Copyediting => 4,
+            ArticleStatus::Production => 5,
+            ArticleStatus::AwaitingApproval => 6,
+            ArticleStatus::Approved => 7,
+            ArticleStatus::Published, ArticleStatus::Retracted => 8,
+            default => 0,
+        };
+
+        if ($progress === 0) {
+            return [];
+        }
+
+        $steps = [
+            ['key' => 'submitted', 'label' => __('dashboard.timeline.submitted'), 'date' => $this->submitted_at],
+            ['key' => 'review', 'label' => __('dashboard.timeline.review'), 'date' => $this->reviewStartedAt()],
+            ['key' => 'decision', 'label' => __('dashboard.timeline.decision'), 'date' => $this->decided_at],
+            ['key' => 'copyediting', 'label' => __('dashboard.timeline.copyediting'), 'date' => $this->copyedited_at],
+            ['key' => 'production', 'label' => __('dashboard.timeline.production'), 'date' => $this->production_at],
+            ['key' => 'galley_approval', 'label' => __('dashboard.timeline.galley_approval'), 'date' => $this->galley_approved_at ?? $this->galley_sent_at],
+            ['key' => 'published', 'label' => __('dashboard.timeline.published'), 'date' => $this->published_at],
+        ];
+
+        return collect($steps)->map(function (array $step, int $index) use ($progress) {
+            $number = $index + 1;
+
+            if ($this->status === ArticleStatus::Rejected && $number === 3) {
+                $step['label'] = __('dashboard.timeline.decision_rejected');
+                $step['state'] = 'rejected';
+            } elseif ($number < $progress) {
+                $step['state'] = 'done';
+            } elseif ($number === $progress) {
+                $step['state'] = 'current';
+            } elseif ($this->status === ArticleStatus::Rejected) {
+                $step['state'] = 'cancelled';
+            } else {
+                $step['state'] = 'pending';
+            }
+
+            return $step;
+        })->all();
+    }
+
+    /**
+     * PURPOSE: Production readiness checklist for the editorial article
+     * page — which pipeline prerequisites are already satisfied.
+     *
+     * @return array<int, array{label: string, done: bool, skipped: bool}>
+     */
+    public function productionChecklist(): array
+    {
+        $completedReviewsCount = $this->completedReviews()->count();
+        $doubleBlind = $this->review_type === ReviewType::DoubleBlind;
+
+        return [
+            [
+                'label' => __('dashboard.checklist.blinded_pdf'),
+                'done' => $doubleBlind ? (bool) $this->blinded_pdf_path : true,
+                'skipped' => ! $doubleBlind,
+            ],
+            [
+                'label' => __('dashboard.checklist.reviews', ['count' => $completedReviewsCount]),
+                'done' => $completedReviewsCount > 0,
+                'skipped' => false,
+            ],
+            [
+                'label' => __('dashboard.checklist.decision'),
+                'done' => $this->decided_at !== null,
+                'skipped' => false,
+            ],
+            [
+                'label' => __('dashboard.checklist.copyedited_file'),
+                'done' => $this->copyedited_file_path !== null,
+                'skipped' => false,
+            ],
+            [
+                'label' => __('dashboard.checklist.galley'),
+                'done' => $this->galley_pdf_path !== null,
+                'skipped' => false,
+            ],
+            [
+                'label' => __('dashboard.checklist.doi'),
+                'done' => $this->doi !== null,
+                'skipped' => false,
+            ],
+        ];
+    }
+
+    private function reviewStartedAt(): ?Carbon
+    {
+        $assignedAt = $this->reviews()->min('assigned_at');
+
+        return $assignedAt === null ? null : Carbon::parse($assignedAt);
     }
 
     /**

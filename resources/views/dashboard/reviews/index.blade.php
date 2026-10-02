@@ -12,12 +12,24 @@
             <div class="bg-blue-50 border border-blue-200 text-blue-700 text-sm p-4 rounded-lg">{{ session('info') }}</div>
         @endif
 
+        {{-- Reviewer workload summary --}}
+        <div class="flex flex-wrap gap-2">
+            <x-status-badge color="info" :label="__('dashboard.reviewer_stats.active', ['count' => $stats['active']])" />
+            <x-status-badge color="success" :label="__('dashboard.reviewer_stats.completed', ['count' => $stats['completed']])" />
+            @if($stats['avg_days'] !== null)
+                <x-status-badge color="gray" :label="__('dashboard.reviewer_stats.avg_days', ['count' => $stats['avg_days']])" />
+            @else
+                <x-status-badge color="gray" :label="__('dashboard.reviewer_stats.avg_days_empty')" />
+            @endif
+            <x-status-badge color="warning" :label="__('dashboard.reviewer_stats.declines', ['count' => $stats['declines_year']])" />
+        </div>
+
         <div class="bg-white rounded-lg border border-gray-200">
-            @if($reviews->isEmpty())
+            @if($activeReviews->isEmpty())
                 <div class="p-8 text-center text-gray-400 text-sm">{{ __('dashboard.no_reviews') }}</div>
             @else
                 <div class="divide-y divide-gray-100">
-                    @foreach($reviews as $review)
+                    @foreach($activeReviews as $review)
                     <div class="flex items-center justify-between px-5 py-4">
                         <div class="min-w-0 flex-1 mr-4">
                             <div class="font-medium text-gray-900">{{ $review->article?->title }}</div>
@@ -67,5 +79,25 @@
                 </div>
             @endif
         </div>
+
+        {{-- Completed reviews --}}
+        @if($completedReviews->isNotEmpty())
+        <div class="bg-white rounded-lg border border-gray-200">
+            <div class="p-5 border-b border-gray-100">
+                <h3 class="font-semibold text-gray-900">{{ __('dashboard.completed_reviews') }}</h3>
+            </div>
+            <div class="divide-y divide-gray-100">
+                @foreach($completedReviews as $review)
+                <div class="flex items-center justify-between px-5 py-4">
+                    <div class="min-w-0 flex-1 mr-4">
+                        <div class="font-medium text-gray-900 truncate">{{ $review->article?->title }}</div>
+                        <div class="text-xs text-gray-400 mt-0.5">{{ __('dashboard.completed_at') }} {{ $review->completed_at?->format('d.m.Y') }}</div>
+                    </div>
+                    <a href="{{ route('reviews.show', $review) }}" class="shrink-0 text-sm text-primary hover:underline">{{ __('common.open') }}</a>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </div>
 </x-app-layout>

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Support\ReviewerStats;
 use Illuminate\Http\Request;
 
 /**
@@ -17,12 +19,24 @@ class ReviewController extends Controller
 {
     public function index(Request $request)
     {
-        $reviews = $request->user()->reviews()
+        $user = $request->user();
+
+        $reviews = $user->reviews()
             ->with('article')
             ->orderByDesc('created_at')
             ->get();
 
-        return view('dashboard.reviews.index', compact('reviews'));
+        $activeReviews = $reviews
+            ->filter(fn (Review $review) => $review->status !== ReviewStatus::Completed)
+            ->values();
+
+        $completedReviews = $reviews
+            ->filter(fn (Review $review) => $review->status === ReviewStatus::Completed)
+            ->values();
+
+        $stats = ReviewerStats::single($user);
+
+        return view('dashboard.reviews.index', compact('activeReviews', 'completedReviews', 'stats'));
     }
 
     public function show(Request $request, Review $review)

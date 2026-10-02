@@ -6,11 +6,16 @@ use App\Enums\ArticleStatus;
 use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
+use App\Models\Issue;
+use App\Support\DashboardInbox;
+use App\Support\DashboardWatchlist;
 use Illuminate\Http\Request;
 
 /**
- * PURPOSE: Dashboard homepage showing the user's submitted
- * articles, active reviews, and editorial workload overview.
+ * PURPOSE: Dashboard homepage showing the task-oriented inbox,
+ * the review-deadline and watchlist overviews for editors, the
+ * user's submitted articles, active reviews, and editorial
+ * workload statistics.
  */
 class DashboardController extends Controller
 {
@@ -18,7 +23,36 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        $showEditorial = DashboardInbox::canManageSubmissions($user);
+
+        $inbox = DashboardInbox::for($user);
+
+        $reviewDeadlines = $showEditorial ? DashboardWatchlist::deadlines($user) : collect();
+
+        $watchlist = $showEditorial ? DashboardWatchlist::for($user) : collect();
+
+        $issueAssembly = null;
+
+        if ($user->hasPermissionTo('publish-issue')) {
+            $issueAssembly = [
+                'issue' => Issue::published()->withCount('articles')->latest('published_at')->first(),
+                'ready' => Article::query()
+                    ->whereIn('status', [ArticleStatus::Accepted, ArticleStatus::Approved])
+                    ->whereNull('issue_id')
+                    ->orderBy('submitted_at')
+                    ->get(),
+            ];
+        }
+
         $myArticles = $user->submittedArticles()
+            ->with('category', 'issue')
+            ->when($request->query('q'), fn ($query, $search) => $query->where('title', 'ilike', "%{$search}%"))
+            ->orderByDesc('created_at')
+            ->get();
+
+        $search = $request->query('q');
+
+        $coauthoredArticles = $user->coauthoredArticles()
             ->with('category', 'issue')
             ->orderByDesc('created_at')
             ->get();
@@ -31,14 +65,8 @@ class DashboardController extends Controller
 
         $editorialCounts = null;
 
-        if ($user->hasPermissionTo('manage-submissions')) {
-            $query = Article::submitted();
-
-            if ($user->hasRole('section-editor') && ! $user->hasAnyRole(['editor-in-chief', 'managing-editor'])) {
-                $query->where('editor_id', $user->id);
-            }
-
-            $editorialCounts = $query
+        if ($showEditorial) {
+            $editorialCounts = DashboardInbox::editorialArticles($user)
                 ->selectRaw('sum(case when status = ? and editor_id is null then 1 else 0 end) as new_submissions', [ArticleStatus::Submitted->value])
                 ->selectRaw('sum(case when status = ? then 1 else 0 end) as in_review', [ArticleStatus::InReview->value])
                 ->selectRaw('sum(case when status = ? then 1 else 0 end) as accepted', [ArticleStatus::Accepted->value])
@@ -47,6 +75,17 @@ class DashboardController extends Controller
                 ->first();
         }
 
-        return view('dashboard.index', compact('myArticles', 'myReviews', 'editorialCounts'));
+        return view('dashboard.index', compact(
+            'inbox',
+            'reviewDeadlines',
+            'watchlist',
+            'showEditorial',
+            'issueAssembly',
+            'myArticles',
+            'coauthoredArticles',
+            'myReviews',
+            'editorialCounts',
+            'search',
+        ));
     }
 }
