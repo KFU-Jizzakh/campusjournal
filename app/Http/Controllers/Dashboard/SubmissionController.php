@@ -121,7 +121,9 @@ class SubmissionController extends Controller
                 $d->readBy($request->user());
             });
 
-        return view('dashboard.articles.show', compact('article'));
+        $timelineSteps = $article->workflowSteps();
+
+        return view('dashboard.articles.show', compact('article', 'timelineSteps'));
     }
 
     public function edit(Request $request, Article $article)

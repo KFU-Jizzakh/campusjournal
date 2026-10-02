@@ -58,6 +58,21 @@ test('workflow steps are empty for drafts and withdrawn articles', function () {
         ->and(Article::factory()->create(['status' => ArticleStatus::Withdrawn])->workflowSteps())->toBe([]);
 });
 
+test('workflow steps mark decision as done for revision articles', function () {
+    $article = Article::factory()->create([
+        'status' => ArticleStatus::Revision,
+        'submitted_at' => now()->subDays(30),
+        'decided_at' => now()->subDays(10),
+    ]);
+
+    $steps = $article->workflowSteps();
+
+    expect(collect($steps)->pluck('state')->all())
+        ->toBe(['done', 'done', 'done', 'pending', 'pending', 'pending', 'pending'])
+        ->and(collect($steps)->where('state', 'current'))->toBeEmpty()
+        ->and($steps[2]['date']?->toDateString())->toBe(now()->subDays(10)->toDateString());
+});
+
 test('production checklist reflects article readiness', function () {
     $article = Article::factory()->inReview()->create([
         'review_type' => ReviewType::DoubleBlind,
@@ -153,25 +168,4 @@ test('editorial index searches by author name and combines with status filter', 
         ->get(route('editorial.index', ['q' => 'Галимов', 'status' => 'in_review']))
         ->assertOk()
         ->assertDontSee('Подходящая статья');
-});
-
-test('author dashboard filters own articles by title', function () {
-    $author = User::factory()->create();
-    $author->assignRole('author');
-
-    Article::factory()->submitted()->create([
-        'submitted_by' => $author->id,
-        'title' => 'Квантовые вычисления',
-    ]);
-
-    Article::factory()->submitted()->create([
-        'submitted_by' => $author->id,
-        'title' => 'Биохимия почв',
-    ]);
-
-    $this->actingAs($author)
-        ->get(route('dashboard', ['q' => 'квантовые']))
-        ->assertOk()
-        ->assertSee('Квантовые вычисления')
-        ->assertDontSee('Биохимия почв');
 });

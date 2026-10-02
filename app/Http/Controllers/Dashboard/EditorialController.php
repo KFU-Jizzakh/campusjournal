@@ -14,6 +14,7 @@ use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\User;
 use App\Services\Doi\DoiMinter;
+use App\Support\DashboardInbox;
 use App\Support\EditorialStats;
 use App\Support\ReviewerStats;
 use Illuminate\Http\Request;
@@ -88,17 +89,32 @@ class EditorialController extends Controller
 
         $article->load('submitter.profile', 'editor.profile', 'category', 'authors', 'reviews.reviewer.profile', 'decidedBy.profile', 'copyeditedBy.profile', 'copyeditedFileUploadedBy.profile', 'productionBy.profile', 'galleyUploadedBy.profile', 'galleySentBy.profile', 'galleyApprovedBy.profile', 'galleyRevisions.requestedBy.profile', 'issue', 'files.uploader.profile', 'discussions.article', 'discussions.review', 'discussions.user.profile', 'discussions.replies.user.profile', 'corrections.createdBy.profile');
 
-        $sectionEditors = User::role('section-editor')->with('profile')->orderBy('email')->get();
-        $reviewers = User::permission('review-article')->with('profile')->orderBy('email')->get();
         $issues = Issue::published()->orderByDesc('year')->orderByDesc('number')->get();
-
-        $editorOptions = self::editorOptions($sectionEditors);
-        $reviewerOptions = self::reviewerOptions($reviewers);
 
         $user = $request->user();
         $showAssignEditor = $article->isSubmitted() && $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
         $showPublish = $article->isApproved() && $user->hasPermissionTo('publish-issue');
         $showGalleyUpload = $article->isProduction();
+
+        // Assignment selects (with workload annotations) are built only
+        // when the corresponding form will actually render.
+        $editorOptions = [];
+
+        if ($showAssignEditor) {
+            $editorOptions = self::editorOptions(
+                User::role('section-editor')->with('profile')->orderBy('email')->get()
+            );
+        }
+
+        $reviewerOptions = [];
+
+        if ($article->isReviewable()) {
+            $reviewerOptions = self::reviewerOptions(
+                User::permission('review-article')->with('profile')->orderBy('email')->get()
+            );
+        }
+
+        $timelineSteps = $article->workflowSteps();
         $showWithdraw = $article->isWithdrawable() && $user->can('withdraw', $article);
         $showRetract = $article->isRetractable() && $user->can('retract', $article);
         $showCorrections = $article->isPublished() && $user->can('manageCorrections', $article);
@@ -111,7 +127,7 @@ class EditorialController extends Controller
             });
 
         return view('dashboard.editorial.show', compact(
-            'article', 'sectionEditors', 'reviewers', 'issues', 'editorOptions', 'reviewerOptions', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections'
+            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections'
         ));
     }
 
@@ -169,7 +185,7 @@ class EditorialController extends Controller
      */
     public function stats(Request $request)
     {
-        abort_unless($request->user()->hasPermissionTo('publish-issue'), 403);
+        abort_unless(DashboardInbox::can($request->user(), 'publish-issue'), 403);
 
         $funnel = collect(EditorialStats::funnel())
             ->reject(fn (int $count, string $status) => $status === ArticleStatus::Draft->value)

@@ -1227,9 +1227,17 @@ class Article extends Model
      * from submission to publication with per-step state and date.
      *
      * SPECIFICATION: Empty for drafts and withdrawn articles; rejected
-     * articles terminate the stepper at the decision step.
+     * articles terminate the stepper at the decision step. The `current`
+     * state marks the article's active pipeline position — for statuses
+     * awaiting a future milestone (e.g. Approved) it denotes the next
+     * step, which carries no date until it happens. Articles under
+     * revision show the decision step as `done` (the decision is already
+     * made) with the later steps pending.
      *
-     * @return array<int, array{key: string, label: string, state: string, date: Carbon|null}>
+     * Each step carries presentation-ready values (dotClass,
+     * connectorClass, titleClass, icon) so views render them as is.
+     *
+     * @return array<int, array{key: string, label: string, state: string, date: Carbon|null, dotClass: string, connectorClass: string, titleClass: string, icon: string|null}>
      */
     public function workflowSteps(): array
     {
@@ -1265,6 +1273,8 @@ class Article extends Model
             if ($this->status === ArticleStatus::Rejected && $number === 3) {
                 $step['label'] = __('dashboard.timeline.decision_rejected');
                 $step['state'] = 'rejected';
+            } elseif ($this->status === ArticleStatus::Revision && $number === 3) {
+                $step['state'] = 'done';
             } elseif ($number < $progress) {
                 $step['state'] = 'done';
             } elseif ($number === $progress) {
@@ -1275,22 +1285,48 @@ class Article extends Model
                 $step['state'] = 'pending';
             }
 
+            $step['dotClass'] = match ($step['state']) {
+                'done' => 'bg-green-500 text-white',
+                'current' => 'bg-blue-600 text-white ring-4 ring-blue-100',
+                'rejected' => 'bg-red-500 text-white',
+                'cancelled' => 'bg-gray-100 text-gray-300',
+                default => 'bg-gray-200 text-gray-400',
+            };
+
+            $step['connectorClass'] = in_array($step['state'], ['done', 'rejected'], true)
+                ? 'bg-green-400'
+                : 'bg-gray-200';
+
+            $step['titleClass'] = match ($step['state']) {
+                'current' => 'text-gray-900',
+                'cancelled' => 'text-gray-300',
+                default => 'text-gray-500',
+            };
+
+            $step['icon'] = match ($step['state']) {
+                'done' => 'check',
+                'rejected' => 'cross',
+                default => null,
+            };
+
             return $step;
         })->all();
     }
 
     /**
      * PURPOSE: Production readiness checklist for the editorial article
-     * page — which pipeline prerequisites are already satisfied.
+     * page — which pipeline prerequisites are already satisfied. Each
+     * item carries a presentation-ready `rowClass` so views render it
+     * as is.
      *
-     * @return array<int, array{label: string, done: bool, skipped: bool}>
+     * @return array<int, array{label: string, done: bool, skipped: bool, rowClass: string}>
      */
     public function productionChecklist(): array
     {
         $completedReviewsCount = $this->completedReviews()->count();
         $doubleBlind = $this->review_type === ReviewType::DoubleBlind;
 
-        return [
+        $items = [
             [
                 'label' => __('dashboard.checklist.blinded_pdf'),
                 'done' => $doubleBlind ? (bool) $this->blinded_pdf_path : true,
@@ -1322,6 +1358,10 @@ class Article extends Model
                 'skipped' => false,
             ],
         ];
+
+        return array_map(fn (array $item) => $item + [
+            'rowClass' => $item['skipped'] ? 'text-gray-300' : ($item['done'] ? 'text-gray-700' : 'text-gray-400'),
+        ], $items);
     }
 
     private function reviewStartedAt(): ?Carbon
