@@ -34,6 +34,7 @@ use App\Notifications\AuthorResubmitted;
 use App\Notifications\AuthorStatusChanged;
 use App\Notifications\AuthorSubmissionReceived;
 use App\Notifications\EditorGalleyRevisionRequested;
+use App\Notifications\ReviewReRequested;
 use App\Services\Doi\DoiMinter;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -55,9 +56,9 @@ use Illuminate\Support\Facades\Storage;
  * manuscript, managing the full lifecycle from draft through peer
  * review, decision, copyediting, production, and publication.
  *
- * SPECIFICATION: SPEC-01/AC-1, SPEC-01/AC-7, SPEC-01/BR-1, SPEC-01/BR-2, SPEC-01/BR-3, SPEC-01/BR-4, SPEC-01/BR-5, SPEC-01/BR-6, SPEC-01/BR-7, SPEC-02/BR-6, SPEC-04/BR-1, SPEC-04/BR-5, SPEC-05/BR-1, SPEC-05/BR-2, SPEC-05/BR-3, SPEC-05/BR-4, SPEC-13/BR-1, SPEC-13/BR-2, SPEC-13/BR-3, SPEC-15/AC-2, SPEC-15/AC-4, SPEC-15/BR-1, SPEC-15/BR-2, SPEC-15/BR-3, SPEC-15/BR-4, SPEC-15/BR-5, SPEC-16/BR-1, SPEC-16/BR-2, SPEC-16/BR-3, SPEC-17/BR-1
+ * SPECIFICATION: SPEC-01/AC-1, SPEC-01/AC-7, SPEC-01/BR-1, SPEC-01/BR-2, SPEC-01/BR-3, SPEC-01/BR-4, SPEC-01/BR-5, SPEC-01/BR-6, SPEC-01/BR-7, SPEC-02/BR-6, SPEC-04/BR-1, SPEC-04/BR-5, SPEC-05/BR-1, SPEC-05/BR-2, SPEC-05/BR-3, SPEC-05/BR-4, SPEC-13/BR-1, SPEC-13/BR-2, SPEC-13/BR-3, SPEC-15/AC-2, SPEC-15/AC-4, SPEC-15/BR-1, SPEC-15/BR-2, SPEC-15/BR-3, SPEC-15/BR-4, SPEC-15/BR-5, SPEC-16/BR-1, SPEC-16/BR-2, SPEC-16/BR-3, SPEC-17/BR-1, SPEC-25/BR-1, SPEC-25/BR-2, SPEC-25/BR-3, SPEC-25/BR-4
  */
-#[Fillable(['title', 'abstract_ru', 'abstract_en', 'body', 'doi', 'keywords', 'funding', 'pages', 'first_page', 'last_page', 'views_count', 'downloads_count', 'pdf_path', 'blinded_pdf_path', 'blinded_at', 'blinded_by', 'status', 'review_type', 'issue_id', 'category_id', 'submitted_by', 'submitted_at', 'published_at', 'doi_registered_at', 'editor_id', 'decision', 'decision_comments', 'decided_at', 'decided_by', 'copyedited_at', 'copyedited_by', 'copyedited_file_path', 'copyedited_file_uploaded_at', 'copyedited_file_uploaded_by', 'production_at', 'production_by', 'galley_pdf_path', 'galley_uploaded_at', 'galley_uploaded_by', 'galley_sent_at', 'galley_sent_by', 'galley_approved_at', 'galley_approved_by', 'withdrawal_reason', 'withdrawn_at', 'retraction_reason', 'retracted_at'])]
+#[Fillable(['title', 'abstract_ru', 'abstract_en', 'body', 'doi', 'keywords', 'funding', 'pages', 'first_page', 'last_page', 'views_count', 'downloads_count', 'pdf_path', 'blinded_pdf_path', 'blinded_at', 'blinded_by', 'status', 'review_type', 'current_round', 'issue_id', 'category_id', 'submitted_by', 'submitted_at', 'published_at', 'doi_registered_at', 'editor_id', 'decision', 'decision_comments', 'decided_at', 'decided_by', 'copyedited_at', 'copyedited_by', 'copyedited_file_path', 'copyedited_file_uploaded_at', 'copyedited_file_uploaded_by', 'production_at', 'production_by', 'galley_pdf_path', 'galley_uploaded_at', 'galley_uploaded_by', 'galley_sent_at', 'galley_sent_by', 'galley_approved_at', 'galley_approved_by', 'withdrawal_reason', 'withdrawn_at', 'retraction_reason', 'retracted_at'])]
 class Article extends Model
 {
     use HasFactory, SoftDeletes;
@@ -67,6 +68,7 @@ class Article extends Model
         return [
             'status' => ArticleStatus::class,
             'review_type' => ReviewType::class,
+            'current_round' => 'integer',
             'submitted_at' => 'datetime',
             'published_at' => 'datetime',
             'doi_registered_at' => 'datetime',
@@ -217,6 +219,17 @@ class Article extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Author response letters submitted with revision resubmissions,
+     * ordered by review round.
+     *
+     * SPECIFICATION: SPEC-25/AC-2
+     */
+    public function responseLetters(): HasMany
+    {
+        return $this->hasMany(ResponseLetter::class)->orderBy('round')->orderBy('created_at');
     }
 
     public function discussions(): HasMany
@@ -401,18 +414,26 @@ class Article extends Model
     public function revise(array $data): void
     {
         $oldPath = null;
-        DB::transaction(function () use ($data, &$oldPath) {
+        $oldBlindedPath = null;
+        DB::transaction(function () use ($data, &$oldPath, &$oldBlindedPath) {
             $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
 
             $oldPath = $lockedArticle->copyedited_file_path;
+            $oldBlindedPath = $lockedArticle->blinded_pdf_path;
 
             $lockedArticle->update([
                 ...$data,
                 'submitted_at' => now(),
+                'current_round' => $lockedArticle->current_round + 1,
                 'decision' => null,
                 'decision_comments' => null,
                 'decided_at' => null,
                 'decided_by' => null,
+                // A new round must not reuse the previous round's anonymised
+                // PDF — otherwise a double-blind round 2 would leak identity.
+                'blinded_pdf_path' => null,
+                'blinded_at' => null,
+                'blinded_by' => null,
                 'copyedited_at' => null,
                 'copyedited_by' => null,
                 'copyedited_file_path' => null,
@@ -438,6 +459,10 @@ class Article extends Model
 
         if ($oldPath) {
             Storage::disk('local')->delete($oldPath);
+        }
+
+        if ($oldBlindedPath) {
+            Storage::disk('local')->delete($oldBlindedPath);
         }
     }
 
@@ -507,10 +532,22 @@ class Article extends Model
                 throw new MissingBlindedPdfException;
             }
 
-            // Check for existing non-declined review (pre-query check for better error message)
-            if ($lockedArticle->reviews()->where('reviewer_id', $reviewer->id)->where('status', '!=', ReviewStatus::Declined)->exists()) {
+            // Check for an existing non-declined review in the CURRENT round only —
+            // reviewers who completed or declined an earlier round may be re-invited.
+            if ($lockedArticle->reviews()
+                ->where('reviewer_id', $reviewer->id)
+                ->where('round', $lockedArticle->current_round)
+                ->where('status', '!=', ReviewStatus::Declined)
+                ->exists()) {
                 throw new DuplicateReviewerException;
             }
+
+            // A completed review from an earlier round means this is a re-request.
+            $isReRequest = $lockedArticle->reviews()
+                ->where('reviewer_id', $reviewer->id)
+                ->where('round', '<', $lockedArticle->current_round)
+                ->where('status', ReviewStatus::Completed)
+                ->exists();
 
             $responseDays = (int) Setting::get('review_response_days', '7');
             $deadlineDays = (int) Setting::get('review_deadline_days', '30');
@@ -521,6 +558,7 @@ class Article extends Model
                     'reviewer_id' => $reviewer->id,
                     'assigned_by' => $assignedBy->id,
                     'status' => ReviewStatus::Pending,
+                    'round' => $lockedArticle->current_round,
                     'assigned_at' => now(),
                     'response_due_at' => now()->addDays($responseDays),
                     'review_due_at' => now()->addDays($deadlineDays),
@@ -531,6 +569,10 @@ class Article extends Model
                     throw new DuplicateReviewerException;
                 }
                 throw $e;
+            }
+
+            if ($isReRequest) {
+                $reviewer->notify(new ReviewReRequested($review));
             }
 
             if ($lockedArticle->status === ArticleStatus::Submitted) {
@@ -573,8 +615,13 @@ class Article extends Model
         DB::transaction(function () use ($decision, $comments, $decidedBy, $statusMap) {
             $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
 
-            if ($lockedArticle->reviews()->where('status', ReviewStatus::Completed)->doesntExist()) {
-                throw new MissingCompletedReviewsException('Необходимо дождаться хотя бы одной завершённой рецензии.');
+            // Only completed reviews of the CURRENT round justify a decision —
+            // otherwise the editor could decide on stale round 1 feedback.
+            if ($lockedArticle->reviews()
+                ->where('status', ReviewStatus::Completed)
+                ->where('round', $lockedArticle->current_round)
+                ->doesntExist()) {
+                throw new MissingCompletedReviewsException;
             }
 
             $lockedArticle->update([
@@ -1205,12 +1252,23 @@ class Article extends Model
     }
 
     /**
-     * Whether the editor can make a decision — in review with completed reviews.
+     * Whether the editor can make a decision — in review with at least one
+     * completed review in the current round.
      */
     public function canBeDecided(): bool
     {
         return $this->isInReview()
-            && $this->reviews()->where('status', ReviewStatus::Completed)->exists();
+            && $this->currentRoundCompletedReviews()->exists();
+    }
+
+    /**
+     * Completed reviews of the current review round only.
+     *
+     * SPECIFICATION: SPEC-25/BR-1
+     */
+    public function currentRoundCompletedReviews(): HasMany
+    {
+        return $this->completedReviews()->where('round', $this->current_round);
     }
 
     /**

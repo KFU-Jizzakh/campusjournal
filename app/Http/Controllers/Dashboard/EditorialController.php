@@ -93,9 +93,12 @@ class EditorialController extends Controller
     {
         $this->authorize('viewEditorial', $article);
 
-        $article->load('submitter.profile', 'editor.profile', 'category', 'authors', 'reviews.reviewer.profile', 'decidedBy.profile', 'copyeditedBy.profile', 'copyeditedFileUploadedBy.profile', 'productionBy.profile', 'galleyUploadedBy.profile', 'galleySentBy.profile', 'galleyApprovedBy.profile', 'galleyRevisions.requestedBy.profile', 'issue', 'files.uploader.profile', 'discussions.article', 'discussions.review', 'discussions.user.profile', 'discussions.replies.user.profile', 'corrections.createdBy.profile');
+        $article->load('submitter.profile', 'editor.profile', 'category', 'authors', 'reviews.reviewer.profile', 'responseLetters.uploader.profile', 'decidedBy.profile', 'copyeditedBy.profile', 'copyeditedFileUploadedBy.profile', 'productionBy.profile', 'galleyUploadedBy.profile', 'galleySentBy.profile', 'galleyApprovedBy.profile', 'galleyRevisions.requestedBy.profile', 'issue', 'files.uploader.profile', 'discussions.article', 'discussions.review', 'discussions.user.profile', 'discussions.replies.user.profile', 'corrections.createdBy.profile');
 
         $issues = Issue::published()->orderByDesc('year')->orderByDesc('number')->get();
+
+        // Response letters grouped by round for the editorial round history.
+        $responseLettersByRound = $article->responseLetters->groupBy('round');
 
         $user = $request->user();
         $showAssignEditor = $article->isSubmitted() && $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
@@ -136,7 +139,7 @@ class EditorialController extends Controller
             });
 
         return view('dashboard.editorial.show', compact(
-            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'decisionTemplates', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections'
+            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'decisionTemplates', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections', 'responseLettersByRound'
         ));
     }
 

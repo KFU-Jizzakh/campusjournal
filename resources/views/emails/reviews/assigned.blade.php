@@ -3,6 +3,10 @@
 
 {{ __('email.review_assigned_instructions') }}
 
+@if($roundLine)
+**{{ $roundLine }}**
+@endif
+
 **{{ __('email.review_assigned_info') }}**
 - {{ __('email.review_assigned_date') }} {{ $review->assigned_at?->format('d.m.Y') ?? '—' }}
 - {{ __('email.review_assigned_deadline') }} {{ $review->response_due_at?->format('d.m.Y') ?? '—' }}

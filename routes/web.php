@@ -9,6 +9,7 @@ use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Dashboard\DiscussionController;
 use App\Http\Controllers\Dashboard\EditorialController;
 use App\Http\Controllers\Dashboard\NotificationController;
+use App\Http\Controllers\Dashboard\ResponseLetterController;
 use App\Http\Controllers\Dashboard\ReviewController;
 use App\Http\Controllers\Dashboard\SubmissionController;
 use App\Http\Controllers\EventController;
@@ -98,6 +99,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Submission page — gated by the ArticlePolicy::view (submitter or
     // credited coauthor), so coauthors can follow notification links.
     Route::get('/dashboard/articles/{article}', [SubmissionController::class, 'show'])->name('submissions.show');
+
+    // Response-letter attachments — gated by ResponseLetterPolicy (editor,
+    // author/coauthor, or reviewer of the corresponding round).
+    Route::get('/dashboard/response-letters/{responseLetter}/file', [ResponseLetterController::class, 'showFile'])->name('response-letters.file');
 
     // Article file management (delete)
     Route::delete('/dashboard/article-files/{file}', [ArticleFileController::class, 'destroy'])->name('article-files.destroy')->middleware('permission:submit-article|manage-submissions');

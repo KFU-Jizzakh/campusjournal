@@ -355,6 +355,57 @@ test('cannot decide without completed review', function () {
         ->assertSessionHas('error');
 });
 
+test('editor can re-assign round one reviewer after revision resubmission', function () {
+    $eic = createEic();
+    $reviewer = createReviewer();
+    $article = Article::factory()->inReview()->create();
+    Review::factory()->completed()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'round' => 1,
+    ]);
+
+    $article->decide('revision', 'Доработка.', $eic);
+    $article->revise(['title' => $article->title, 'abstract_ru' => $article->abstract_ru]);
+
+    $this->actingAs($eic)
+        ->post(route('editorial.assign-reviewer', $article), [
+            'reviewer_id' => $reviewer->id,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($article->reviews()->where('round', 2)->sole()->reviewer_id)->toBe($reviewer->id);
+});
+
+test('editor can decide round two article after round two review', function () {
+    $eic = createEic();
+    $reviewer = createReviewer();
+    $article = Article::factory()->inReview()->create();
+    Review::factory()->completed()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'round' => 1,
+    ]);
+
+    $article->decide('revision', 'Доработка.', $eic);
+    $article->revise(['title' => $article->title, 'abstract_ru' => $article->abstract_ru]);
+
+    $roundTwoReview = $article->assignReviewer($reviewer, $eic);
+    $roundTwoReview->accept();
+    $roundTwoReview->complete('accept', 'Всё исправлено.', 'Замечаний нет.');
+
+    $this->actingAs($eic)
+        ->post(route('editorial.decide', $article), [
+            'decision' => 'accept',
+            'decision_comments' => 'Принято со второго раунда.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($article->refresh()->status)->toBe(ArticleStatus::Accepted);
+});
+
 test('cannot decide on non-in_review article', function () {
     $eic = createEic();
     $article = Article::factory()->submitted()->create();

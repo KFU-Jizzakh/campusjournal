@@ -120,6 +120,12 @@ Two layers work together:
 
 `ArticlePolicy::viewEditorial` is the key policy: EiC/managing-editor see all non-draft articles; section-editor sees only articles where `editor_id = user->id`.
 
+`ResponseLetterPolicy` gates response-letter attachments: editors see all letters, the author/coauthors see their own, a reviewer sees the letter of the round they are assigned to.
+
+## Review rounds (SPEC-25)
+
+Peer review is round-based: `articles.current_round` + `reviews.round`. `Article::revise()` (resubmission after a revision decision) increments the round, requires a response letter (`response_letters`, created in the same transaction), and clears `blinded_pdf_path/at/by` so a double-blind next round never reuses the previous anonymised PDF. `ReviewStatus` `Completed`/`Declined` stay terminal — a new round is always a new `reviews` row. The duplicate-assignment guard and the partial unique index `reviews_article_reviewer_active_unique` are scoped per round, so a reviewer who completed/declined an earlier round can be re-invited (`ReviewReRequested` notification); `decide()`/`canBeDecided()` only count completed reviews of the current round.
+
 ## User identity
 
 `User` stores only `email` and `password`. Display name comes from the related `Profile` model (`HasOne`). `user->full_name` falls back to email if no profile exists. `Author` is a separate model for article authorship metadata (ORCID, SPIN, organisation) — linked to `User` via `user_id`.

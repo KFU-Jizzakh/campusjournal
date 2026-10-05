@@ -42,6 +42,36 @@
             @endif
         </div>
 
+        @if($responseLetter)
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-3">{{ __('article.response_letter_label') }}</h3>
+                <span class="text-xs px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{{ $responseLetter->roundLabel() }}</span>
+                <p class="text-sm text-gray-700 whitespace-pre-line mt-3">{{ $responseLetter->body }}</p>
+                @if($responseLetter->file_path)
+                    <a href="{{ route('response-letters.file', $responseLetter) }}" class="inline-block mt-3 text-sm text-primary hover:underline">{{ __('dashboard.response_letter_file_download') }}</a>
+                @endif
+            </div>
+        @endif
+
+        @if($previousOwnReview)
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-3">{{ __('dashboard.previous_own_review_heading') }}</h3>
+                <span class="text-xs px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{{ $previousOwnReview->roundBadgeLabel() }}</span>
+                @if($previousOwnReview->recommendation)
+                    <span class="text-xs px-1.5 py-0.5 rounded-full {{ $previousOwnReview->recommendationBadgeClass() }}">{{ $previousOwnReview->recommendationLabel() }}</span>
+                @endif
+                @if($previousOwnReview->comments_for_author)
+                    <p class="text-sm text-gray-700 whitespace-pre-line mt-3">{{ $previousOwnReview->comments_for_author }}</p>
+                @endif
+                @if($previousOwnReview->comments_for_editor)
+                    <div class="mt-3 text-sm">
+                        <span class="text-xs text-gray-400">{{ __('dashboard.for_editor_conf') }}</span>
+                        <p class="text-gray-700 mt-0.5 bg-amber-50 p-2 rounded text-sm">{{ $previousOwnReview->comments_for_editor }}</p>
+                    </div>
+                @endif
+            </div>
+        @endif
+
         @if($review->isInProgress())
         <div class="bg-white rounded-lg border border-gray-200 p-6">
             <h3 class="font-semibold text-gray-900 mb-4">{{ __('dashboard.review_heading') }}</h3>

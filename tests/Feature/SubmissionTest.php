@@ -282,6 +282,7 @@ test('author can edit article in revision status', function () {
             'author_name' => 'Иванов Иван Иванович',
             ...authorContactFields(),
             'agreement_accepted' => 'on',
+            'response_letter' => 'Замечания учтены в полном объёме.',
         ])
         ->assertRedirect();
 

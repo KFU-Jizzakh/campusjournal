@@ -51,7 +51,7 @@ return [
     'error_assign_reviewer_status' => 'Назначить рецензента можно только для поданных или рецензируемых статей.',
     'error_duplicate_reviewer' => 'Этот рецензент уже назначен на данную статью.',
     'error_decide_status' => 'Принять решение можно только для статей на рецензировании.',
-    'error_missing_reviews' => 'Необходимо дождаться хотя бы одной завершённой рецензии.',
+    'error_missing_reviews' => 'Необходимо дождаться хотя бы одной завершённой рецензии текущего раунда.',
     'error_send_to_copyediting_status' => 'Статья не может быть отправлена на корректуру.',
     'error_send_to_production_status' => 'Статья не может быть отправлена в производство.',
     'error_publish_status' => 'Статья не может быть опубликована.',
@@ -106,4 +106,12 @@ return [
     'error_no_copyedited_file_to_delete' => 'Нет файла для удаления.',
     'error_not_retractable' => 'Статья не может быть отозвана (ретрекшн) — требуется статус «Опубликована».',
     'error_not_withdrawable' => 'Статья не может быть отозвана в текущем статусе.',
+    // Re-review rounds & response letter (SPEC-25)
+    'revision_comments_heading' => 'Замечания по текущему раунду',
+    'revision_decision_comments_label' => 'Комментарий редакции:',
+    'revision_reviewer_label' => 'Рецензент :number',
+    'response_letter_label' => 'Письмо с ответом рецензентам',
+    'response_letter_hint' => 'Опишите по пунктам, как учтены замечания рецензентов. Письмо будет доступно рецензентам нового раунда и редакции.',
+    'response_letter_file_label' => 'Приложение к письму (PDF или DOCX, необязательно)',
+    'response_letter_uploaded' => 'Письмо с ответом рецензентам загружено.',
 ];

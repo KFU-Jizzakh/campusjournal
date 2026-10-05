@@ -433,6 +433,10 @@
                 <div class="border border-gray-100 rounded-lg p-4">
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-sm font-medium text-gray-900">{{ __('dashboard.review_reviewer') }}{{ $index + 1 }}</span>
+                        <span class="flex items-center gap-2">
+                        @if($review->round > 1)
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{{ $review->roundBadgeLabel() }}</span>
+                        @endif
                         <span class="text-xs px-2 py-0.5 rounded-full
                             @switch($review->recommendation)
                                 @case('accept') bg-green-50 text-green-700 @break
@@ -448,6 +452,7 @@
                                 @case('reject') {{ __('article.recommendation_reject') }} @break
                             @endswitch
                         </span>
+                        </span>
                     </div>
                     @if($review->comments_for_author)
                         <p class="text-sm text-gray-700">{{ $review->comments_for_author }}</p>
@@ -455,6 +460,26 @@
                 </div>
                 @endforeach
             </div>
+        </div>
+        @endif
+
+        {{-- Author response letters, grouped by round --}}
+        @if($article->responseLetters->isNotEmpty())
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 class="font-semibold text-gray-900 mb-4">{{ __('dashboard.response_letters_heading') }}</h3>
+            @foreach($article->responseLetters->groupBy('round') as $round => $letters)
+                <div class="border border-gray-100 rounded-lg p-4 mb-3">
+                    <span class="text-xs px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{{ __('dashboard.review_round_badge', ['round' => $round]) }}</span>
+                    @foreach($letters as $letter)
+                        <div class="mt-3">
+                            <p class="text-sm text-gray-700 whitespace-pre-line">{{ $letter->body }}</p>
+                            @if($letter->file_path)
+                                <a href="{{ route('response-letters.file', $letter) }}" class="inline-block mt-2 text-sm text-primary hover:underline">{{ __('dashboard.response_letter_file_download') }}</a>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endforeach
         </div>
         @endif
 

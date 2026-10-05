@@ -3,9 +3,34 @@
         <h2 class="text-xl font-semibold text-gray-900">{{ __('dashboard.edit_heading') }}</h2>
     </x-slot>
 
-    @if($article->status === App\Enums\ArticleStatus::Revision)
+    @if($article->isRevision())
         <div class="bg-orange-50 border border-orange-200 text-orange-700 text-sm p-4 rounded-lg mb-6">
             {{ __('dashboard.revision_notice') }}
+        </div>
+    @endif
+
+    @if($article->isRevision())
+        <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+            <h3 class="font-semibold text-gray-900 mb-4">{{ __('article.revision_comments_heading') }}</h3>
+            @if($decisionComments)
+                <div class="mb-4">
+                    <span class="text-xs text-gray-400">{{ __('article.revision_decision_comments_label') }}</span>
+                    <p class="text-sm text-gray-700 mt-0.5">{{ $decisionComments }}</p>
+                </div>
+            @endif
+            @foreach($roundReviews as $review)
+                <div class="border border-gray-100 rounded-lg p-4 mb-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-900">{{ __('article.revision_reviewer_label', ['number' => $loop->iteration]) }}</span>
+                        @if($review->recommendation)
+                            <span class="text-xs px-1.5 py-0.5 rounded-full {{ $review->recommendationBadgeClass() }}">{{ $review->recommendationLabel() }}</span>
+                        @endif
+                    </div>
+                    @if($review->comments_for_author)
+                        <p class="text-sm text-gray-700">{{ $review->comments_for_author }}</p>
+                    @endif
+                </div>
+            @endforeach
         </div>
     @endif
 
@@ -120,6 +145,29 @@
                 </div>
             </div>
         </div>
+
+        @if($article->isRevision())
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-4">{{ __('article.response_letter_label') }}</h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <x-input-label for="response_letter" :value="__('article.response_letter_label')" />
+                        <textarea id="response_letter" name="response_letter" rows="6" required
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm">{{ old('response_letter') }}</textarea>
+                        <p class="text-xs text-gray-400 mt-1">{{ __('article.response_letter_hint') }}</p>
+                        <x-input-error :messages="$errors->get('response_letter')" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <x-input-label for="response_letter_file" :value="__('article.response_letter_file_label')" />
+                        <input id="response_letter_file" name="response_letter_file" type="file" accept=".pdf,.doc,.docx"
+                            class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                        <x-input-error :messages="$errors->get('response_letter_file')" class="mt-1" />
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <div class="bg-white rounded-lg border border-gray-200 p-6" x-data="{
             coauthors: @json($coauthorsData),

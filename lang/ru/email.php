@@ -11,6 +11,7 @@ return [
     'review_assigned_instructions' => 'Вам назначена новая рецензия. Пожалуйста, войдите в систему и примите или отклоните заявку. После принятия вы сможете загрузить файл рукописи и оставить рецензию.',
     'review_assigned_button' => 'Перейти к рецензиям',
     'review_assigned_double_blind_notice' => 'Рецензирование двойное слепое. Вы не увидите имени автора, а рукопись анонимизирована.',
+    'review_assigned_round' => 'Раунд рецензирования: :round',
     'review_completed_heading' => 'Рецензия завершена',
     'review_completed_result' => 'Результат:',
     'review_completed_recommendation' => 'Рекомендация:',

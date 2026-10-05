@@ -388,17 +388,20 @@
                 <div class="space-y-3 mb-5">
                     @foreach($article->reviews as $review)
                     <div class="border border-gray-100 rounded-lg p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-900">{{ $review->reviewer?->full_name }}</span>
-                            <div class="flex items-center gap-2">
-                                @if($review->recommendation)
-                                    <span class="text-xs px-1.5 py-0.5 rounded-full {{ $review->recommendationBadgeClass() }}">
-                                        {{ $review->recommendationLabel() }}
-                                    </span>
-                                @endif
-                                <x-status-badge :color="$review->status->color()" :label="$review->status->label()" class="text-xs px-1.5 py-0.5" />
-                            </div>
-                        </div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-900">{{ $review->reviewer?->full_name }}</span>
+                    <div class="flex items-center gap-2">
+                        @if($review->round > 1)
+                            <span class="text-xs px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{{ $review->roundBadgeLabel() }}</span>
+                        @endif
+                        @if($review->recommendation)
+                            <span class="text-xs px-1.5 py-0.5 rounded-full {{ $review->recommendationBadgeClass() }}">
+                                {{ $review->recommendationLabel() }}
+                            </span>
+                        @endif
+                        <x-status-badge :color="$review->status->color()" :label="$review->status->label()" class="text-xs px-1.5 py-0.5" />
+                    </div>
+                </div>
                         @if($review->isCompleted())
                             @if($review->comments_for_author)
                                 <div class="mt-2 text-sm">
@@ -443,6 +446,29 @@
                 </form>
             @endif
         </div>
+
+        {{-- Response letters by round --}}
+        @if($responseLettersByRound->isNotEmpty())
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-4">{{ __('dashboard.response_letters_heading') }}</h3>
+                @foreach($responseLettersByRound as $round => $letters)
+                    <div class="border border-gray-100 rounded-lg p-4 mb-3">
+                        <span class="text-xs px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{{ __('dashboard.review_round_badge', ['round' => $round]) }}</span>
+                        @foreach($letters as $letter)
+                            <div class="mt-3">
+                                <p class="text-sm text-gray-700 whitespace-pre-line">{{ $letter->body }}</p>
+                                <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                                    <span>{{ $letter->uploader?->full_name }}, {{ $letter->created_at?->format('d.m.Y H:i') }}</span>
+                                    @if($letter->file_path)
+                                        <a href="{{ route('response-letters.file', $letter) }}" class="text-primary hover:underline">{{ __('dashboard.response_letter_file_download') }}</a>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endforeach
+            </div>
+        @endif
 
         {{-- Decision --}}
         @if($article->decision)

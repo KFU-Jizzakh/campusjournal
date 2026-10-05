@@ -43,9 +43,23 @@ class ReviewController extends Controller
     {
         $this->authorize('view', $review);
 
-        $review->load('article.category');
+        $review->load('article.category', 'article.responseLetters.uploader');
 
-        return view('dashboard.reviews.show', compact('review'));
+        // The author's response letter for this review's round (visible on re-review).
+        $responseLetter = $review->article->responseLetters
+            ->where('round', $review->round)
+            ->sortByDesc('id')
+            ->first();
+
+        // The reviewer's own completed review from an earlier round.
+        $previousOwnReview = $review->article->reviews()
+            ->where('reviewer_id', $request->user()->id)
+            ->where('round', '<', $review->round)
+            ->where('status', ReviewStatus::Completed)
+            ->orderByDesc('completed_at')
+            ->first();
+
+        return view('dashboard.reviews.show', compact('review', 'responseLetter', 'previousOwnReview'));
     }
 
     public function update(Request $request, Review $review)

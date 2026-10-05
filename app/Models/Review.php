@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  *
  * SPECIFICATION: SPEC-02/AC-3, SPEC-03/AC-2, SPEC-03/AC-3, SPEC-03/AC-4, SPEC-03/AC-5
  */
-#[Fillable(['article_id', 'reviewer_id', 'assigned_by', 'recommendation', 'comments_for_editor', 'comments_for_author', 'status', 'assigned_at', 'completed_at', 'response_due_at', 'review_due_at', 'reminded_at'])]
+#[Fillable(['article_id', 'reviewer_id', 'assigned_by', 'recommendation', 'comments_for_editor', 'comments_for_author', 'status', 'round', 'assigned_at', 'completed_at', 'response_due_at', 'review_due_at', 'reminded_at'])]
 class Review extends Model
 {
     use HasFactory, SoftDeletes;
@@ -31,6 +31,7 @@ class Review extends Model
     {
         return [
             'status' => ReviewStatus::class,
+            'round' => 'integer',
             'assigned_at' => 'datetime',
             'completed_at' => 'datetime',
             'response_due_at' => 'datetime',
@@ -278,6 +279,22 @@ class Review extends Model
     public function isDeclined(): bool
     {
         return $this->status === ReviewStatus::Declined;
+    }
+
+    /**
+     * Whether this review belongs to the article's current review round.
+     */
+    public function isForCurrentRound(): bool
+    {
+        return (int) $this->round === (int) $this->article->current_round;
+    }
+
+    /**
+     * Round badge label — shown on review cards across dashboards.
+     */
+    public function roundBadgeLabel(): string
+    {
+        return __('dashboard.review_round_badge', ['round' => $this->round]);
     }
 
     public function recommendationLabel(): ?string

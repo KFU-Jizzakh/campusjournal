@@ -122,7 +122,7 @@ class SubmissionController extends Controller
     {
         $this->authorize('view', $article);
 
-        $article->load('authors', 'category', 'reviews', 'references', 'discussions.article', 'discussions.user.profile', 'discussions.replies.user.profile', 'latestAgreement.agreement');
+        $article->load('authors', 'category', 'reviews', 'responseLetters.uploader', 'references', 'discussions.article', 'discussions.user.profile', 'discussions.replies.user.profile', 'latestAgreement.agreement');
 
         $article->discussions
             ->filter(fn ($d) => $d->isVisibleTo($request->user(), $article))
@@ -145,6 +145,12 @@ class SubmissionController extends Controller
         $agreement = $article->isRevision() ? CopyrightAgreement::current() : null;
         $countries = Country::cases();
         $primaryAuthor = $article->authors->first();
+        // Decision and reviews of the round being revised — shown to the
+        // author above the response-letter field while resubmitting.
+        $roundReviews = $article->isRevision()
+            ? $article->currentRoundCompletedReviews()->orderBy('completed_at')->get()
+            : collect();
+        $decisionComments = $article->isRevision() ? $article->decision_comments : null;
         $coauthorsData = old('coauthors', $article->authors->skip(1)->map(fn (Author $author) => [
             'full_name' => $author->full_name,
             'degree' => $author->degree,
@@ -158,7 +164,7 @@ class SubmissionController extends Controller
             'orcid' => $author->orcid,
         ])->values()->toArray());
 
-        return view('dashboard.articles.edit', compact('article', 'categories', 'agreement', 'countries', 'primaryAuthor', 'coauthorsData'));
+        return view('dashboard.articles.edit', compact('article', 'categories', 'agreement', 'countries', 'primaryAuthor', 'coauthorsData', 'roundReviews', 'decisionComments'));
     }
 
     public function update(Request $request, Article $article)
@@ -178,9 +184,11 @@ class SubmissionController extends Controller
         ]);
 
         if ($article->isRevision()) {
-            $request->validate([
+            $validated = array_merge($validated, $request->validate([
                 'agreement_accepted' => 'accepted',
-            ]);
+                'response_letter' => 'required|string',
+                'response_letter_file' => 'nullable|file|mimetypes:application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document|max:51200',
+            ]));
         }
 
         $this->validateOrcidDistinct($validated);
@@ -208,8 +216,23 @@ class SubmissionController extends Controller
         $isRevision = $article->isRevision();
         $agreement = $isRevision ? CopyrightAgreement::current() : null;
 
-        DB::transaction(function () use ($request, $article, $validated, $data, $isRevision, $agreement) {
+        $responseLetterFilePath = $request->hasFile('response_letter_file')
+            ? $request->file('response_letter_file')->store('response-letters', 'local')
+            : null;
+
+        DB::transaction(function () use ($request, $article, $validated, $data, $isRevision, $agreement, $responseLetterFilePath) {
             $article->updateOrRevise($data);
+
+            // After revise() the article has moved to the new round — the
+            // response letter belongs to that new round.
+            if ($isRevision) {
+                $article->responseLetters()->create([
+                    'round' => $article->current_round,
+                    'body' => $validated['response_letter'],
+                    'file_path' => $responseLetterFilePath,
+                    'uploaded_by' => $request->user()->id,
+                ]);
+            }
 
             $article->syncAuthors(
                 $request->user(),

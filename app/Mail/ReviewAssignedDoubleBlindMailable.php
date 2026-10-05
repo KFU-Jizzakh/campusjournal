@@ -19,9 +19,18 @@ class ReviewAssignedDoubleBlindMailable extends Mailable
 {
     use Queueable, SerializesModels;
 
+    /**
+     * Round marker line for re-review rounds, null for the first round.
+     */
+    public ?string $roundLine;
+
     public function __construct(
         public Review $review
-    ) {}
+    ) {
+        $this->roundLine = $review->round > 1
+            ? __('email.review_assigned_round', ['round' => $review->round])
+            : null;
+    }
 
     public function envelope(): Envelope
     {
