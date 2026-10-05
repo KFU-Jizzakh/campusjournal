@@ -63,7 +63,11 @@
                             <a href="{{ route('articles.show', $article) }}" class="hover:text-primary">{{ $article->title }}</a>
                         </h2>
                         @if($article->authors->isNotEmpty())
-                            <p class="text-sm text-gray-500 mb-3">{{ $article->authors->pluck('full_name')->join(', ') }}</p>
+                            <p class="text-sm text-gray-500 mb-3">
+                                @foreach($article->authors as $author)
+                                    <a href="{{ route('authors.show', $author) }}" class="hover:text-primary">{{ $author->full_name }}</a>{{ $loop->last ? '' : ', ' }}
+                                @endforeach
+                            </p>
                         @endif
                         @if($article->abstract_ru)
                             <p class="text-gray-600 text-sm leading-relaxed">{{ Str::limit($article->abstract_ru, 300) }}</p>

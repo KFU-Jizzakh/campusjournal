@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Author;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
 
 class AuthorSeeder extends Seeder
 {
@@ -22,6 +23,7 @@ class AuthorSeeder extends Seeder
                 'organization' => 'Филиал Казанского федерального университета в г. Джизаке',
                 'bio' => 'Доктор педагогических наук, профессор, директор Филиала КФУ в г. Джизаке. Научный руководитель проектов РГНФ, государственных заданий КФУ, тематических планов НИР Минспорта России. Эксперт Министерства науки и высшего образования РФ по педагогической экспертизе (приказ № 491 от 25.07.2024). Член редколлегии Международного журнала «Глобальная экономика и образование» и Научного электронного журнала «Новости образования эпохи Возрождения». Награжден Почетной грамотой Минобрнауки РФ, нагрудным знаком «За заслуги в образовании» РТ, Грамотой Президента РФ. Почетный работник сферы образования Российской Федерации (2023).',
                 'email' => 'galimov@globalcampus.local',
+                'photo_path' => $this->seedPhoto('galimov', 'Галимов Алмаз Мирзанурович', '#1d4ed8'),
             ]
         );
 
@@ -38,6 +40,7 @@ class AuthorSeeder extends Seeder
                 'spin_code' => '5044-8598',
                 'author_id_elibrary' => '630278',
                 'website' => 'https://www.kolesnikova.red',
+                'photo_path' => $this->seedPhoto('kolesnikova', 'Колесникова Галина Ивановна', '#0f766e'),
             ]
         );
 
@@ -50,6 +53,7 @@ class AuthorSeeder extends Seeder
                 'organization' => 'Филиал Казанского федерального университета в г. Джизаке',
                 'bio' => 'Кандидат педагогических наук ВАК РФ, филолог, психолог, специалист по управлению образовательными организациями. Руководитель международной Ассоциации «Содружество образовательных организаций им. А. С. Пушкина и педагогов». Член Межрегиональной общественной организации содействия и развития экспертной деятельности «Экспертный Совет». Член Международной ассоциации «Русские школы за рубежом». Победитель федерального профессионального конкурса «Учитель года — 2007». Заслуженный Учитель Республики Татарстан (2025). Индекс Хирша — 4.',
                 'email' => 'albaz2017@yandex.ru',
+                'photo_path' => $this->seedPhoto('shagaeva', 'Шагаева Алия Юнусовна', '#b45309'),
             ]
         );
 
@@ -117,5 +121,28 @@ class AuthorSeeder extends Seeder
                 'email' => 'sidorov.av@globalcampus.local',
             ]
         );
+    }
+
+    /**
+     * PURPOSE: Writes an initials avatar SVG (if absent) to the public
+     * disk under the Filament upload directory convention, so seeded
+     * author profiles render photos out of the box.
+     */
+    private function seedPhoto(string $slug, string $fullName, string $color): string
+    {
+        $path = "authors/photos/{$slug}.svg";
+
+        if (! Storage::disk('public')->exists($path)) {
+            $words = preg_split('/\s+/u', trim($fullName));
+            $initials = mb_strtoupper(mb_substr($words[0] ?? '', 0, 1).mb_substr($words[1] ?? '', 0, 1));
+
+            Storage::disk('public')->put($path, sprintf(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="%s"/><text x="48" y="60" font-family="Arial, sans-serif" font-size="34" fill="#ffffff" text-anchor="middle">%s</text></svg>',
+                $color,
+                $initials
+            ));
+        }
+
+        return $path;
     }
 }
