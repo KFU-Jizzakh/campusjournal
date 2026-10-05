@@ -469,15 +469,26 @@
         @elseif($article->canBeDecided())
             <div class="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 class="font-semibold text-gray-900 mb-4">{{ __('dashboard.make_decision') }}</h3>
-                <form method="POST" action="{{ route('editorial.decide', $article) }}" class="space-y-4">
+                <form method="POST" action="{{ route('editorial.decide', $article) }}" class="space-y-4"
+                      x-data="{
+                          applyTemplate(select) {
+                              const template = select.selectedOptions[0] ? select.selectedOptions[0].dataset.template : '';
+                              const textarea = document.getElementById('decision_comments');
+                              if (!template || !textarea) return;
+                              const known = [...select.options].map(option => option.dataset.template).filter(Boolean);
+                              if (!textarea.value.trim() || known.includes(textarea.value)) {
+                                  textarea.value = template;
+                              }
+                          }
+                      }">
                     @csrf
                     <div>
                         <x-input-label for="decision" :value="__('dashboard.decision_label')" />
-                        <select id="decision" name="decision" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" required>
+                        <select id="decision" name="decision" @change="applyTemplate(this)" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm" required>
                             <option value="">{{ __('dashboard.select_decision') }}</option>
-                            <option value="accept" {{ old('decision') === 'accept' ? 'selected' : '' }}>{{ __('dashboard.decision_accept') }}</option>
-                            <option value="revision" {{ old('decision') === 'revision' ? 'selected' : '' }}>{{ __('dashboard.decision_revision') }}</option>
-                            <option value="reject" {{ old('decision') === 'reject' ? 'selected' : '' }}>{{ __('dashboard.decision_reject') }}</option>
+                            <option value="accept" data-template="{{ $decisionTemplates['accept'] ?? '' }}" {{ old('decision') === 'accept' ? 'selected' : '' }}>{{ __('dashboard.decision_accept') }}</option>
+                            <option value="revision" data-template="{{ $decisionTemplates['revision'] ?? '' }}" {{ old('decision') === 'revision' ? 'selected' : '' }}>{{ __('dashboard.decision_revision') }}</option>
+                            <option value="reject" data-template="{{ $decisionTemplates['reject'] ?? '' }}" {{ old('decision') === 'reject' ? 'selected' : '' }}>{{ __('dashboard.decision_reject') }}</option>
                         </select>
                         <x-input-error :messages="$errors->get('decision')" class="mt-1" />
                     </div>

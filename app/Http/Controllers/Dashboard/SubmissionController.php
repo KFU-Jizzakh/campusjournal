@@ -13,6 +13,7 @@ use App\Notifications\AuthorSubmissionReceived;
 use App\Rules\ClaimableOrcid;
 use App\Rules\Orcid;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -53,6 +54,15 @@ class SubmissionController extends Controller
         ]);
 
         $this->validateOrcidDistinct($validated);
+
+        $duplicates = $this->findDuplicateTitles($validated['title']);
+
+        if ($duplicates->isNotEmpty() && ! $request->boolean('duplicate_acknowledged')) {
+            return back()
+                ->withInput()
+                ->with('warning', __('dashboard.duplicate_warning'))
+                ->with('duplicates', $duplicates->all());
+        }
 
         $pdfPath = $request->file('pdf_file')->store('submissions', 'local');
 
@@ -341,5 +351,48 @@ class SubmissionController extends Controller
                 'coauthors' => 'У каждого автора должен быть уникальный ORCID.',
             ]);
         }
+    }
+
+    /**
+     * PURPOSE: Non-blocking duplicate check — titles of existing
+     * non-draft articles similar to the submitted one (normalized
+     * exact match, substring, or high similarity). Shorter titles are
+     * ignored to avoid false positives.
+     *
+     * @return Collection<int, string>
+     */
+    private function findDuplicateTitles(string $title)
+    {
+        $normalized = $this->normalizeTitle($title);
+
+        if (mb_strlen($normalized) < 10) {
+            return collect();
+        }
+
+        return Article::submitted()
+            ->select('id', 'title')
+            ->get()
+            ->filter(function (Article $article) use ($normalized) {
+                $candidate = $this->normalizeTitle($article->title);
+
+                if ($candidate === '' || $candidate === $normalized) {
+                    return $candidate === $normalized;
+                }
+
+                similar_text($normalized, $candidate, $percent);
+
+                return str_contains($candidate, $normalized)
+                    || str_contains($normalized, $candidate)
+                    || $percent >= 88;
+            })
+            ->pluck('title')
+            ->values();
+    }
+
+    private function normalizeTitle(string $title): string
+    {
+        $lower = mb_strtolower($title);
+
+        return trim((string) preg_replace('/\s+/u', ' ', (string) preg_replace('/[^\p{L}\p{N}]+/u', ' ', $lower)));
     }
 }

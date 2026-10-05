@@ -15,6 +15,7 @@ use App\Models\OutboxEvent;
 use App\Models\User;
 use App\Services\Doi\DoiMinter;
 use App\Support\DashboardInbox;
+use App\Support\DecisionLetter;
 use App\Support\EditorialStats;
 use App\Support\ReviewerStats;
 use Illuminate\Http\Request;
@@ -80,7 +81,12 @@ class EditorialController extends Controller
 
         $showStats = $user->hasPermissionTo('publish-issue');
 
-        return view('dashboard.editorial.index', compact('articles', 'counts', 'status', 'search', 'showStats'));
+        $canBulkAssign = $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
+        $editorOptions = $canBulkAssign
+            ? self::editorOptions(User::role('section-editor')->with('profile')->orderBy('email')->get())
+            : [];
+
+        return view('dashboard.editorial.index', compact('articles', 'counts', 'status', 'search', 'showStats', 'canBulkAssign', 'editorOptions'));
     }
 
     public function show(Request $request, Article $article)
@@ -115,6 +121,9 @@ class EditorialController extends Controller
         }
 
         $timelineSteps = $article->workflowSteps();
+        $decisionTemplates = $article->canBeDecided()
+            ? DecisionLetter::renderAll($article, $user)
+            : [];
         $showWithdraw = $article->isWithdrawable() && $user->can('withdraw', $article);
         $showRetract = $article->isRetractable() && $user->can('retract', $article);
         $showCorrections = $article->isPublished() && $user->can('manageCorrections', $article);
@@ -127,7 +136,7 @@ class EditorialController extends Controller
             });
 
         return view('dashboard.editorial.show', compact(
-            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections'
+            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'decisionTemplates', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections'
         ));
     }
 
@@ -213,6 +222,46 @@ class EditorialController extends Controller
             'avgTurnaround' => EditorialStats::avgReviewerTurnaround(),
             'sectionLoad' => EditorialStats::sectionEditorLoad(),
         ]);
+    }
+
+    /**
+     * PURPOSE: Bulk-assigns one section editor to many submissions at
+     * once. Articles that cannot take an editor (not in "submitted"
+     * status) are skipped individually. Leadership only — mirrors the
+     * assignEditor policy.
+     */
+    public function bulkAssignEditor(Request $request)
+    {
+        abort_unless($request->user()->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']), 403);
+
+        $data = $request->validate([
+            'article_ids' => ['required', 'array', 'min:1'],
+            'article_ids.*' => ['integer'],
+            'editor_id' => ['required', 'integer'],
+        ]);
+
+        $editor = User::role('section-editor')->findOrFail($data['editor_id']);
+
+        $assigned = 0;
+        $skipped = 0;
+
+        foreach (Article::submitted()->whereIn('id', $data['article_ids'])->get() as $article) {
+            try {
+                $article->assignEditor($editor);
+                $assigned++;
+            } catch (\DomainException) {
+                $skipped++;
+            }
+        }
+
+        if ($assigned === 0) {
+            return back()->with('error', __('dashboard.bulk_none_assigned'));
+        }
+
+        return back()->with('success', __('dashboard.bulk_assigned', [
+            'assigned' => $assigned,
+            'skipped' => $skipped,
+        ]));
     }
 
     public function assignEditor(Request $request, Article $article)

@@ -20,6 +20,22 @@
             </div>
         @endif
 
+        @if(session('warning'))
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p class="text-sm text-amber-700 font-medium">{{ session('warning') }}</p>
+                @if(count($duplicates ?? []) > 0)
+                    <p class="text-xs font-medium text-amber-600 mt-2 mb-1">{{ __('dashboard.duplicate_list_heading') }}</p>
+                    <ul class="list-disc list-inside text-sm text-amber-600 space-y-1">
+                        @foreach($duplicates as $duplicate)
+                            <li>{{ $duplicate }}</li>
+                        @endforeach
+                    </ul>
+                    <p class="text-xs text-amber-500 mt-2">{{ __('dashboard.duplicate_acknowledge') }}</p>
+                @endif
+                <input type="hidden" name="duplicate_acknowledged" value="1">
+            </div>
+        @endif
+
         <div class="bg-white rounded-lg border border-gray-200 p-6">
             <h3 class="font-semibold text-gray-900 mb-4">{{ __('article.info_heading') }}</h3>
 

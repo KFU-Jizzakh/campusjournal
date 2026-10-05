@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\Setting;
 use App\Rules\BibtexKeyPrefix;
 use App\Rules\Issn;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -47,6 +48,9 @@ class SiteSettings extends Page
             'journal_issn_electronic' => Setting::get('journal_issn_electronic', ''),
             'bibtex_key_prefix' => Setting::get('bibtex_key_prefix', ''),
             'reviewer_self_registration' => Setting::get('reviewer_self_registration', '1'),
+            'decision_template_accept' => Setting::get('decision_template_accept', ''),
+            'decision_template_revision' => Setting::get('decision_template_revision', ''),
+            'decision_template_reject' => Setting::get('decision_template_reject', ''),
         ]);
     }
 
@@ -129,6 +133,22 @@ class SiteSettings extends Page
                             ->maxLength(32)
                             ->placeholder('gcru'),
                     ])->columns(2),
+
+                Section::make('Шаблоны решений')
+                    ->schema([
+                        Textarea::make('decision_template_accept')
+                            ->label('Принять к публикации')
+                            ->rows(5)
+                            ->helperText('Доступны плейсхолдеры: {title}, {id}, {authors}, {decision_label}, {editor}'),
+                        Textarea::make('decision_template_revision')
+                            ->label('Отправить на доработку')
+                            ->rows(5)
+                            ->helperText('Доступны плейсхолдеры: {title}, {id}, {authors}, {decision_label}, {editor}'),
+                        Textarea::make('decision_template_reject')
+                            ->label('Отклонить')
+                            ->rows(5)
+                            ->helperText('Доступные плейсхолдеры: {title}, {id}, {authors}, {decision_label}, {editor}'),
+                    ])->columns(1),
             ])
             ->statePath('data');
     }

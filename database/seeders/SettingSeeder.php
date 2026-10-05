@@ -23,6 +23,9 @@ class SettingSeeder extends Seeder
             'journal_issn_electronic' => '',
             'bibtex_key_prefix' => '',
             'reviewer_self_registration' => '1',
+            'decision_template_accept' => "Уважаемые авторы!\n\nРедакция рада сообщить, что ваша статья «{title}» (рукопись №{id}) принята к публикации.\n\nС уважением,\n{editor}",
+            'decision_template_revision' => "Уважаемые авторы!\n\nПо результатам рецензирования статья «{title}» (рукопись №{id}) требует доработки. Просим внести правки с учётом замечаний рецензентов и направить ответы на их комментарии.\n\nС уважением,\n{editor}",
+            'decision_template_reject' => "Уважаемые авторы!\n\nК сожалению, статья «{title}» (рукопись №{id}) не принята к публикации. Благодарим за интерес к журналу.\n\nС уважением,\n{editor}",
         ];
 
         foreach ($defaults as $key => $value) {

@@ -10,6 +10,9 @@
         @if(session('warning'))
             <div class="bg-amber-50 border border-amber-200 text-amber-700 text-sm p-4 rounded-lg">{{ session('warning') }}</div>
         @endif
+        @if(session('error'))
+            <div class="bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-lg">{{ session('error') }}</div>
+        @endif
 
         <div class="flex flex-wrap items-center justify-between gap-3">
             <form method="GET" action="{{ route('editorial.index') }}" class="flex items-center gap-2">
@@ -62,34 +65,59 @@
             @if($articles->isEmpty())
                 <div class="p-8 text-center text-gray-400 text-sm">{{ __('dashboard.no_submissions') }}</div>
             @else
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-xs text-gray-400 uppercase border-b border-gray-100">
-                            <th class="px-5 py-3 font-medium">{{ __('dashboard.title_col') }}</th>
-                            <th class="px-5 py-3 font-medium">{{ __('author.main_author') }}</th>
-                            <th class="px-5 py-3 font-medium">{{ __('dashboard.status_col') }}</th>
-                            <th class="px-5 py-3 font-medium">{{ __('dashboard.editor_col') }}</th>
-                            <th class="px-5 py-3 font-medium">{{ __('dashboard.date_col') }}</th>
-                            <th class="px-5 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        @foreach($articles as $article)
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-5 py-3 font-medium text-gray-900">{{ Str::limit($article->title, 50) }}</td>
-                            <td class="px-5 py-3 text-gray-500">{{ $article->submitter?->full_name }}</td>
-                            <td class="px-5 py-3">
-                                <x-status-badge :color="$article->status->color()" :label="$article->status->label()" />
-                            </td>
-                            <td class="px-5 py-3 text-gray-500">{{ $article->editor?->full_name ?? '—' }}</td>
-                            <td class="px-5 py-3 text-gray-400 text-xs">{{ $article->submitted_at?->format('d.m.Y') }}</td>
-                            <td class="px-5 py-3 text-right">
-                                <a href="{{ route('editorial.show', $article) }}" class="text-primary hover:underline">{{ __('common.open') }}</a>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <form method="POST" action="{{ route('editorial.bulk-assign-editor') }}">
+                    @csrf
+                    @if($canBulkAssign)
+                        <div class="flex flex-wrap items-center gap-3 px-5 py-3 border-b border-gray-100">
+                            <label class="text-xs text-gray-400" for="bulk-editor">{{ __('dashboard.bulk_hint') }}</label>
+                            <select id="bulk-editor" name="editor_id" required class="rounded-md border border-gray-300 text-sm focus:border-primary focus:ring-primary">
+                                <option value="">{{ __('dashboard.bulk_select_editor') }}</option>
+                                @foreach($editorOptions as $id => $label)
+                                    <option value="{{ $id }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="shrink-0 text-sm px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-800 transition">{{ __('dashboard.bulk_assign_button') }}</button>
+                        </div>
+                    @endif
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs text-gray-400 uppercase border-b border-gray-100">
+                                @if($canBulkAssign)
+                                    <th class="px-3 py-3 w-8">
+                                        <input type="checkbox" onclick="document.querySelectorAll('.bulk-check').forEach(cb => cb.checked = this.checked)" class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    </th>
+                                @endif
+                                <th class="px-5 py-3 font-medium">{{ __('dashboard.title_col') }}</th>
+                                <th class="px-5 py-3 font-medium">{{ __('author.main_author') }}</th>
+                                <th class="px-5 py-3 font-medium">{{ __('dashboard.status_col') }}</th>
+                                <th class="px-5 py-3 font-medium">{{ __('dashboard.editor_col') }}</th>
+                                <th class="px-5 py-3 font-medium">{{ __('dashboard.date_col') }}</th>
+                                <th class="px-5 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            @foreach($articles as $article)
+                            <tr class="hover:bg-gray-50 transition">
+                                @if($canBulkAssign)
+                                    <td class="px-3 py-3">
+                                        <input type="checkbox" name="article_ids[]" value="{{ $article->id }}" class="bulk-check rounded border-gray-300 text-primary focus:ring-primary">
+                                    </td>
+                                @endif
+                                <td class="px-5 py-3 font-medium text-gray-900">{{ Str::limit($article->title, 50) }}</td>
+                                <td class="px-5 py-3 text-gray-500">{{ $article->submitter?->full_name }}</td>
+                                <td class="px-5 py-3">
+                                    <x-status-badge :color="$article->status->color()" :label="$article->status->label()" />
+                                </td>
+                                <td class="px-5 py-3 text-gray-500">{{ $article->editor?->full_name ?? '—' }}</td>
+                                <td class="px-5 py-3 text-gray-400 text-xs">{{ $article->submitted_at?->format('d.m.Y') }}</td>
+                                <td class="px-5 py-3 text-right">
+                                    <a href="{{ route('editorial.show', $article) }}" class="text-primary hover:underline">{{ __('common.open') }}</a>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </form>
                 <div class="px-5 py-3 border-t border-gray-100">{{ $articles->links() }}</div>
             @endif
         </div>
