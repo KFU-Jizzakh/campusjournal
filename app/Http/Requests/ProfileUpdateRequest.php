@@ -34,6 +34,7 @@ class ProfileUpdateRequest extends FormRequest
             'url' => ['nullable', 'url', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'bio' => ['nullable', 'string'],
+            'interests' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

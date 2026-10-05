@@ -12,10 +12,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * PURPOSE: User display profile with full name, affiliation,
  * ORCID, and contact details.
  */
-#[Fillable(['user_id', 'last_name', 'first_name', 'middle_name', 'affiliation', 'country', 'orcid', 'url', 'phone', 'bio', 'signature'])]
+#[Fillable(['user_id', 'last_name', 'first_name', 'middle_name', 'affiliation', 'country', 'orcid', 'url', 'phone', 'bio', 'interests', 'signature'])]
 class Profile extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected function casts(): array
+    {
+        return [
+            'interests' => 'array',
+        ];
+    }
 
     public function user(): BelongsTo
     {

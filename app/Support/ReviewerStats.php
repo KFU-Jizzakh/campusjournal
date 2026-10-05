@@ -16,7 +16,7 @@ class ReviewerStats
 {
     /**
      * @param  Collection<int, User>  $reviewers
-     * @return array<int, array{active: int, overdue: int, completed: int, avg_days: ?int, declines_year: int}>
+     * @return array<int, array{active: int, overdue: int, completed: int, avg_days: ?int, declines_year: int, avg_rating: ?float}>
      */
     public static function map(Collection $reviewers): array
     {
@@ -56,6 +56,14 @@ class ReviewerStats
             ->selectRaw('reviewer_id, COUNT(*) as aggregate')
             ->pluck('aggregate', 'reviewer_id');
 
+        $ratings = Review::query()
+            ->whereIn('reviewer_id', $ids)
+            ->where('status', ReviewStatus::Completed)
+            ->whereNotNull('quality_rating')
+            ->groupBy('reviewer_id')
+            ->selectRaw('reviewer_id, AVG(quality_rating) as avg_rating')
+            ->pluck('avg_rating', 'reviewer_id');
+
         return $reviewers
             ->mapWithKeys(fn (User $reviewer) => [
                 $reviewer->id => [
@@ -66,6 +74,9 @@ class ReviewerStats
                         ? (int) round(((float) $completed[$reviewer->id]->avg_seconds) / 86400)
                         : null,
                     'declines_year' => (int) ($declines[$reviewer->id] ?? 0),
+                    'avg_rating' => isset($ratings[$reviewer->id])
+                        ? round((float) $ratings[$reviewer->id], 1)
+                        : null,
                 ],
             ])
             ->all();
@@ -74,7 +85,7 @@ class ReviewerStats
     /**
      * Stats for a single reviewer (defaults for reviewers without history).
      *
-     * @return array{active: int, overdue: int, completed: int, avg_days: ?int, declines_year: int}
+     * @return array{active: int, overdue: int, completed: int, avg_days: ?int, declines_year: int, avg_rating: ?float}
      */
     public static function single(User $reviewer): array
     {
@@ -84,6 +95,7 @@ class ReviewerStats
             'completed' => 0,
             'avg_days' => null,
             'declines_year' => 0,
+            'avg_rating' => null,
         ];
     }
 }

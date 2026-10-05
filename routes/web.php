@@ -124,6 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/dashboard/editorial/{article}/assign-editor', [EditorialController::class, 'assignEditor'])->name('editorial.assign-editor');
         Route::post('/dashboard/editorial/bulk-assign-editor', [EditorialController::class, 'bulkAssignEditor'])->name('editorial.bulk-assign-editor');
         Route::post('/dashboard/editorial/{article}/assign-reviewer', [EditorialController::class, 'assignReviewer'])->name('editorial.assign-reviewer');
+        Route::post('/dashboard/editorial/{article}/reviews/{review}/rate', [EditorialController::class, 'rateReview'])->name('editorial.rate-review');
         Route::post('/dashboard/editorial/{article}/decide', [EditorialController::class, 'decide'])->name('editorial.decide');
         Route::post('/dashboard/editorial/{article}/send-to-copyediting', [EditorialController::class, 'sendToCopyediting'])->name('editorial.send-to-copyediting');
         Route::post('/dashboard/editorial/{article}/send-to-production', [EditorialController::class, 'sendToProduction'])->name('editorial.send-to-production');

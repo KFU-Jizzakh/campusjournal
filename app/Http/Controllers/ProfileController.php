@@ -97,10 +97,33 @@ class ProfileController extends Controller
                 'url' => $data['url'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'bio' => $data['bio'] ?? null,
+                'interests' => $this->parseInterests($data['interests'] ?? null),
             ]
         );
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    }
+
+    /**
+     * Parse a comma-separated interests string into a trimmed,
+     * de-duplicated list of tags.
+     *
+     * @return array<int, string>|null
+     */
+    private function parseInterests(?string $interests): ?array
+    {
+        if ($interests === null || trim($interests) === '') {
+            return null;
+        }
+
+        $tags = collect(explode(',', $interests))
+            ->map(fn (string $tag) => trim($tag))
+            ->filter(fn (string $tag) => $tag !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        return $tags === [] ? null : $tags;
     }
 
     public function destroy(Request $request): RedirectResponse

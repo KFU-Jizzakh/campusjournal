@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CategoryResource\Pages;
 use App\Models\Category;
+use App\Models\User;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Set;
@@ -43,6 +44,15 @@ class CategoryResource extends Resource
             Forms\Components\TextInput::make('slug')->label('Slug')->required()->maxLength(255)->unique(ignoreRecord: true),
             Forms\Components\Textarea::make('description')->label('Описание')->rows(4)->columnSpanFull(),
             Forms\Components\TextInput::make('sort_order')->label('Порядок сортировки')->numeric()->default(0),
+            Forms\Components\Select::make('section_editor_id')
+                ->label('Редактор секции')
+                ->options(
+                    User::role('section-editor')->with('profile')->orderBy('email')->get()
+                        ->mapWithKeys(fn (User $user) => [$user->id => $user->full_name])
+                )
+                ->searchable()
+                ->nullable()
+                ->helperText('Назначается редактором подач автоматически при подаче статьи в эту рубрику'),
         ]);
     }
 

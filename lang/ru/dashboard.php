@@ -212,7 +212,13 @@ return [
         'active' => 'активных: :count',
         'avg' => 'ср. срок: :count дн.',
         'declines' => 'отказов за год: :count',
+        'matches' => 'совпадений: :count',
+        'rating' => 'рейтинг: :count',
     ],
+    'quality_rating' => 'Оценка качества рецензии',
+    'quality_rating_label' => '★ :rating/5',
+    'quality_rating_saved' => 'Оценка рецензии сохранена.',
+    'rate_button' => 'Оценить',
     'stats' => [
         'heading' => 'Статистика редакции',
         'link' => 'Статистика →',

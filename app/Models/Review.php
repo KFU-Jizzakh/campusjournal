@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ReviewStatus;
 use App\Exceptions\InvalidTransitionException;
+use App\Exceptions\RateReviewFailedException;
 use App\Notifications\AuthorReviewCompleted;
 use App\Notifications\ReviewCompleted;
 use App\Notifications\ReviewerAccepted;
@@ -22,7 +23,7 @@ use Illuminate\Support\Facades\DB;
  *
  * SPECIFICATION: SPEC-02/AC-3, SPEC-03/AC-2, SPEC-03/AC-3, SPEC-03/AC-4, SPEC-03/AC-5
  */
-#[Fillable(['article_id', 'reviewer_id', 'assigned_by', 'recommendation', 'comments_for_editor', 'comments_for_author', 'status', 'round', 'assigned_at', 'completed_at', 'response_due_at', 'review_due_at', 'reminded_at'])]
+#[Fillable(['article_id', 'reviewer_id', 'assigned_by', 'recommendation', 'comments_for_editor', 'comments_for_author', 'quality_rating', 'rated_by', 'rated_at', 'status', 'round', 'assigned_at', 'completed_at', 'response_due_at', 'review_due_at', 'reminded_at'])]
 class Review extends Model
 {
     use HasFactory, SoftDeletes;
@@ -32,6 +33,8 @@ class Review extends Model
         return [
             'status' => ReviewStatus::class,
             'round' => 'integer',
+            'quality_rating' => 'integer',
+            'rated_at' => 'datetime',
             'assigned_at' => 'datetime',
             'completed_at' => 'datetime',
             'response_due_at' => 'datetime',
@@ -259,6 +262,33 @@ class Review extends Model
                 $this->assignedBy->notify(new ReviewCompleted($this));
             }
         });
+    }
+
+    /**
+     * Record an editorial quality rating (1-5) for a completed review.
+     * Re-rating is allowed — the latest rating wins.
+     */
+    public function rate(int $qualityRating, User $ratedBy): void
+    {
+        if (! $this->isCompleted()) {
+            throw new RateReviewFailedException;
+        }
+
+        $this->update([
+            'quality_rating' => $qualityRating,
+            'rated_by' => $ratedBy->id,
+            'rated_at' => now(),
+        ]);
+    }
+
+    /**
+     * Display label for the quality rating, null when not rated.
+     */
+    public function qualityRatingLabel(): ?string
+    {
+        return $this->quality_rating !== null
+            ? __('dashboard.quality_rating_label', ['rating' => $this->quality_rating])
+            : null;
     }
 
     public function isPending(): bool

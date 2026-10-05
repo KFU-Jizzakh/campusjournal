@@ -386,11 +386,16 @@ class Article extends Model
     public static function submit(User $submitter, array $data): static
     {
         return DB::transaction(function () use ($submitter, $data) {
+            // Auto-assign the section editor mapped to the rubric, if any —
+            // a silent routing hint, not a formal editorial assignment.
+            $sectionEditorId = Category::query()->whereKey($data['category_id'])->value('section_editor_id');
+
             $article = static::create([
                 ...$data,
                 'status' => ArticleStatus::Submitted,
                 'submitted_by' => $submitter->id,
                 'submitted_at' => now(),
+                'editor_id' => $sectionEditorId,
             ]);
 
             OutboxEvent::log('submission.created', $article, [

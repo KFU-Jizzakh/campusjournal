@@ -73,6 +73,13 @@
             <x-input-error class="mt-1" :messages="$errors->get('bio')" />
         </div>
 
+        <div>
+            <x-input-label for="interests" value="{{ __('profile.interests') }}" />
+            <x-text-input id="interests" name="interests" type="text" class="mt-1 block w-full" :value="old('interests', $user->profile?->interests ? implode(', ', $user->profile->interests) : '')" placeholder="{{ __('profile.interests_placeholder') }}" />
+            <p class="text-xs text-gray-400 mt-1">{{ __('profile.interests_hint') }}</p>
+            <x-input-error class="mt-1" :messages="$errors->get('interests')" />
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('profile.save') }}</x-primary-button>
             @if (session('status') === 'profile-updated')

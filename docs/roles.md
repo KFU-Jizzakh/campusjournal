@@ -138,6 +138,13 @@ the "Главная" item (computed from the same inbox builder).
   checks in `DashboardInbox::editorialArticles`).
 - **Coauthors** see the submission page only while the article is not a
   draft; they cannot edit, withdraw, or approve galley proofs.
+- **Review quality rating** (editors, `manage-submissions`): completed
+  reviews can be rated 1–5 on the editorial page; the average feeds the
+  reviewer assignment options. Reviewers never see ratings — neither on
+  the review page nor in their own dashboard stats.
+- **Auto-assignment by rubric**: when a category has a default section
+  editor (Filament → Рубрики), new submissions in that rubric silently get
+  `editor_id` — leadership can still reassign manually as before.
 - Public author profile data (ORCID, affiliation) lives in the `authors`
   table; role membership lives in Spatie's `roles`/`permissions` tables on
   the `users` model.

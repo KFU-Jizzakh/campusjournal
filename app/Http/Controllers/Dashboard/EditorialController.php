@@ -12,11 +12,13 @@ use App\Models\Article;
 use App\Models\Correction;
 use App\Models\Issue;
 use App\Models\OutboxEvent;
+use App\Models\Review;
 use App\Models\User;
 use App\Services\Doi\DoiMinter;
 use App\Support\DashboardInbox;
 use App\Support\DecisionLetter;
 use App\Support\EditorialStats;
+use App\Support\ReviewerMatcher;
 use App\Support\ReviewerStats;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -119,6 +121,7 @@ class EditorialController extends Controller
 
         if ($article->isReviewable()) {
             $reviewerOptions = self::reviewerOptions(
+                $article,
                 User::permission('review-article')->with('profile')->orderBy('email')->get()
             );
         }
@@ -163,25 +166,35 @@ class EditorialController extends Controller
     }
 
     /**
-     * PURPOSE: Reviewer select options annotated with workload, turnaround
-     * and decline stats so editors pick reviewers informed.
+     * PURPOSE: Reviewer select options annotated with workload, turnaround,
+     * decline stats and keyword-interest matches so editors pick reviewers informed.
      *
      * @param  Collection<int, User>  $reviewers
      * @return array<int, string>
      */
-    private static function reviewerOptions($reviewers): array
+    private static function reviewerOptions(Article $article, $reviewers): array
     {
         $stats = ReviewerStats::map($reviewers);
+        $matches = ReviewerMatcher::match($article, $reviewers);
 
         return $reviewers
-            ->mapWithKeys(function (User $reviewer) use ($stats) {
-                $row = $stats[$reviewer->id] ?? ['active' => 0, 'avg_days' => null, 'declines_year' => 0];
+            ->mapWithKeys(function (User $reviewer) use ($stats, $matches) {
+                $row = $stats[$reviewer->id] ?? ['active' => 0, 'avg_days' => null, 'declines_year' => 0, 'avg_rating' => null];
 
-                $label = $reviewer->full_name.' — '
-                    .__('dashboard.assign_card.active', ['count' => $row['active']]);
+                $label = $reviewer->full_name;
+
+                if (($matches[$reviewer->id] ?? 0) > 0) {
+                    $label .= ' — '.__('dashboard.assign_card.matches', ['count' => $matches[$reviewer->id]]);
+                }
+
+                $label .= ' — '.__('dashboard.assign_card.active', ['count' => $row['active']]);
 
                 if ($row['avg_days'] !== null) {
                     $label .= ' · '.__('dashboard.assign_card.avg', ['count' => $row['avg_days']]);
+                }
+
+                if ($row['avg_rating'] !== null) {
+                    $label .= ' · '.__('dashboard.assign_card.rating', ['count' => $row['avg_rating']]);
                 }
 
                 return [$reviewer->id => $label.' · '.__('dashboard.assign_card.declines', ['count' => $row['declines_year']])];
@@ -323,6 +336,28 @@ class EditorialController extends Controller
         }
 
         return back()->with('success', 'Рецензент назначен и уведомлён по email.');
+    }
+
+    /**
+     * Record an editorial quality rating (1-5) for a completed review.
+     */
+    public function rateReview(Request $request, Article $article, Review $review)
+    {
+        $this->authorize('viewEditorial', $article);
+
+        abort_unless($review->article_id === $article->id, 404);
+
+        $validated = $request->validate([
+            'quality_rating' => 'required|integer|min:1|max:5',
+        ]);
+
+        try {
+            $review->rate((int) $validated['quality_rating'], $request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', __('dashboard.quality_rating_saved'));
     }
 
     public function decide(Request $request, Article $article)

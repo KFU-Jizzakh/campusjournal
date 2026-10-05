@@ -71,6 +71,11 @@ class UserResource extends Resource
                     Forms\Components\Select::make('country')
                         ->label('Страна')
                         ->options(collect(Country::cases())->pluck('value', 'value')),
+                    Forms\Components\TagsInput::make('interests')
+                        ->label('Интересы')
+                        ->helperText('Тематики для подбора рецензий')
+                        ->placeholder('Новый интерес')
+                        ->columnSpanFull(),
                 ]),
         ]);
     }

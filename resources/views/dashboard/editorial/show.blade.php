@@ -415,6 +415,20 @@
                                     <p class="text-gray-700 mt-0.5 bg-amber-50 p-2 rounded text-sm">{{ $review->comments_for_editor }}</p>
                                 </div>
                             @endif
+                            <div class="flex items-center gap-3 mt-3">
+                                @if($review->quality_rating)
+                                    <span class="text-xs px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700">{{ $review->qualityRatingLabel() }}</span>
+                                @endif
+                                <form method="POST" action="{{ route('editorial.rate-review', ['article' => $article, 'review' => $review]) }}" class="flex items-center gap-2">
+                                    @csrf
+                                    <select name="quality_rating" required class="border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-xs">
+                                        @for($i = 5; $i >= 1; $i--)
+                                            <option value="{{ $i }}" {{ $review->quality_rating === $i ? 'selected' : '' }}>{{ $i }}</option>
+                                        @endfor
+                                    </select>
+                                    <x-primary-button class="text-xs px-3 py-1">{{ __('dashboard.rate_button') }}</x-primary-button>
+                                </form>
+                            </div>
                             <div class="text-xs text-gray-400 mt-2">{{ __('dashboard.completed_at') }} {{ $review->completed_at?->format('d.m.Y H:i') }}</div>
                         @endif
                         <div class="text-xs text-gray-400 mt-1">{{ __('dashboard.assigned_at') }} {{ $review->assigned_at?->format('d.m.Y H:i') }}</div>

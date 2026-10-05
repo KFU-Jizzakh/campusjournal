@@ -23,6 +23,7 @@ class ProfileFactory extends Factory
             'url' => null,
             'phone' => null,
             'bio' => null,
+            'interests' => null,
             'signature' => null,
         ];
     }
