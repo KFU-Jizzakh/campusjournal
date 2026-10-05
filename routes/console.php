@@ -9,4 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Send review reminders daily at 9:00 AM
-Schedule::command('reviews:send-reminders')->dailyAt('09:00');
+Schedule::command('reviews:send-reminders')
+    ->dailyAt('09:00')
+    ->appendOutputTo(storage_path('logs/schedule-reviews-reminders.log'));

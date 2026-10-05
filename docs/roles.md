@@ -110,7 +110,7 @@ The dashboard is task-oriented; what each role sees on `/dashboard`:
 | reviewer | Pending invitations (inline accept/decline, response deadline); reviews to write (submission deadline) | "Мои рецензии": workload chips (active / completed / avg days / yearly declines), completed reviews with dates |
 | section-editor | Own articles' next actions: upload blinded PDF, assign/reassign reviewers (declined or overdue), make decision, send to copyediting/production, send galley | "Дедлайны рецензий" (overdue + next 7 days, own scope); "На контроле" (articles waiting on reviewers/authors, with stale-age signals); editorial stat strip |
 | editor-in-chief, managing-editor | Same as section editor but for **all** articles, plus: assign section editor to unassigned submissions; publish approved articles | Same as section editor plus: "Сборка выпуска" (last published issue + accepted/approved articles without an issue); "Статистика редакции" page (funnel, avg time to decision, reviewer turnaround, section-editor workload) |
-| admin | Same as editor-in-chief | Same + Filament admin panel (including the Outbox event log) |
+| admin | Same as editor-in-chief | Same + Filament admin panel (Outbox event log, System Health page: queue, failed jobs, Crossref deposits) |
 | content-manager | — (no workflow permissions) | Filament panel: content resources only |
 
 The nav shows role badges in the user dropdown and an open-task counter on

@@ -26,6 +26,32 @@ class CrossrefDeposit extends Model
 
     public const STATUS_FAILED = 'failed';
 
+    /**
+     * Badge label for UI rendering.
+     */
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            self::STATUS_ACCEPTED => 'Принят',
+            self::STATUS_FAILED => 'Ошибка',
+            self::STATUS_SUBMITTED => 'Отправлен',
+            default => 'В ожидании',
+        };
+    }
+
+    /**
+     * Badge color (palette of x-status-badge) for UI rendering.
+     */
+    public function statusColor(): string
+    {
+        return match ($this->status) {
+            self::STATUS_ACCEPTED => 'success',
+            self::STATUS_FAILED => 'danger',
+            self::STATUS_SUBMITTED => 'info',
+            default => 'gray',
+        };
+    }
+
     public function article(): BelongsTo
     {
         return $this->belongsTo(Article::class);
