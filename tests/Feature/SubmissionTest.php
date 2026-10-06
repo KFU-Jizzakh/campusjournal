@@ -547,6 +547,173 @@ test('submission notifies coauthor linked via ORCID', function () {
     Notification::assertSentTo($coauthorUser, AuthorSubmissionReceived::class);
 });
 
+test('coauthor listing does not overwrite a linked author row', function () {
+    $submitter = createAuthor();
+    $coauthorUser = createAuthor();
+    $category = Category::factory()->create();
+
+    $linked = Author::create([
+        'full_name' => 'Петров Пётр Петрович',
+        'degree' => 'д.ф.-м.н.',
+        'organization' => 'Институт владельца',
+        'email' => 'owner@example.test',
+        'phone' => '+7 (900) 000-00-00',
+        'user_id' => $coauthorUser->id,
+        'orcid' => '0000-0002-1234-5678',
+    ]);
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Чужая подача с чужим ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван Иванович',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Взломщик Взлом',
+                    'organization' => 'Поддельная организация',
+                    ...coauthorContactFields(['email' => 'attacker@example.test']),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    $linked->refresh();
+
+    expect($linked->full_name)->toBe('Петров Пётр Петрович')
+        ->and($linked->degree)->toBe('д.ф.-м.н.')
+        ->and($linked->organization)->toBe('Институт владельца')
+        ->and($linked->email)->toBe('owner@example.test')
+        ->and($linked->phone)->toBe('+7 (900) 000-00-00')
+        ->and($linked->user_id)->toBe($coauthorUser->id);
+
+    $newArticle = Article::where('title', 'Чужая подача с чужим ORCID')->sole();
+    $attached = $newArticle->authors()->whereKey($linked->id)->first();
+
+    expect($attached)->not->toBeNull()
+        ->and($attached->pivot->email)->toBe('attacker@example.test');
+});
+
+test('coauthor listing prefers the linked row when an orcid has both rows', function () {
+    $submitter = createAuthor();
+    $coauthorUser = createAuthor();
+    $category = Category::factory()->create();
+
+    $unlinked = Author::create([
+        'full_name' => 'Не-linked строка',
+        'email' => 'unlinked@example.test',
+        'orcid' => '0000-0002-1234-5678',
+    ]);
+    $linked = Author::create([
+        'full_name' => 'Петров Пётр Петрович',
+        'email' => 'owner@example.test',
+        'user_id' => $coauthorUser->id,
+        'orcid' => '0000-0002-1234-5678',
+    ]);
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Подача с дублирующимся ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван Иванович',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Списанный Соавтор',
+                    ...coauthorContactFields(['email' => 'listing@example.test']),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    $newArticle = Article::where('title', 'Подача с дублирующимся ORCID')->sole();
+    $attachedIds = $newArticle->authors()->pluck('authors.id');
+
+    expect($attachedIds)->toContain($linked->id)
+        ->and($attachedIds)->not->toContain($unlinked->id)
+        ->and($linked->refresh()->full_name)->toBe('Петров Пётр Петрович')
+        ->and($unlinked->refresh()->email)->toBe('unlinked@example.test');
+});
+
+test('coauthor listing updates an unlinked row with the latest listing', function () {
+    $submitter = createAuthor();
+    $category = Category::factory()->create();
+
+    $unlinked = Author::create([
+        'full_name' => 'Старое Имя Строки',
+        'email' => 'old@example.test',
+        'orcid' => '0000-0002-1234-5678',
+    ]);
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Подача с уточнённым ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван Иванович',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Новое Имя Строки',
+                    ...coauthorContactFields(['email' => 'new@example.test']),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    $unlinked->refresh();
+
+    expect(Author::withTrashed()->where('orcid', '0000-0002-1234-5678')->count())->toBe(1)
+        ->and($unlinked->full_name)->toBe('Новое Имя Строки')
+        ->and($unlinked->email)->toBe('new@example.test');
+});
+
+test('relisting an orcid of a soft-deleted author restores the same row', function () {
+    $submitter = createAuthor();
+    $category = Category::factory()->create();
+
+    $softDeleted = Author::create([
+        'full_name' => 'Удалённый Соавтор',
+        'email' => 'deleted@example.test',
+        'orcid' => '0000-0002-1234-5678',
+    ]);
+    $softDeleted->delete();
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Подача с восстановленным ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван Иванович',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Удалённый Соавтор',
+                    ...coauthorContactFields(['email' => 'revived@example.test']),
+                    'orcid' => '0000-0002-1234-5678',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    expect(Author::withTrashed()->where('orcid', '0000-0002-1234-5678')->count())->toBe(1)
+        ->and($softDeleted->refresh()->trashed())->toBeFalse()
+        ->and($softDeleted->email)->toBe('revived@example.test');
+});
+
 test('author can submit a second article reusing their own orcid', function () {
     $author = createAuthor();
     $category = Category::factory()->create();

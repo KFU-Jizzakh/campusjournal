@@ -158,4 +158,7 @@ the "Главная" item (computed from the same inbox builder).
   `editor_id` — leadership can still reassign manually as before.
 - Public author profile data (ORCID, affiliation) lives in the `authors`
   table; role membership lives in Spatie's `roles`/`permissions` tables on
-  the `users` model.
+  the `users` model. An `authors` row linked to a user account is never
+  rewritten by somebody else's submission listing its ORCID — that
+  submission only snapshots its own contact details onto the article
+  pivot.

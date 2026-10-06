@@ -28,7 +28,7 @@ Status: IMPLEMENTED
 - BR-1: The author sees only their own articles
 - BR-2: The PDF is stored on a secure disk, not accessible anonymously
 - BR-3: ORCID is validated against the `0000-0000-0000-0000` format
-- BR-4: Co-authors without an ORCID are created as new records; those with an ORCID are looked up or created
+- BR-4: Co-authors without an ORCID are created as new records; those with an ORCID are looked up or created. A record already linked to a user account is reused unchanged — the submission's contact details are snapshotted on the article pivot instead of overwriting the owner's profile
 - BR-5: During revision, data is updated, decision/copyediting/production fields are cleared, status changes to "Submitted"
 - BR-6: In statuses other than "Revision", a simple data update is applied
 - BR-7: When replacing the PDF, the old file is deleted from disk

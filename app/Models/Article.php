@@ -1108,7 +1108,7 @@ class Article extends Model
             ];
 
             if (! empty($coauthorData['orcid'])) {
-                $coauthor = Author::updateOrCreate(['orcid' => $coauthorData['orcid']], $attrs);
+                $coauthor = $this->resolveCoauthorByOrcid($coauthorData['orcid'], $attrs);
             } else {
                 $coauthor = Author::create($attrs);
             }
@@ -1132,6 +1132,39 @@ class Article extends Model
                 ->whereDoesntHave('articles')
                 ->delete();
         }
+    }
+
+    /**
+     * Resolve the author row for a listed ORCID: linked rows (user_id set)
+     * are reused untouched — the submitter's snapshot lives on the pivot —
+     * while unlinked rows follow "latest listing wins". A soft-deleted
+     * match is restored instead of spawning an ORCID duplicate
+     * (updateOrCreate skips trashed rows). The lookup is deterministic:
+     * linked row first, then the oldest row.
+     */
+    private function resolveCoauthorByOrcid(string $orcid, array $attrs): Author
+    {
+        $existing = Author::withTrashed()
+            ->where('orcid', $orcid)
+            ->orderByRaw('user_id IS NULL')
+            ->orderBy('id')
+            ->first();
+
+        if ($existing === null) {
+            return Author::create($attrs);
+        }
+
+        if ($existing->trashed()) {
+            $existing->restore();
+        }
+
+        if ($existing->user_id !== null) {
+            return $existing;
+        }
+
+        $existing->update($attrs);
+
+        return $existing;
     }
 
     /**
