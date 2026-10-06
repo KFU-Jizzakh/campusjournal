@@ -537,12 +537,13 @@ class Article extends Model
                 throw new MissingBlindedPdfException;
             }
 
-            // Check for an existing non-declined review in the CURRENT round only —
-            // reviewers who completed or declined an earlier round may be re-invited.
+            // Check for an existing active (non-declined, non-cancelled) review
+            // in the CURRENT round only — reviewers who completed, declined, or
+            // were cancelled earlier may be re-invited.
             if ($lockedArticle->reviews()
                 ->where('reviewer_id', $reviewer->id)
                 ->where('round', $lockedArticle->current_round)
-                ->where('status', '!=', ReviewStatus::Declined)
+                ->whereNotIn('status', [ReviewStatus::Declined, ReviewStatus::Cancelled])
                 ->exists()) {
                 throw new DuplicateReviewerException;
             }

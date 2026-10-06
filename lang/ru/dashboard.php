@@ -219,6 +219,9 @@ return [
     'quality_rating_label' => '★ :rating/5',
     'quality_rating_saved' => 'Оценка рецензии сохранена.',
     'rate_button' => 'Оценить',
+    'cancel_review' => 'Отменить',
+    'cancel_review_confirm' => 'Отменить назначение этого рецензента? Слот освободится для повторного приглашения.',
+    'review_cancelled' => 'Назначение рецензента отменено.',
     'stats' => [
         'heading' => 'Статистика редакции',
         'link' => 'Статистика →',

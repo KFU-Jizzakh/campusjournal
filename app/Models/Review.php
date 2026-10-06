@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\ReviewStatus;
+use App\Exceptions\CancelReviewFailedException;
 use App\Exceptions\InvalidTransitionException;
 use App\Exceptions\RateReviewFailedException;
 use App\Notifications\AuthorReviewCompleted;
+use App\Notifications\ReviewCancelled;
 use App\Notifications\ReviewCompleted;
 use App\Notifications\ReviewerAccepted;
 use App\Notifications\ReviewerDeclined;
@@ -265,6 +267,41 @@ class Review extends Model
     }
 
     /**
+     * Editor-initiated cancellation of a pending or in-progress
+     * assignment. Frees the (article, reviewer, round) slot for a
+     * re-invitation, same as a decline.
+     */
+    public function cancel(User $actor): void
+    {
+        if (! $this->isCancellable()) {
+            throw new CancelReviewFailedException;
+        }
+
+        DB::transaction(function () {
+            $this->transitionTo(ReviewStatus::Cancelled);
+            $this->save();
+
+            OutboxEvent::log('review.cancelled', $this, [
+                'article_id' => $this->article_id,
+                'reviewer_id' => $this->reviewer_id,
+            ]);
+
+            if ($this->reviewer) {
+                $this->reviewer->notify(new ReviewCancelled($this));
+            }
+        });
+    }
+
+    /**
+     * Whether the assignment can still be cancelled by an editor
+     * (pending or in-progress only).
+     */
+    public function isCancellable(): bool
+    {
+        return $this->isPending() || $this->isInProgress();
+    }
+
+    /**
      * Record an editorial quality rating (1-5) for a completed review.
      * Re-rating is allowed — the latest rating wins.
      */
@@ -309,6 +346,11 @@ class Review extends Model
     public function isDeclined(): bool
     {
         return $this->status === ReviewStatus::Declined;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === ReviewStatus::Cancelled;
     }
 
     /**

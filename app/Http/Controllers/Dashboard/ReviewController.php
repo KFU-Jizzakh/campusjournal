@@ -26,12 +26,14 @@ class ReviewController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        // Active = awaiting work; everything terminal (completed, declined,
+        // editor-cancelled) goes to the history list below.
         $activeReviews = $reviews
-            ->filter(fn (Review $review) => $review->status !== ReviewStatus::Completed)
+            ->filter(fn (Review $review) => $review->isPending() || $review->isInProgress())
             ->values();
 
         $completedReviews = $reviews
-            ->filter(fn (Review $review) => $review->status === ReviewStatus::Completed)
+            ->filter(fn (Review $review) => ! $review->isPending() && ! $review->isInProgress())
             ->values();
 
         $stats = ReviewerStats::single($user);

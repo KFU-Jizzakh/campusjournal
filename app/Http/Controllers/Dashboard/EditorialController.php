@@ -360,6 +360,25 @@ class EditorialController extends Controller
         return back()->with('success', __('dashboard.quality_rating_saved'));
     }
 
+    /**
+     * Cancel a pending or in-progress review assignment, freeing the
+     * reviewer slot for a re-invitation.
+     */
+    public function cancelReview(Request $request, Article $article, Review $review)
+    {
+        $this->authorize('viewEditorial', $article);
+
+        abort_unless($review->article_id === $article->id, 404);
+
+        try {
+            $review->cancel($request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', __('dashboard.review_cancelled'));
+    }
+
     public function decide(Request $request, Article $article)
     {
         $this->authorize('decide', $article);

@@ -432,6 +432,14 @@
                             <div class="text-xs text-gray-400 mt-2">{{ __('dashboard.completed_at') }} {{ $review->completed_at?->format('d.m.Y H:i') }}</div>
                         @endif
                         <div class="text-xs text-gray-400 mt-1">{{ __('dashboard.assigned_at') }} {{ $review->assigned_at?->format('d.m.Y H:i') }}</div>
+                        @if($review->isCancellable())
+                            <div class="mt-2 pt-2 border-t border-gray-100">
+                                <form method="POST" action="{{ route('editorial.cancel-review', ['article' => $article, 'review' => $review]) }}" onsubmit="return confirm('{{ __('dashboard.cancel_review_confirm') }}');">
+                                    @csrf
+                                    <button type="submit" class="text-xs text-red-500 hover:text-red-700">{{ __('dashboard.cancel_review') }}</button>
+                                </form>
+                            </div>
+                        @endif
                     </div>
                     @endforeach
                 </div>

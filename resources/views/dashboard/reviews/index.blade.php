@@ -93,7 +93,12 @@
                         <div class="font-medium text-gray-900 truncate">{{ $review->article?->title }}</div>
                         <div class="text-xs text-gray-400 mt-0.5">{{ __('dashboard.completed_at') }} {{ $review->completed_at?->format('d.m.Y') }}</div>
                     </div>
-                    <a href="{{ route('reviews.show', $review) }}" class="shrink-0 text-sm text-primary hover:underline">{{ __('common.open') }}</a>
+                    <div class="flex items-center gap-3 shrink-0">
+                        @if(!$review->isCompleted())
+                            <x-status-badge :color="$review->status->color()" :label="$review->status->label()" class="text-xs px-1.5 py-0.5" />
+                        @endif
+                        <a href="{{ route('reviews.show', $review) }}" class="text-sm text-primary hover:underline">{{ __('common.open') }}</a>
+                    </div>
                 </div>
                 @endforeach
             </div>
