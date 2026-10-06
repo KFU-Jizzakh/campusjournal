@@ -28,17 +28,18 @@ Status: IMPLEMENTED
 - BR-1: The author sees only their own articles
 - BR-2: The PDF is stored on a secure disk, not accessible anonymously
 - BR-3: ORCID is validated against the `0000-0000-0000-0000` format
-- BR-4: Co-authors without an ORCID are created as new records; those with an ORCID are looked up or created. A record already linked to a user account is reused unchanged — the submission's contact details are snapshotted on the article pivot instead of overwriting the owner's profile
+- BR-4: Co-authors without an ORCID are created as new records; those with an ORCID are looked up or created. A record already linked to a user account is reused unchanged — the submission's contact details are snapshotted on the article pivot instead of overwriting the owner's profile. A first-time submitter claiming an ORCID adopts the existing unlinked record instead of creating a duplicate
 - BR-5: During revision, data is updated, decision/copyediting/production fields are cleared, status changes to "Submitted"
 - BR-6: In statuses other than "Revision", a simple data update is applied
 - BR-7: When replacing the PDF, the old file is deleted from disk
+- BR-8: An ORCID linked to a different user account cannot be taken; records not linked to any account never block a claim — coauthor listings carry no verified ownership, so pre-listing somebody's ORCID cannot deny them their own record
 
 ## Behavior
 
 ### Background
 Given: the user is authenticated and has the author role
 
-### Rule: Submission form validation (BR-3, BR-4)
+### Rule: Submission form validation (BR-3, BR-4, BR-8)
 
 #### Scenario: Successful manuscript submission
 
@@ -57,12 +58,19 @@ When  they attach a non-PDF file
 Then  validation rejects the upload with an error message
 But   the article is not created
 
-#### Scenario: ORCID already taken by another author
+#### Scenario: ORCID already linked to another author (BR-8)
 
 Given the user fills in the form
-When  they specify an ORCID belonging to another author
-Then  validation returns the error "Each author must have a unique ORCID"
+When  they specify an ORCID already linked to a different user account
+Then  validation returns the error "The author_orcid has already been taken."
 But   the article is not created
+
+#### Scenario: Pre-listed ORCID does not block the owner (BR-8)
+
+Given somebody else's submission has listed the user's ORCID as a coauthor
+When  the user submits their own manuscript with that ORCID
+Then  validation passes and the existing unlinked record is adopted by the user
+And   the article is created
 
 ### Rule: Revision after editorial decision (BR-5, BR-6, BR-7)
 

@@ -885,7 +885,7 @@ test('coauthor can submit their own article reusing their orcid', function () {
     expect(Author::where('orcid', '0000-0002-1234-5678')->where('user_id', $coauthorUser->id)->exists())->toBeTrue();
 });
 
-test('user cannot claim an unlinked orcid with a different email', function () {
+test('pre-listed orcid does not block its owner and is adopted by the claim', function () {
     $submitter = createAuthor();
     $otherUser = createAuthor();
     $category = Category::factory()->create();
@@ -909,8 +909,10 @@ test('user cannot claim an unlinked orcid with a different email', function () {
         ])
         ->assertRedirect();
 
-    // A different email does not prove ownership of the unlinked ORCID row,
-    // so the claim must be rejected.
+    $listedRow = Author::whereNull('user_id')->where('orcid', '0000-0002-1234-5678')->sole();
+
+    // A coauthor listing carries no verified ownership: it must not deny
+    // the ORCID to anybody, and the claim adopts that very row.
     $this->actingAs($otherUser)
         ->post(route('submissions.store'), [
             'title' => 'Чужая статья',
@@ -922,9 +924,117 @@ test('user cannot claim an unlinked orcid with a different email', function () {
             'author_orcid' => '0000-0002-1234-5678',
             'agreement_accepted' => 'on',
         ])
+        ->assertRedirect();
+
+    expect(Article::count())->toBe(2)
+        ->and(Author::withTrashed()->where('orcid', '0000-0002-1234-5678')->count())->toBe(1)
+        ->and($listedRow->refresh()->user_id)->toBe($otherUser->id);
+});
+
+test('orcid linked to another user is still rejected', function () {
+    $first = createAuthor();
+    $second = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($first)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья владельца ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($second)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с чужим ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Петров Пётр',
+            ...authorContactFields(['author_email' => 'second@example.test']),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
         ->assertSessionHasErrors('author_orcid');
 
     expect(Article::count())->toBe(1);
+});
+
+test('submitter with an existing author record does not adopt a foreign unlinked row', function () {
+    $submitter = createAuthor();
+    $category = Category::factory()->create();
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Первая статья без ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    $foreignRow = Author::create([
+        'full_name' => 'Чужая Нелинкованная Строка',
+        'email' => 'foreign@example.test',
+        'orcid' => '0000-0002-1234-5678',
+    ]);
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Вторая статья с ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван',
+            ...authorContactFields(),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    $ownRow = Author::where('user_id', $submitter->id)->sole();
+
+    expect($ownRow->orcid)->toBe('0000-0002-1234-5678')
+        ->and($foreignRow->refresh()->user_id)->toBeNull()
+        ->and($foreignRow->full_name)->toBe('Чужая Нелинкованная Строка')
+        ->and(Author::where('orcid', '0000-0002-1234-5678')->count())->toBe(2);
+});
+
+test('claiming an orcid restores a soft-deleted unlinked row instead of duplicating it', function () {
+    $claimer = createAuthor();
+    $category = Category::factory()->create();
+
+    $softDeleted = Author::create([
+        'full_name' => 'Удалённая Строка',
+        'email' => 'deleted@example.test',
+        'orcid' => '0000-0002-1234-5678',
+    ]);
+    $softDeleted->delete();
+
+    $this->actingAs($claimer)
+        ->post(route('submissions.store'), [
+            'title' => 'Подача с восстановленным ORCID',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Петров Пётр',
+            ...authorContactFields(['author_email' => 'claimer@example.test']),
+            'author_orcid' => '0000-0002-1234-5678',
+            'agreement_accepted' => 'on',
+        ])
+        ->assertRedirect();
+
+    expect(Author::withTrashed()->where('orcid', '0000-0002-1234-5678')->count())->toBe(1)
+        ->and($softDeleted->refresh()->trashed())->toBeFalse()
+        ->and($softDeleted->user_id)->toBe($claimer->id);
 });
 
 test('user can claim an unlinked orcid row without an email snapshot', function () {
@@ -1010,8 +1120,9 @@ test('user can reuse their orcid after the unlinked row email diverges', functio
         ])
         ->assertRedirect();
 
-    // A later submission lists the coauthor with a different email, which
-    // rewrites the unlinked row and diverges it from the claimed one.
+    // A later submission lists the same ORCID with a different email; the
+    // row is by then linked to the owner, so only the pivot snapshot of
+    // that article changes and the claimed row stays untouched.
     $this->actingAs($thirdSubmitter)
         ->post(route('submissions.store'), [
             'title' => 'Статья с соавтором по рассинхроненному email',

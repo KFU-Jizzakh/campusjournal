@@ -1055,10 +1055,12 @@ class Article extends Model
     /**
      * Sync primary author (from submitter) and coauthors via pivot table.
      * Contact details are snapshotted onto the article_author pivot so
-     * each article keeps the data as submitted. Cleans up orphaned
+     * each article keeps the data as submitted. The submitter's own record
+     * is resolved by resolvePrimaryAuthor (adoption of an unlinked ORCID
+     * row), coauthors by resolveCoauthorByOrcid. Cleans up orphaned
      * coauthors no longer attached to any article.
      *
-     * SPECIFICATION: SPEC-01/AC-1, SPEC-01/BR-4
+     * SPECIFICATION: SPEC-01/AC-1, SPEC-01/BR-4, SPEC-01/BR-8
      */
     public function syncAuthors(User $submitter, array $authorData, array $coauthorsData = []): void
     {
@@ -1066,21 +1068,18 @@ class Article extends Model
             ->whereNull('user_id')
             ->pluck('authors.id');
 
-        $primaryAuthor = Author::updateOrCreate(
-            ['user_id' => $submitter->id],
-            [
-                'email' => $authorData['email'] ?? $submitter->email,
-                'full_name' => $authorData['full_name'],
-                'degree' => $authorData['degree'] ?? null,
-                'position' => $authorData['position'] ?? null,
-                'organization' => $authorData['organization'] ?? null,
-                'orcid' => $authorData['orcid'] ?? null,
-                'phone' => $authorData['phone'] ?? null,
-                'country' => $authorData['country'] ?? null,
-                'city' => $authorData['city'] ?? null,
-                'website' => $authorData['website'] ?? null,
-            ]
-        );
+        $primaryAuthor = $this->resolvePrimaryAuthor($submitter, [
+            'email' => $authorData['email'] ?? $submitter->email,
+            'full_name' => $authorData['full_name'],
+            'degree' => $authorData['degree'] ?? null,
+            'position' => $authorData['position'] ?? null,
+            'organization' => $authorData['organization'] ?? null,
+            'orcid' => $authorData['orcid'] ?? null,
+            'phone' => $authorData['phone'] ?? null,
+            'country' => $authorData['country'] ?? null,
+            'city' => $authorData['city'] ?? null,
+            'website' => $authorData['website'] ?? null,
+        ]);
 
         $authors = [
             $primaryAuthor->id => [
@@ -1132,6 +1131,44 @@ class Article extends Model
                 ->whereDoesntHave('articles')
                 ->delete();
         }
+    }
+
+    /**
+     * Resolve the submitter's own author record: reused when they already
+     * have one, otherwise adopted from an unlinked row carrying the
+     * submitted ORCID (the claim itself is gated upstream by
+     * ClaimableOrcid), falling back to a fresh row. Rows linked to
+     * another account are unreachable here — validation has failed.
+     */
+    private function resolvePrimaryAuthor(User $submitter, array $attrs): Author
+    {
+        $own = Author::where('user_id', $submitter->id)->first();
+
+        if ($own !== null) {
+            $own->update($attrs);
+
+            return $own;
+        }
+
+        if (! empty($attrs['orcid'])) {
+            $candidate = Author::withTrashed()
+                ->where('orcid', $attrs['orcid'])
+                ->whereNull('user_id')
+                ->orderBy('id')
+                ->first();
+
+            if ($candidate !== null) {
+                if ($candidate->trashed()) {
+                    $candidate->restore();
+                }
+
+                $candidate->update($attrs + ['user_id' => $submitter->id]);
+
+                return $candidate;
+            }
+        }
+
+        return Author::create($attrs + ['user_id' => $submitter->id]);
     }
 
     /**

@@ -48,7 +48,7 @@ class SubmissionController extends Controller
             'category_id' => 'required|exists:categories,id',
             'keywords' => 'nullable|string|max:1000',
             'pdf_file' => 'required|file|mimetypes:application/pdf|max:51200',
-            ...$this->authorRules($request->user(), $request->input('author_email')),
+            ...$this->authorRules($request->user()),
             'references' => 'nullable|string|max:10000',
             ...$this->fundingRules(),
             'agreement_accepted' => 'accepted',
@@ -181,7 +181,7 @@ class SubmissionController extends Controller
             'category_id' => 'required|exists:categories,id',
             'keywords' => 'nullable|string|max:1000',
             'pdf_file' => 'nullable|file|mimetypes:application/pdf|max:51200',
-            ...$this->authorRules($request->user(), $request->input('author_email')),
+            ...$this->authorRules($request->user()),
             'references' => 'nullable|string|max:10000',
             ...$this->fundingRules(),
         ]);
@@ -330,7 +330,7 @@ class SubmissionController extends Controller
         return redirect()->route('dashboard')->with('success', 'Статья отозвана.');
     }
 
-    private function authorRules(User $user, ?string $authorEmail = null): array
+    private function authorRules(User $user): array
     {
         return [
             'author_name' => 'required|string|max:255',
@@ -342,7 +342,7 @@ class SubmissionController extends Controller
             'author_country' => ['required', Rule::enum(Country::class)],
             'author_city' => 'required|string|max:255',
             'author_website' => 'nullable|url|max:255',
-            'author_orcid' => ['nullable', 'string', 'max:50', new Orcid, new ClaimableOrcid($user, $authorEmail)],
+            'author_orcid' => ['nullable', 'string', 'max:50', new Orcid, new ClaimableOrcid($user)],
             'coauthors' => 'nullable|array',
             'coauthors.*.full_name' => 'required|string|max:255',
             'coauthors.*.degree' => 'nullable|string|max:255',

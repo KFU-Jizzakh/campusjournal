@@ -1,8 +1,10 @@
 <?php
 
+use App\Filament\Resources\AuthorResource\Pages\CreateAuthor;
 use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Models\Author;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
 use Database\Seeders\RoleSeeder;
@@ -193,4 +195,30 @@ test('user list shows localized role labels instead of slugs', function () {
         ->test(ListUsers::class)
         ->assertSee('Главный редактор')
         ->assertDontSee('editor-in-chief');
+});
+
+test('admin cannot save an author with a malformed orcid', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    Livewire::actingAs($admin)
+        ->test(CreateAuthor::class)
+        ->fillForm(['full_name' => 'Автор Без Формата', 'orcid' => 'not-an-orcid'])
+        ->call('create')
+        ->assertHasFormErrors(['orcid']);
+
+    expect(Author::where('full_name', 'Автор Без Формата')->exists())->toBeFalse();
+});
+
+test('admin can save an author with a valid orcid', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    Livewire::actingAs($admin)
+        ->test(CreateAuthor::class)
+        ->fillForm(['full_name' => 'Автор С Форматом', 'orcid' => '0000-0001-2345-6789'])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(Author::where('full_name', 'Автор С Форматом')->value('orcid'))->toBe('0000-0001-2345-6789');
 });

@@ -8,17 +8,17 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * PURPOSE: Validation rule for ORCID iD claimability. An unlinked coauthor
- * row only proves ownership when it carries a matching contact email, so
- * rows without an email never block a claim. A user who already owns a
- * linked row for the ORCID may always reuse it, even if a stale unlinked
- * row's email has since diverged.
+ * PURPOSE: Validation rule for ORCID iD claimability. Only a record
+ * already linked to a different user account reserves the ORCID: rows
+ * created from coauthor listings carry no verified ownership, so they
+ * neither prove nor deny a claim — otherwise anybody could block the
+ * real owner by pre-listing their ORCID. A user who already owns a
+ * linked row for the ORCID may always reuse it.
  */
 class ClaimableOrcid implements ValidationRule
 {
     public function __construct(
         private readonly User $user,
-        private readonly ?string $email,
     ) {}
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
@@ -32,14 +32,8 @@ class ClaimableOrcid implements ValidationRule
         }
 
         $conflict = Author::withTrashed()->where('orcid', $value)
-            ->where(function ($query) {
-                $query->whereNotNull('user_id')->where('user_id', '!=', $this->user->id)
-                    ->orWhere(function ($query) {
-                        $query->whereNull('user_id')
-                            ->whereNotNull('email')
-                            ->where('email', '!=', $this->email);
-                    });
-            })
+            ->whereNotNull('user_id')
+            ->where('user_id', '!=', $this->user->id)
             ->exists();
 
         if ($conflict) {

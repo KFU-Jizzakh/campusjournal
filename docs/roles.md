@@ -161,4 +161,5 @@ the "Главная" item (computed from the same inbox builder).
   the `users` model. An `authors` row linked to a user account is never
   rewritten by somebody else's submission listing its ORCID — that
   submission only snapshots its own contact details onto the article
-  pivot.
+  pivot. A coauthor listing's ORCID never blocks the real owner's claim —
+  only an ORCID linked to a different user account is reserved.

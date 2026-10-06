@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\Country;
 use App\Filament\Resources\AuthorResource\Pages;
 use App\Models\Author;
+use App\Rules\Orcid;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
@@ -51,7 +52,7 @@ class AuthorResource extends Resource
             Forms\Components\Textarea::make('bio')->label('Биография')->rows(4)->columnSpanFull(),
             Forms\Components\FileUpload::make('photo_path')->label('Фото')->disk('public')->directory('authors/photos')->image(),
             Forms\Components\TextInput::make('email')->label('Email')->email()->maxLength(255),
-            Forms\Components\TextInput::make('orcid')->label('ORCID')->maxLength(255),
+            Forms\Components\TextInput::make('orcid')->label('ORCID')->maxLength(255)->rules([new Orcid]),
             Forms\Components\TextInput::make('spin_code')->label('SPIN-код')->maxLength(255),
             Forms\Components\TextInput::make('author_id_elibrary')->label('Author ID (eLIBRARY)')->maxLength(255),
             Forms\Components\TextInput::make('website')->label('Веб-сайт')->url()->maxLength(255),
