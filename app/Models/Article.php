@@ -14,6 +14,7 @@ use App\Exceptions\CannotReviewArticleException;
 use App\Exceptions\CopyeditedFileNotUploadedException;
 use App\Exceptions\DeleteCopyeditedFileFailedException;
 use App\Exceptions\DuplicateReviewerException;
+use App\Exceptions\EditorIsAuthorException;
 use App\Exceptions\GalleyApprovalRequiredException;
 use App\Exceptions\GalleyNotAwaitingApprovalException;
 use App\Exceptions\GalleyNotProductionException;
@@ -23,6 +24,7 @@ use App\Exceptions\IssueNotPublishedException;
 use App\Exceptions\MissingBlindedPdfException;
 use App\Exceptions\MissingCompletedReviewsException;
 use App\Exceptions\NotSectionEditorException;
+use App\Exceptions\ReviewerIsAuthorException;
 use App\Exceptions\ReviewTypeChangeForbiddenException;
 use App\Exceptions\SendToCopyeditingFailedException;
 use App\Exceptions\SendToProductionFailedException;
@@ -388,7 +390,9 @@ class Article extends Model
         return DB::transaction(function () use ($submitter, $data) {
             // Auto-assign the section editor mapped to the rubric, if any —
             // a silent routing hint, not a formal editorial assignment.
+            // The submitter is never auto-assigned as editor of their own article.
             $sectionEditorId = Category::query()->whereKey($data['category_id'])->value('section_editor_id');
+            $sectionEditorId = $sectionEditorId !== $submitter->id ? $sectionEditorId : null;
 
             $article = static::create([
                 ...$data,
@@ -497,6 +501,10 @@ class Article extends Model
             throw new NotSectionEditorException;
         }
 
+        if ($this->isAuthoredBy($editor)) {
+            throw new EditorIsAuthorException;
+        }
+
         DB::transaction(function () use ($editor) {
             $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
 
@@ -529,6 +537,11 @@ class Article extends Model
 
             if (! in_array($lockedArticle->status, [ArticleStatus::Submitted, ArticleStatus::InReview])) {
                 throw new AssignReviewerFailedException;
+            }
+
+            // Conflict of interest: the article's authors can never review it.
+            if ($lockedArticle->isAuthoredBy($reviewer)) {
+                throw new ReviewerIsAuthorException;
             }
 
             // Guard: double-blind requires an anonymised PDF before reviewers can be assigned.
@@ -1275,6 +1288,20 @@ class Article extends Model
     public function currentRoundCompletedReviews(): HasMany
     {
         return $this->completedReviews()->where('round', $this->current_round);
+    }
+
+    /**
+     * Whether the user is the submitter or a credited coauthor of
+     * this article — the conflict-of-interest boundary for editorial
+     * and reviewer assignments.
+     */
+    public function isAuthoredBy(User $user): bool
+    {
+        if ($this->submitted_by === $user->id) {
+            return true;
+        }
+
+        return $this->authors()->where('user_id', $user->id)->exists();
     }
 
     /**

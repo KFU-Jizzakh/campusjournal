@@ -103,7 +103,10 @@ class EditorialController extends Controller
         $responseLettersByRound = $article->responseLetters->groupBy('round');
 
         $user = $request->user();
-        $showAssignEditor = $article->isSubmitted() && $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
+        $showAssignEditor = $article->isSubmitted() && $user->can('assignEditor', $article);
+        // Workflow actions (assign, decide, rate, cancel) are hidden from the
+        // article's authors even when they hold editorial roles (COI guard).
+        $canManage = $user->can('decide', $article);
         $showPublish = $article->isApproved() && $user->hasPermissionTo('publish-issue');
         $showGalleyUpload = $article->isProduction();
 
@@ -142,7 +145,7 @@ class EditorialController extends Controller
             });
 
         return view('dashboard.editorial.show', compact(
-            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'decisionTemplates', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections', 'responseLettersByRound'
+            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'decisionTemplates', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections', 'responseLettersByRound', 'canManage'
         ));
     }
 
@@ -343,7 +346,7 @@ class EditorialController extends Controller
      */
     public function rateReview(Request $request, Article $article, Review $review)
     {
-        $this->authorize('viewEditorial', $article);
+        $this->authorize('decide', $article);
 
         abort_unless($review->article_id === $article->id, 404);
 
@@ -366,7 +369,7 @@ class EditorialController extends Controller
      */
     public function cancelReview(Request $request, Article $article, Review $review)
     {
-        $this->authorize('viewEditorial', $article);
+        $this->authorize('decide', $article);
 
         abort_unless($review->article_id === $article->id, 404);
 

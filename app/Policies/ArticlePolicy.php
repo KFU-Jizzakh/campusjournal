@@ -50,13 +50,31 @@ class ArticlePolicy
 
     public function assignEditor(User $user, Article $article): bool
     {
-        return $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        // The article's authors must never edit their own submission.
+        if ($article->isAuthoredBy($user)) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['editor-in-chief', 'managing-editor']);
     }
 
     public function assignReviewer(User $user, Article $article): bool
     {
-        // Admin, editor-in-chief and managing-editor can assign reviewers to any article
-        if ($user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor'])) {
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        // The article's authors must never review their own submission.
+        if ($article->isAuthoredBy($user)) {
+            return false;
+        }
+
+        // Editor-in-chief and managing-editor can assign reviewers to any article
+        if ($user->hasAnyRole(['editor-in-chief', 'managing-editor'])) {
             return true;
         }
 
@@ -106,7 +124,18 @@ class ArticlePolicy
 
     private function canManageWorkflow(User $user, Article $article): bool
     {
-        if ($user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor'])) {
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        // Editorial decisions on one's own manuscript are a conflict of
+        // interest — authors and coauthors keep read-only editorial access
+        // via viewEditorial but can take no workflow actions on it.
+        if ($article->isAuthoredBy($user)) {
+            return false;
+        }
+
+        if ($user->hasAnyRole(['editor-in-chief', 'managing-editor'])) {
             return true;
         }
 

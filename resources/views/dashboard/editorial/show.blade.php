@@ -419,20 +419,22 @@
                                 @if($review->quality_rating)
                                     <span class="text-xs px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700">{{ $review->qualityRatingLabel() }}</span>
                                 @endif
-                                <form method="POST" action="{{ route('editorial.rate-review', ['article' => $article, 'review' => $review]) }}" class="flex items-center gap-2">
-                                    @csrf
-                                    <select name="quality_rating" required class="border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-xs">
-                                        @for($i = 5; $i >= 1; $i--)
-                                            <option value="{{ $i }}" {{ $review->quality_rating === $i ? 'selected' : '' }}>{{ $i }}</option>
-                                        @endfor
-                                    </select>
-                                    <x-primary-button class="text-xs px-3 py-1">{{ __('dashboard.rate_button') }}</x-primary-button>
-                                </form>
+                                @if($canManage)
+                                    <form method="POST" action="{{ route('editorial.rate-review', ['article' => $article, 'review' => $review]) }}" class="flex items-center gap-2">
+                                        @csrf
+                                        <select name="quality_rating" required class="border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-xs">
+                                            @for($i = 5; $i >= 1; $i--)
+                                                <option value="{{ $i }}" {{ $review->quality_rating === $i ? 'selected' : '' }}>{{ $i }}</option>
+                                            @endfor
+                                        </select>
+                                        <x-primary-button class="text-xs px-3 py-1">{{ __('dashboard.rate_button') }}</x-primary-button>
+                                    </form>
+                                @endif
                             </div>
                             <div class="text-xs text-gray-400 mt-2">{{ __('dashboard.completed_at') }} {{ $review->completed_at?->format('d.m.Y H:i') }}</div>
                         @endif
                         <div class="text-xs text-gray-400 mt-1">{{ __('dashboard.assigned_at') }} {{ $review->assigned_at?->format('d.m.Y H:i') }}</div>
-                        @if($review->isCancellable())
+                        @if($review->isCancellable() && $canManage)
                             <div class="mt-2 pt-2 border-t border-gray-100">
                                 <form method="POST" action="{{ route('editorial.cancel-review', ['article' => $article, 'review' => $review]) }}" onsubmit="return confirm('{{ __('dashboard.cancel_review_confirm') }}');">
                                     @csrf
@@ -447,7 +449,7 @@
                 <p class="text-sm text-gray-400 mb-4">{{ __('dashboard.no_reviews_yet') }}</p>
             @endif
 
-            @if($article->isReviewable())
+            @if($article->isReviewable() && $canManage)
                 <form method="POST" action="{{ route('editorial.assign-reviewer', $article) }}" class="flex items-end gap-3 border-t border-gray-100 pt-4">
                     @csrf
                     <div class="flex-1">
@@ -514,7 +516,7 @@
                 </div>
                 <p class="text-sm text-gray-700">{{ $article->decision_comments }}</p>
             </div>
-        @elseif($article->canBeDecided())
+        @elseif($article->canBeDecided() && $canManage)
             <div class="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 class="font-semibold text-gray-900 mb-4">{{ __('dashboard.make_decision') }}</h3>
                 <form method="POST" action="{{ route('editorial.decide', $article) }}" class="space-y-4"
