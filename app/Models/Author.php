@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Exceptions\AuthorClaimFailedException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,14 +15,51 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * organisation, contact details and affiliation location, linked
  * to User and pivotable to Articles.
  */
-#[Fillable(['user_id', 'full_name', 'first_name', 'last_name', 'degree', 'position', 'organization', 'bio', 'photo_path', 'orcid', 'email', 'spin_code', 'phone', 'country', 'city', 'author_id_elibrary', 'website'])]
+#[Fillable(['user_id', 'full_name', 'first_name', 'last_name', 'degree', 'position', 'organization', 'bio', 'photo_path', 'orcid', 'email', 'spin_code', 'phone', 'country', 'city', 'author_id_elibrary', 'website', 'invitation_sent_at'])]
 class Author extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected function casts(): array
+    {
+        return [
+            'invitation_sent_at' => 'datetime',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Link this author record to a user account. Ownership is proven by
+     * the contact email snapshot on the article pivot matching the user's
+     * verified email. Re-links the EXISTING row — never creates a new one.
+     * Idempotent when the record already belongs to the same user.
+     */
+    public function claimFor(User $user): void
+    {
+        if ($this->user_id !== null && (int) $this->user_id !== (int) $user->id) {
+            throw new AuthorClaimFailedException;
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            throw new AuthorClaimFailedException;
+        }
+
+        $ownsRecord = $this->articles()
+            ->whereRaw('LOWER(article_author.email) = LOWER(?)', [$user->email])
+            ->exists();
+
+        if (! $ownsRecord) {
+            throw new AuthorClaimFailedException;
+        }
+
+        $this->update([
+            'user_id' => $user->id,
+            'email' => $user->email,
+        ]);
     }
 
     public function articles(): BelongsToMany

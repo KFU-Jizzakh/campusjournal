@@ -24,6 +24,10 @@
                                     <a href="{{ route($linkRoute, $linkParams) }}" class="text-sm font-medium text-gray-900 hover:underline">
                                         {{ $notification->data['event_description'] ?? $notification->data['author_name'] ?? 'Система' }}
                                     </a>
+                                @elseif(isset($notification->data['url']))
+                                    <a href="{{ $notification->data['url'] }}" class="text-sm font-medium text-gray-900 hover:underline">
+                                        {{ $notification->data['event_description'] ?? $notification->data['author_name'] ?? 'Система' }}
+                                    </a>
                                 @elseif(isset($notification->data['article_id']))
                                     <a href="{{ route('editorial.show', $notification->data['article_id']) }}" class="text-sm font-medium text-gray-900 hover:underline">
                                         {{ $notification->data['author_name'] ?? 'Система' }}

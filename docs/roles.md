@@ -137,7 +137,13 @@ the "Главная" item (computed from the same inbox builder).
   `editor-in-chief` gets the wider leadership scope (`RoleSeeder`-aware
   checks in `DashboardInbox::editorialArticles`).
 - **Coauthors** see the submission page only while the article is not a
-  draft; they cannot edit, withdraw, or approve galley proofs.
+  draft; they cannot edit, withdraw, or approve galley proofs. When a
+  submission lists the email of an existing verified user as a coauthor,
+  that user receives a signed invitation (`invitations.accept`, 7 days) to
+  claim the author record; after `Author::claimFor` they automatically get
+  the full notification stream for the article. No specific role is
+  required to claim — verified email matching the pivot snapshot is the
+  ownership proof.
 - **Review quality rating** (editors, `manage-submissions`): completed
   reviews can be rated 1–5 on the editorial page; the average feeds the
   reviewer assignment options. Reviewers never see ratings — neither on

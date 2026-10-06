@@ -14,6 +14,7 @@ use App\Http\Controllers\Dashboard\ReviewController;
 use App\Http\Controllers\Dashboard\SubmissionController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\IssueController;
 use App\Http\Controllers\OaiPmhController;
 use App\Http\Controllers\PageController;
@@ -103,6 +104,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Response-letter attachments — gated by ResponseLetterPolicy (editor,
     // author/coauthor, or reviewer of the corresponding round).
     Route::get('/dashboard/response-letters/{responseLetter}/file', [ResponseLetterController::class, 'showFile'])->name('response-letters.file');
+
+    // Coauthor invitation claim — signed URL (see InvitationNotification;
+    // relative mode matches the absolute:false signing, proxy-safe).
+    Route::get('/invitations/{author}/accept', [InvitationController::class, 'accept'])
+        ->name('invitations.accept')
+        ->middleware(['signed:relative', 'throttle:6,1']);
 
     // Article file management (delete)
     Route::delete('/dashboard/article-files/{file}', [ArticleFileController::class, 'destroy'])->name('article-files.destroy')->middleware('permission:submit-article|manage-submissions');

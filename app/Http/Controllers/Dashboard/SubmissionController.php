@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\CopyrightAgreement;
 use App\Models\User;
 use App\Notifications\AuthorSubmissionReceived;
+use App\Notifications\InvitationNotification;
 use App\Rules\ClaimableOrcid;
 use App\Rules\Orcid;
 use Illuminate\Http\Request;
@@ -106,6 +107,8 @@ class SubmissionController extends Controller
             if ($agreement) {
                 $article->saveAgreement($agreement, $request->user(), $request->ip());
             }
+
+            $this->sendCoauthorInvitations($article);
 
             $article->notifiableUsers()
                 ->reject(fn ($user) => $user->id === $article->submitted_by)
@@ -254,6 +257,8 @@ class SubmissionController extends Controller
             $lines = preg_split('/\r\n|\r|\n/', trim($validated['references'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
             $article->syncReferences($lines);
 
+            $this->sendCoauthorInvitations($article);
+
             if ($isRevision && $agreement) {
                 $article->saveAgreement($agreement, $request->user(), $request->ip());
             }
@@ -360,6 +365,38 @@ class SubmissionController extends Controller
             'funding.*.funder_identifier' => 'nullable|string|max:500',
             'funding.*.award_number' => 'nullable|string|max:255',
         ];
+    }
+
+    /**
+     * PURPOSE: Invite verified users whose email was listed for an
+     * unlinked coauthor row to claim the author record. Throttled to
+     * one invitation per 24 hours so resubmits do not spam.
+     */
+    private function sendCoauthorInvitations(Article $article): void
+    {
+        $candidates = $article->authors()
+            ->whereNull('authors.user_id')
+            ->whereNotNull('article_author.email')
+            ->where(function ($query) {
+                $query->whereNull('authors.invitation_sent_at')
+                    ->orWhere('authors.invitation_sent_at', '<', now()->subDay());
+            })
+            ->get();
+
+        foreach ($candidates as $author) {
+            $user = User::query()
+                ->whereRaw('LOWER(email) = LOWER(?)', [$author->pivot->email])
+                ->whereNotNull('email_verified_at')
+                ->first();
+
+            if (! $user) {
+                continue;
+            }
+
+            $user->notify(new InvitationNotification($article, $author));
+
+            $author->update(['invitation_sent_at' => now()]);
+        }
     }
 
     private function validateOrcidDistinct(array $validated): void
