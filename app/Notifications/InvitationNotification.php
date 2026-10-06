@@ -56,13 +56,14 @@ class InvitationNotification extends Notification implements ShouldQueue
 
     /**
      * Signed claim URL, proxy-safe (relative signed route + app.url prefix).
+     * The signature covers both the inviting article and the author record.
      */
     private function invitationUrl(): string
     {
         $relativeUrl = URL::temporarySignedRoute(
             'invitations.accept',
             now()->addDays(7),
-            ['author' => $this->author->id],
+            ['article' => $this->article->id, 'author' => $this->author->id],
             absolute: false
         );
 

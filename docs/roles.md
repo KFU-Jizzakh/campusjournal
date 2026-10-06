@@ -141,9 +141,14 @@ the "Главная" item (computed from the same inbox builder).
   submission lists the email of an existing verified user as a coauthor,
   that user receives a signed invitation (`invitations.accept`, 7 days) to
   claim the author record; after `Author::claimFor` they automatically get
-  the full notification stream for the article. No specific role is
-  required to claim — verified email matching the pivot snapshot is the
-  ownership proof.
+  the full notification stream for the article. The signed URL covers both
+  the author record and the inviting article, so a claim is only accepted
+  against the pivot snapshot of that very article, and only after the
+  invitation was actually sent (`invitation_sent_at`). A submitter who
+  lists their own email as a coauthor is never invited and cannot claim
+  their own listing. No specific role is required to claim — a verified
+  email matching the inviting article's pivot snapshot is the ownership
+  proof.
 - **Review quality rating** (editors, `manage-submissions`): completed
   reviews can be rated 1–5 on the editorial page; the average feeds the
   reviewer assignment options. Reviewers never see ratings — neither on

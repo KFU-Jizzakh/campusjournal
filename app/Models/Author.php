@@ -34,11 +34,15 @@ class Author extends Model
 
     /**
      * Link this author record to a user account. Ownership is proven by
-     * the contact email snapshot on the article pivot matching the user's
-     * verified email. Re-links the EXISTING row — never creates a new one.
+     * the contact email snapshot on the INVITING article's pivot matching
+     * the user's verified email — any other article carrying the same
+     * record does not count. The claiming user must not be the submitter
+     * of that article (a submitter listing their own email as a coauthor
+     * proves nothing), and an invitation must have actually been sent.
+     * Re-links the EXISTING row — never creates a new one.
      * Idempotent when the record already belongs to the same user.
      */
-    public function claimFor(User $user): void
+    public function claimFor(User $user, Article $article): void
     {
         if ($this->user_id !== null && (int) $this->user_id !== (int) $user->id) {
             throw new AuthorClaimFailedException;
@@ -48,7 +52,16 @@ class Author extends Model
             throw new AuthorClaimFailedException;
         }
 
-        $ownsRecord = $this->articles()
+        if ($this->invitation_sent_at === null) {
+            throw new AuthorClaimFailedException;
+        }
+
+        if ((int) $article->submitted_by === (int) $user->id) {
+            throw new AuthorClaimFailedException;
+        }
+
+        $ownsRecord = $article->authors()
+            ->whereKey($this->id)
             ->whereRaw('LOWER(article_author.email) = LOWER(?)', [$user->email])
             ->exists();
 

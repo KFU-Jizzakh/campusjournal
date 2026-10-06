@@ -29,18 +29,19 @@ function inviteArticleWithCoauthor(string $coauthorEmail, User $submitter): arra
     $author = Author::create([
         'full_name' => 'Петров Пётр Петрович',
         'email' => $coauthorEmail,
+        'invitation_sent_at' => now(),
     ]);
     $article->authors()->attach($author->id, ['order' => 2, 'email' => $coauthorEmail]);
 
     return [$article, $author];
 }
 
-function invitationUrlFor(Author $author): string
+function invitationUrlFor(Article $article, Author $author): string
 {
     $relative = URL::temporarySignedRoute(
         'invitations.accept',
         now()->addDays(7),
-        ['author' => $author->id],
+        ['article' => $article->id, 'author' => $author->id],
         absolute: false
     );
 
@@ -57,7 +58,7 @@ test('user can claim coauthor record via signed invitation url', function () {
     $authorsCount = Author::count();
 
     $this->actingAs($coauthorUser)
-        ->get(invitationUrlFor($author))
+        ->get(invitationUrlFor($article, $author))
         ->assertRedirect(route('dashboard'))
         ->assertSessionHas('success');
 
@@ -71,10 +72,10 @@ test('user can claim coauthor record via signed invitation url', function () {
 test('claim is rejected when pivot email does not match the user email', function () {
     $submitter = User::factory()->create();
     $coauthorUser = User::factory()->create(['email_verified_at' => now()]);
-    [, $author] = inviteArticleWithCoauthor('someone-else@example.test', $submitter);
+    [$article, $author] = inviteArticleWithCoauthor('someone-else@example.test', $submitter);
 
     $this->actingAs($coauthorUser)
-        ->get(invitationUrlFor($author))
+        ->get(invitationUrlFor($article, $author))
         ->assertRedirect(route('dashboard'))
         ->assertSessionHas('error');
 
@@ -85,11 +86,11 @@ test('claim is rejected when the record belongs to another user', function () {
     $submitter = User::factory()->create();
     $owner = User::factory()->create(['email_verified_at' => now()]);
     $intruder = User::factory()->create(['email_verified_at' => now()]);
-    [, $author] = inviteArticleWithCoauthor($owner->email, $submitter);
+    [$article, $author] = inviteArticleWithCoauthor($owner->email, $submitter);
     $author->update(['user_id' => $owner->id]);
 
     $this->actingAs($intruder)
-        ->get(invitationUrlFor($author))
+        ->get(invitationUrlFor($article, $author))
         ->assertSessionHas('error');
 
     expect($author->refresh()->user_id)->toBe($owner->id);
@@ -98,10 +99,10 @@ test('claim is rejected when the record belongs to another user', function () {
 test('claim is rejected for users without verified email', function () {
     $submitter = User::factory()->create();
     $coauthorUser = User::factory()->create(['email_verified_at' => null]);
-    [, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
+    [$article, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
 
     $this->actingAs($coauthorUser)
-        ->get(invitationUrlFor($author))
+        ->get(invitationUrlFor($article, $author))
         ->assertRedirect(route('verification.notice'));
 });
 
@@ -111,10 +112,10 @@ test('claim email matching is case insensitive', function () {
         'email' => 'Petrov@Example.Test',
         'email_verified_at' => now(),
     ]);
-    [, $author] = inviteArticleWithCoauthor('petrov@example.test', $submitter);
+    [$article, $author] = inviteArticleWithCoauthor('petrov@example.test', $submitter);
 
     $this->actingAs($coauthorUser)
-        ->get(invitationUrlFor($author))
+        ->get(invitationUrlFor($article, $author))
         ->assertSessionHas('success');
 
     expect($author->refresh()->user_id)->toBe($coauthorUser->id);
@@ -123,11 +124,66 @@ test('claim email matching is case insensitive', function () {
 test('claim is idempotent for the owning user', function () {
     $submitter = User::factory()->create();
     $coauthorUser = User::factory()->create(['email_verified_at' => now()]);
-    [, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
+    [$article, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
 
-    $this->actingAs($coauthorUser)->get(invitationUrlFor($author));
+    $this->actingAs($coauthorUser)->get(invitationUrlFor($article, $author));
     $this->actingAs($coauthorUser)
-        ->get(invitationUrlFor($author))
+        ->get(invitationUrlFor($article, $author))
+        ->assertSessionHas('success');
+
+    expect($author->refresh()->user_id)->toBe($coauthorUser->id);
+});
+
+test('claim is rejected when no invitation was sent', function () {
+    $submitter = User::factory()->create();
+    $coauthorUser = User::factory()->create(['email_verified_at' => now()]);
+    [$article, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
+    $author->update(['invitation_sent_at' => null]);
+
+    $this->actingAs($coauthorUser)
+        ->get(invitationUrlFor($article, $author))
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('error');
+
+    expect($author->refresh()->user_id)->toBeNull();
+});
+
+test('claim is rejected when the claimer submitted the inviting article', function () {
+    $submitter = User::factory()->create();
+    [$article, $author] = inviteArticleWithCoauthor($submitter->email, $submitter);
+
+    $this->actingAs($submitter)
+        ->get(invitationUrlFor($article, $author))
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('error');
+
+    expect($author->refresh()->user_id)->toBeNull();
+});
+
+test('claim is only proven by the pivot snapshot of the inviting article', function () {
+    $submitter = User::factory()->create();
+    $coauthorUser = User::factory()->create(['email_verified_at' => now()]);
+    [$article, $author] = inviteArticleWithCoauthor('someone-else@example.test', $submitter);
+
+    // A different article carries a pivot row with the claimer's email —
+    // it must not prove ownership for the invitation of $article.
+    $otherArticle = Article::submit($submitter, [
+        'title' => 'Другая статья',
+        'abstract_ru' => 'Аннотация',
+        'category_id' => Category::factory()->create()->id,
+        'pdf_path' => 'submissions/other.pdf',
+    ]);
+    $otherArticle->authors()->attach($author->id, [
+        'order' => 2,
+        'email' => $coauthorUser->email,
+    ]);
+
+    $this->actingAs($coauthorUser)
+        ->get(invitationUrlFor($article, $author))
+        ->assertSessionHas('error');
+
+    $this->actingAs($coauthorUser)
+        ->get(invitationUrlFor($otherArticle, $author))
         ->assertSessionHas('success');
 
     expect($author->refresh()->user_id)->toBe($coauthorUser->id);
@@ -136,12 +192,12 @@ test('claim is idempotent for the owning user', function () {
 test('expired invitation url is rejected', function () {
     $submitter = User::factory()->create();
     $coauthorUser = User::factory()->create(['email_verified_at' => now()]);
-    [, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
+    [$article, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
 
     $relative = URL::temporarySignedRoute(
         'invitations.accept',
         now()->subDay(),
-        ['author' => $author->id],
+        ['article' => $article->id, 'author' => $author->id],
         absolute: false
     );
 
@@ -153,10 +209,10 @@ test('expired invitation url is rejected', function () {
 test('unsigned url is rejected', function () {
     $submitter = User::factory()->create();
     $coauthorUser = User::factory()->create(['email_verified_at' => now()]);
-    [, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
+    [$article, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
 
     $this->actingAs($coauthorUser)
-        ->get('/invitations/'.$author->id.'/accept')
+        ->get('/invitations/'.$article->id.'/'.$author->id.'/accept')
         ->assertForbidden();
 });
 
@@ -249,6 +305,44 @@ test('no invitation for unknown or unverified coauthor emails', function () {
         ->and($timestamps->filter()->isEmpty())->toBeTrue();
 });
 
+test('no invitation when the submitter lists their own email as coauthor', function () {
+    Notification::fake();
+
+    $submitter = User::factory()->create();
+    $submitter->assignRole('author');
+    $category = Category::factory()->create();
+
+    $this->actingAs($submitter)
+        ->post(route('submissions.store'), [
+            'title' => 'Статья с самоприглашением',
+            'abstract_ru' => 'Аннотация',
+            'category_id' => $category->id,
+            'pdf_file' => UploadedFile::fake()->create('paper.pdf', 1024, 'application/pdf'),
+            'author_name' => 'Иванов Иван Иванович',
+            'author_email' => $submitter->email,
+            'author_phone' => '+7 (900) 123-45-67',
+            'author_country' => 'Россия',
+            'author_city' => 'Казань',
+            'agreement_accepted' => 'on',
+            'coauthors' => [
+                [
+                    'full_name' => 'Иванов Иван Иванович',
+                    'email' => $submitter->email,
+                    'phone' => '+7 (900) 123-45-68',
+                    'country' => 'Россия',
+                    'city' => 'Казань',
+                ],
+            ],
+        ])
+        ->assertRedirect();
+
+    Notification::assertNotSentTo($submitter, InvitationNotification::class);
+
+    $coauthorRow = Author::whereNull('user_id')->where('full_name', 'Иванов Иван Иванович')->sole();
+
+    expect($coauthorRow->invitation_sent_at)->toBeNull();
+});
+
 test('resubmission within 24 hours does not resend the invitation', function () {
     Notification::fake();
 
@@ -297,7 +391,7 @@ test('claimed coauthor receives article notifications', function () {
     $coauthorUser = User::factory()->create(['email_verified_at' => now()]);
     [$article, $author] = inviteArticleWithCoauthor($coauthorUser->email, $submitter);
 
-    $this->actingAs($coauthorUser)->get(invitationUrlFor($author));
+    $this->actingAs($coauthorUser)->get(invitationUrlFor($article, $author));
 
     $article->transitionTo(ArticleStatus::InReview);
     $article->notifiableUsers()->each(

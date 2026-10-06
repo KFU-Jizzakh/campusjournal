@@ -106,8 +106,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard/response-letters/{responseLetter}/file', [ResponseLetterController::class, 'showFile'])->name('response-letters.file');
 
     // Coauthor invitation claim — signed URL (see InvitationNotification;
-    // relative mode matches the absolute:false signing, proxy-safe).
-    Route::get('/invitations/{author}/accept', [InvitationController::class, 'accept'])
+    // relative mode matches the absolute:false signing, proxy-safe). The
+    // signature covers the inviting article so a claim can only be redeemed
+    // against the pivot snapshot of the article that issued the invitation.
+    Route::get('/invitations/{article}/{author}/accept', [InvitationController::class, 'accept'])
         ->name('invitations.accept')
         ->middleware(['signed:relative', 'throttle:6,1']);
 

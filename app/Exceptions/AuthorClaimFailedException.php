@@ -5,7 +5,9 @@ namespace App\Exceptions;
 /**
  * PURPOSE: Domain exception thrown when a user attempts to claim an
  * author record without ownership proof (matching verified email on the
- * article pivot snapshot) or when the record already belongs to someone else.
+ * inviting article's pivot snapshot, an actually sent invitation, and a
+ * claim that is not their own submission) or when the record already
+ * belongs to someone else.
  */
 final class AuthorClaimFailedException extends \DomainException
 {

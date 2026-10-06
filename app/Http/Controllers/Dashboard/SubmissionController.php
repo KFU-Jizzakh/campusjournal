@@ -393,6 +393,13 @@ class SubmissionController extends Controller
                 continue;
             }
 
+            // A submitter listing their own email as a coauthor invites
+            // themselves: their own listing proves no ownership, so no
+            // signed link is issued (claimFor would reject it anyway).
+            if ((int) $user->id === (int) $article->submitted_by) {
+                continue;
+            }
+
             $user->notify(new InvitationNotification($article, $author));
 
             $author->update(['invitation_sent_at' => now()]);
