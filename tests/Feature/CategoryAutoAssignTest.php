@@ -36,6 +36,21 @@ test('submission without rubric mapping has no editor', function () {
     expect($article->editor_id)->toBeNull();
 });
 
+test('rubric mapping to a user without the section-editor role is skipped', function () {
+    $roleless = User::factory()->create();
+
+    $category = Category::factory()->create(['section_editor_id' => $roleless->id]);
+
+    $article = Article::submit(User::factory()->create(), [
+        'title' => 'Статья с устаревшим маппингом',
+        'abstract_ru' => 'Аннотация',
+        'category_id' => $category->id,
+        'pdf_path' => 'submissions/test.pdf',
+    ]);
+
+    expect($article->editor_id)->toBeNull();
+});
+
 test('auto-assigned editor can still be reassigned manually', function () {
     $firstEditor = User::factory()->create();
     $firstEditor->assignRole('section-editor');

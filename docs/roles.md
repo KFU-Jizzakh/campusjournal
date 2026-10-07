@@ -155,7 +155,15 @@ the "Главная" item (computed from the same inbox builder).
   the review page nor in their own dashboard stats.
 - **Auto-assignment by rubric**: when a category has a default section
   editor (Filament → Рубрики), new submissions in that rubric silently get
-  `editor_id` — leadership can still reassign manually as before.
+  `editor_id` — leadership can still reassign manually as before. The
+  mapping is skipped when the mapped user no longer holds the
+  `section-editor` role, and an assignment that turns out to be a
+  conflict of interest (the editor is an author of the submission —
+  linked account, or pivot email snapshot matching the account email)
+  is released back to the unassigned pool when the authors are synced.
+  The same email snapshot is deny-side COI evidence everywhere: a
+  conflicted editor gets no editorial workflow actions on that
+  manuscript even if `editor_id` is set by hand.
 - Public author profile data (ORCID, affiliation) lives in the `authors`
   table; role membership lives in Spatie's `roles`/`permissions` tables on
   the `users` model. An `authors` row linked to a user account is never

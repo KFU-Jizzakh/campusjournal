@@ -44,6 +44,100 @@ test('submitter is never auto-assigned as editor of their own article', function
     expect($article->editor_id)->toBeNull();
 });
 
+test('rubric auto-assignment is released when the mapped editor is an unclaimed coauthor', function () {
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+
+    $category = Category::factory()->create(['section_editor_id' => $editor->id]);
+    $submitter = User::factory()->create();
+
+    $article = Article::submit($submitter, [
+        'title' => 'Статья с редактором-соавтором',
+        'abstract_ru' => 'Аннотация',
+        'category_id' => $category->id,
+        'pdf_path' => 'submissions/test.pdf',
+    ]);
+
+    expect($article->editor_id)->toBe($editor->id);
+
+    $article->syncAuthors($submitter, [
+        'full_name' => 'Подавший автор',
+        'email' => $submitter->email,
+    ], [
+        ['full_name' => 'Редактор-соавтор', 'email' => $editor->email],
+    ]);
+
+    expect($article->refresh()->editor_id)->toBeNull();
+});
+
+test('auto-assignment survives syncing a non-conflicting coauthor', function () {
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+
+    $category = Category::factory()->create(['section_editor_id' => $editor->id]);
+    $submitter = User::factory()->create();
+
+    $article = Article::submit($submitter, [
+        'title' => 'Статья с обычным соавтором',
+        'abstract_ru' => 'Аннотация',
+        'category_id' => $category->id,
+        'pdf_path' => 'submissions/test.pdf',
+    ]);
+
+    $article->syncAuthors($submitter, [
+        'full_name' => 'Подавший автор',
+        'email' => $submitter->email,
+    ], [
+        ['full_name' => 'Обычный соавтор', 'email' => 'coauthor@example.org'],
+    ]);
+
+    expect($article->refresh()->editor_id)->toBe($editor->id);
+});
+
+// --- Unclaimed (pivot-email) conflict of interest ---
+
+test('unclaimed coauthor-editor cannot decide on the article', function () {
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+
+    $article = Article::factory()->inReview()->create(['editor_id' => $editor->id]);
+    $article->authors()->attach(
+        Author::factory()->create()->id,
+        ['email' => $editor->email]
+    );
+    Review::factory()->completed()->create(['article_id' => $article->id]);
+
+    $this->actingAs($editor)
+        ->post(route('editorial.decide', $article), [
+            'decision' => 'accept',
+            'decision_comments' => 'Принял сам себя.',
+        ])
+        ->assertForbidden();
+
+    expect($article->refresh()->status)->toBe(ArticleStatus::InReview);
+});
+
+test('unclaimed coauthor cannot be assigned as section editor', function () {
+    $eic = coiEic();
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+
+    $article = Article::factory()->submitted()->create();
+    $article->authors()->attach(
+        Author::factory()->create()->id,
+        ['email' => $editor->email]
+    );
+
+    $this->actingAs($eic)
+        ->post(route('editorial.assign-editor', $article), [
+            'editor_id' => $editor->id,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    expect($article->refresh()->editor_id)->toBeNull();
+});
+
 // --- Self-review guard ---
 
 test('authoring editor is forbidden from assigning any reviewer to their own article', function () {
@@ -76,6 +170,13 @@ test('article author cannot be assigned as reviewer even by another editor', fun
                 Author::factory()->create(['user_id' => $coauthor->id])->id
             )
         )->id,
+        'unclaimed coauthor' => tap(
+            User::factory()->create()->assignRole('reviewer'),
+            fn (User $coauthor) => $article->authors()->attach(
+                Author::factory()->create()->id,
+                ['email' => $coauthor->email]
+            )
+        )->id,
     };
 
     $this->actingAs($eic)
@@ -86,7 +187,7 @@ test('article author cannot be assigned as reviewer even by another editor', fun
         ->assertSessionHas('error');
 
     expect($article->reviews()->count())->toBe(0);
-})->with(['submitter', 'coauthor']);
+})->with(['submitter', 'coauthor', 'unclaimed coauthor']);
 
 test('reviewer without authorship can still be assigned', function () {
     $eic = coiEic();

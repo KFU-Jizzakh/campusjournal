@@ -32,6 +32,7 @@ Status: IMPLEMENTED
 - BR-6: When the first reviewer is assigned, the article transitions from "Submitted" to "In Review"
 - BR-7: Reviewer response deadline — 7 days, review deadline — 30 days (configurable in settings)
 - BR-8: Duplicate reviewer assignment is blocked at both the application and database level
+- BR-9: Rubric auto-assignment never picks the submitter, a user without the section-editor role, or a conflicted editor (an author of the submission, claimed via `user_id` link or unclaimed via pivot email snapshot matching the account email); an auto-assignment found to be conflicted when authors are synced is released back to the unassigned pool. The same email snapshot counts as conflict evidence for manual assignment and workflow actions (deny-side only)
 
 ## Behavior
 
@@ -61,6 +62,29 @@ Given the article is not in "Submitted" status
 When  the EiC attempts to assign an editor
 Then  the assignment block is hidden, direct invocation is blocked
 But   the editor is not assigned
+
+#### Scenario: Attempt to assign a conflicted editor (BR-9)
+
+Given the article lists the selected user as an author (claimed account link, or unclaimed listing whose pivot email matches the user's account email)
+When  the EiC attempts to assign that user as editor
+Then  an exception is thrown with an error message
+But   the assignment is not performed
+
+### Rule: Rubric auto-assignment (BR-9)
+
+#### Scenario: Rubric mapping skipped for a role-less or submitting user
+
+Given a category whose default section editor lacks the section-editor role, or is the submitter
+When  a submission is made in that rubric
+Then  the submission is created with `editor_id` null
+
+#### Scenario: Conflicted auto-assignment is released
+
+Given a category mapped to editor E
+When  a submission by another user lists E as a coauthor with pivot email equal to E's account email
+Then  the submission is created
+And   `editor_id` is released to null when the authors are synced
+And   the article appears in the unassigned pool for leadership to reassign
 
 ### Rule: Reviewer assignment (BR-4, BR-5, BR-6, BR-7, BR-8)
 

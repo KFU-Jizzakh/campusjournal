@@ -390,8 +390,14 @@ class Article extends Model
         return DB::transaction(function () use ($submitter, $data) {
             // Auto-assign the section editor mapped to the rubric, if any —
             // a silent routing hint, not a formal editorial assignment.
-            // The submitter is never auto-assigned as editor of their own article.
+            // Never auto-assign: the submitter, a user who no longer holds
+            // the section-editor role (stale Filament mapping), or — see
+            // syncAuthors() — a conflicted editor detected once the
+            // author list is synced (SPEC-02/BR-9).
             $sectionEditorId = Category::query()->whereKey($data['category_id'])->value('section_editor_id');
+            if ($sectionEditorId !== null && ! User::role('section-editor')->whereKey($sectionEditorId)->exists()) {
+                $sectionEditorId = null;
+            }
             $sectionEditorId = $sectionEditorId !== $submitter->id ? $sectionEditorId : null;
 
             $article = static::create([
@@ -1124,6 +1130,17 @@ class Article extends Model
 
         $this->authors()->sync($authors);
 
+        // A conflicted assigned editor (linked account or pivot-email
+        // match) is released back to the unassigned pool — same silent
+        // semantics as the auto-assign itself (SPEC-02/BR-9).
+        if ($this->editor_id !== null) {
+            $editor = User::find($this->editor_id);
+
+            if ($editor !== null && $this->isAuthoredBy($editor)) {
+                $this->update(['editor_id' => null]);
+            }
+        }
+
         // Delete previous coauthors that are no longer attached to any article
         if ($previousCoauthorIds->isNotEmpty()) {
             Author::whereIn('id', $previousCoauthorIds)
@@ -1363,7 +1380,12 @@ class Article extends Model
     /**
      * Whether the user is the submitter or a credited coauthor of
      * this article — the conflict-of-interest boundary for editorial
-     * and reviewer assignments.
+     * and reviewer assignments. Unclaimed listings count too: the
+     * pivot email snapshot (same proof claimFor() accepts) matches
+     * the account email, so an editor cannot act on a manuscript
+     * that lists them as author without claiming the invitation.
+     * Deny-side only — grants (view/discussions/notifications) stay
+     * gated on a claimed user_id link.
      */
     public function isAuthoredBy(User $user): bool
     {
@@ -1371,7 +1393,11 @@ class Article extends Model
             return true;
         }
 
-        return $this->authors()->where('user_id', $user->id)->exists();
+        return $this->authors()
+            ->where(fn ($query) => $query
+                ->where('authors.user_id', $user->id)
+                ->orWhereRaw('LOWER(article_author.email) = LOWER(?)', [$user->email]))
+            ->exists();
     }
 
     /**
