@@ -32,6 +32,11 @@ class SiteSettings extends Page
 
     public ?array $data = [];
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
+
     public function mount(): void
     {
         $this->form->fill([

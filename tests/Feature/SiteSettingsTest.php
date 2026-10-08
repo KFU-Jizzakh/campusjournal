@@ -55,6 +55,30 @@ test('admin cannot save an invalid social link', function () {
         ->assertHasFormErrors(['social_vk' => 'url']);
 });
 
+test('admin can view the site settings page', function () {
+    $this->actingAs(siteSettingsAdmin())
+        ->get('/admin/site-settings')
+        ->assertOk();
+});
+
+test('content-manager cannot view the site settings page', function () {
+    $contentManager = User::factory()->create();
+    $contentManager->assignRole('content-manager');
+
+    $this->actingAs($contentManager)
+        ->get('/admin/site-settings')
+        ->assertForbidden();
+});
+
+test('content-manager cannot save site settings', function () {
+    $contentManager = User::factory()->create();
+    $contentManager->assignRole('content-manager');
+
+    Livewire::actingAs($contentManager)
+        ->test(SiteSettings::class)
+        ->assertForbidden();
+});
+
 test('public site hides social links when settings are empty', function () {
     Setting::set('social_vk', null);
     Setting::set('social_telegram', null);

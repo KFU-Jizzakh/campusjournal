@@ -16,8 +16,8 @@ Status: IMPLEMENTED
 - AC-6: The content manager can create, edit, and delete Conferences — title, slug, description, body, dates, location, URL, and published toggle
 - AC-7: The content manager can create, edit, and delete Organisations — name, description, logo upload, website URL, and sort order
 - AC-8: The content manager does NOT see editorial navigation items: Articles, Issues, Categories, Authors, Reviews
-- AC-9: The content manager does NOT see administrative navigation items: Users, Copyright Agreements
-- AC-10: Navigating directly to a restricted resource URL (e.g. `/admin/articles`, `/admin/users`) returns a 403 Forbidden page
+- AC-9: The content manager does NOT see administrative navigation items: Users, Copyright Agreements, Site Settings
+- AC-10: Navigating directly to a restricted resource URL (e.g. `/admin/articles`, `/admin/users`, `/admin/site-settings`) returns a 403 Forbidden page
 - AC-11: Editor-in-chief and managing-editor cannot access `/admin` — they are redirected to the login page with an unauthorised message
 - AC-12: Admin retains full access to all Filament resources (editorial, content, and administrative)
 - AC-13: A user with both admin and content-manager roles retains full access (admin role overrides content-manager restrictions)
@@ -103,6 +103,14 @@ And   the "Пользователи" navigation item is not visible in the sideb
 Given the content manager is logged into `/admin`
 When  they navigate directly to `/admin/reviews`
 Then  they see a 403 Forbidden page
+
+#### Scenario: Content manager tries to access Site Settings
+
+Given the content manager is logged into `/admin`
+When  they navigate directly to `/admin/site-settings`
+Then  they see a 403 Forbidden page
+And   the "Настройки сайта" navigation item is not visible in the sidebar
+But   they cannot change `reviewer_self_registration`, the decision letter templates, or any other site setting
 
 ### Rule: Editorial Role Exclusion
 

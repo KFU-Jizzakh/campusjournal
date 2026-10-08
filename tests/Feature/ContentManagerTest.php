@@ -454,3 +454,11 @@ test('content-manager cannot access articles create page', function () {
         ->get('/admin/articles/create')
         ->assertForbidden();
 });
+
+test('content-manager cannot access site settings', function () {
+    $user = User::factory()->create()->assignRole('content-manager');
+
+    $this->actingAs($user)
+        ->get('/admin/site-settings')
+        ->assertForbidden();
+});

@@ -59,7 +59,8 @@ Notes:
 | `/dashboard/editorial/stats` (analytics) | Inside `manage-submissions`, additionally `publish-issue` (EiC / managing / admin) |
 | Filament panel (`/admin`) | `hasRole('admin')` **or** `manage-content` → admin and content-manager |
 | Filament — admin-only resources: Users, Articles, Reviews, Issues, Authors, Categories, Copyright Agreements, Outbox Events | `hasRole('admin')` |
-| Filament — ungated resources: Pages, Events, Conferences, Organizations, Site Settings | Anyone who can enter the panel (admin, content-manager) |
+| Filament — admin-only pages: Site Settings, System Health | `hasRole('admin')` — both guard `canAccess()`, so content-manager gets a 403 even by direct URL |
+| Filament — ungated resources: Pages, Events, Conferences, Organizations | Anyone who can enter the panel (admin, content-manager) |
 
 ## Row-level rules (policies)
 
