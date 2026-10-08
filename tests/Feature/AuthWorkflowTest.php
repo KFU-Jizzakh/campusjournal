@@ -18,6 +18,13 @@ test('login page is accessible and returns 200', function () {
     $response->assertSee('Войти');
 });
 
+test('login page links favicon assets', function () {
+    $this->get('/login')
+        ->assertOk()
+        ->assertSee('<link rel="icon" href="/favicon.svg" type="image/svg+xml">', false)
+        ->assertSee('<link rel="apple-touch-icon" href="/apple-touch-icon.png">', false);
+});
+
 // Test 2: User can login with valid credentials
 test('user can login with valid credentials', function () {
     // Create a test user

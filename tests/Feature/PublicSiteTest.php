@@ -17,6 +17,20 @@ test('home page loads successfully', function () {
     $this->get(route('home'))->assertOk();
 });
 
+test('public pages link favicon assets', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('<link rel="icon" href="/favicon.svg" type="image/svg+xml">', false)
+        ->assertSee('<link rel="icon" href="/favicon.ico" sizes="32x32">', false)
+        ->assertSee('<link rel="apple-touch-icon" href="/apple-touch-icon.png">', false);
+});
+
+test('favicon files exist and are not empty', function () {
+    foreach (['favicon.svg', 'favicon.ico', 'apple-touch-icon.png'] as $file) {
+        expect(filesize(public_path($file)))->toBeGreaterThan(0);
+    }
+});
+
 test('home page does not show planned issues', function () {
     $issue = Issue::factory()->create([
         'status' => 'planned',

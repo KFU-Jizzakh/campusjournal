@@ -24,6 +24,16 @@ test('admin can access filament panel', function () {
         ->assertOk();
 });
 
+test('admin panel links favicon', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $this->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('<link rel="icon" href="/favicon.svg"', false);
+});
+
 test('non-admin cannot access filament panel', function () {
     $user = User::factory()->create();
     $user->assignRole('author');

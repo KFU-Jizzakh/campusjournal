@@ -23,6 +23,16 @@ test('authenticated user can access dashboard', function () {
         ->assertOk();
 });
 
+test('dashboard links favicon assets', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('<link rel="icon" href="/favicon.svg" type="image/svg+xml">', false)
+        ->assertSee('<link rel="apple-touch-icon" href="/apple-touch-icon.png">', false);
+});
+
 test('dashboard shows users submitted articles', function () {
     $user = User::factory()->create();
     $user->assignRole('author');
