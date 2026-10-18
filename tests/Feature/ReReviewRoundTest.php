@@ -383,3 +383,32 @@ test('assigned reviewer of the round can download the response letter file', fun
         ->get(route('response-letters.file', $letter))
         ->assertOk();
 });
+
+// --- Round-aware production checklist (SPEC-25/BR-1) ---
+
+test('production checklist counts only completed reviews of the current round', function () {
+    $article = Article::factory()->inReview()->create(['current_round' => 2]);
+    Review::factory()->completed()->create([
+        'article_id' => $article->id,
+        'round' => 1,
+    ]);
+
+    // Round 1 completions do not count towards round 2 readiness.
+    $checklist = collect($article->productionChecklist());
+    $labels = $checklist->pluck('label');
+
+    expect($labels)->toContain(__('dashboard.checklist.reviews', ['count' => 0]))
+        ->and($labels)->not->toContain(__('dashboard.checklist.reviews', ['count' => 1]));
+
+    $reviewsItem = $checklist->first(fn (array $item) => $item['label'] === __('dashboard.checklist.reviews', ['count' => 0]));
+    expect($reviewsItem['done'])->toBeFalse();
+
+    Review::factory()->completed()->create([
+        'article_id' => $article->id,
+        'round' => 2,
+    ]);
+
+    $labels = collect($article->productionChecklist())->pluck('label');
+
+    expect($labels)->toContain(__('dashboard.checklist.reviews', ['count' => 1]));
+});

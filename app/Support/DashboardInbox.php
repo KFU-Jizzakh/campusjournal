@@ -441,15 +441,21 @@ class DashboardInbox
     }
 
     /**
-     * PURPOSE: Whether the article has at least one completed review.
+     * PURPOSE: Whether the article has at least one completed review
+     * of the CURRENT round — mirrors what Article::canBeDecided()
+     * counts, so the "make a decision" task never appears while the
+     * decision would be rejected for missing round reviews.
      * Uses the eager-loaded `reviews` collection (callers run
      * `->with('reviews')`) — avoids the per-article query that
      * `Article::canBeDecided()` would trigger inside lists.
+     *
+     * SPECIFICATION: SPEC-25/BR-1
      */
     public static function hasCompletedReview(Article $article): bool
     {
         return $article->reviews->contains(
             fn (Review $review) => $review->status === ReviewStatus::Completed
+                && (int) $review->round === (int) $article->current_round
         );
     }
 

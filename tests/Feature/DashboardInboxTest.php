@@ -330,3 +330,38 @@ test('countFor matches inbox count for editor with mixed workload', function () 
     expect(DashboardInbox::countFor($editor))
         ->toBe(DashboardInbox::for($editor)->count());
 });
+
+// --- Round-aware decision task (SPEC-25/BR-1) ---
+
+test('decision task appears only when the current round has a completed review', function () {
+    $eic = User::factory()->create();
+    $eic->assignRole('editor-in-chief');
+
+    $article = Article::factory()->inReview()->create([
+        'current_round' => 2,
+        'title' => 'Статья во втором раунде рецензирования',
+    ]);
+    Review::factory()->completed()->create([
+        'article_id' => $article->id,
+        'round' => 1,
+    ]);
+
+    // Round 1 is done, round 2 is not — no decision task yet, the
+    // watchlist keeps the in-review nag visible.
+    $this->actingAs($eic)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertDontSee('Требуется решение по рукописи')
+        ->assertSee('Рецензирование идёт');
+
+    Review::factory()->completed()->create([
+        'article_id' => $article->id,
+        'round' => 2,
+    ]);
+
+    $this->actingAs($eic)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Требуется решение по рукописи')
+        ->assertDontSee('Рецензирование идёт');
+});

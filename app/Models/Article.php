@@ -1510,7 +1510,9 @@ class Article extends Model
      */
     public function productionChecklist(): array
     {
-        $completedReviewsCount = $this->completedReviews()->count();
+        // Reviews of the current round only — the checklist mirrors the
+        // decision gate, which ignores completed reviews of past rounds.
+        $completedReviewsCount = $this->currentRoundCompletedReviews()->count();
         $doubleBlind = $this->review_type === ReviewType::DoubleBlind;
 
         $items = [
