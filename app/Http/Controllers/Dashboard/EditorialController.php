@@ -247,7 +247,9 @@ class EditorialController extends Controller
      * PURPOSE: Bulk-assigns one section editor to many submissions at
      * once. Articles that cannot take an editor (not in "submitted"
      * status) are skipped individually. Leadership only — mirrors the
-     * assignEditor policy.
+     * assignEditor policy, including its per-row conflict-of-interest
+     * check: a leadership user who authored an article cannot assign
+     * an editor to it, so such articles are skipped like any other.
      */
     public function bulkAssignEditor(Request $request)
     {
@@ -265,6 +267,12 @@ class EditorialController extends Controller
         $skipped = 0;
 
         foreach (Article::submitted()->whereIn('id', $data['article_ids'])->get() as $article) {
+            if (! $request->user()->can('assignEditor', $article)) {
+                $skipped++;
+
+                continue;
+            }
+
             try {
                 $article->assignEditor($editor);
                 $assigned++;
