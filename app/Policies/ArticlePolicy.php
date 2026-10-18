@@ -169,7 +169,11 @@ class ArticlePolicy
 
     /**
      * PURPOSE: Determine whether a user is allowed to download the
-     * article PDF (original or blinded depending on review type).
+     * article PDF (original) of a non-published manuscript: the
+     * submitter, credited coauthors, editorial staff, the assigned
+     * section editor, or a reviewer with an active assignment
+     * (declined and cancelled reviewers keep no access). The single
+     * gate behind ArticleController::pdf().
      *
      * SPECIFICATION: SPEC-05/AC-6, SPEC-05/BR-4
      */
@@ -179,7 +183,15 @@ class ArticlePolicy
             return true;
         }
 
-        if ($this->canManageWorkflow($user, $article)) {
+        if (! $article->isDraft() && $article->authors()->where('user_id', $user->id)->exists()) {
+            return true;
+        }
+
+        if ($user->hasAnyRole(['editor-in-chief', 'managing-editor', 'admin'])) {
+            return true;
+        }
+
+        if ($user->hasRole('section-editor') && $article->editor_id === $user->id) {
             return true;
         }
 

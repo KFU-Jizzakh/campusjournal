@@ -209,22 +209,14 @@ class ArticleController extends Controller
         abort_unless($article->pdf_path, 404);
 
         // Published articles are publicly accessible
-        // Non-published articles require the user to be an author (submitter
-        // or credited coauthor), an editor, or a reviewer with an active
-        // (non-declined, non-cancelled) review of the article
+        // Non-published articles are gated by ArticlePolicy::viewPdf —
+        // the submitter, credited coauthors, editorial staff, the
+        // assigned section editor, or a reviewer with an active
+        // (non-declined, non-cancelled) review
         if (! in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted])) {
             $user = auth()->user();
             abort_unless($user, 404);
-
-            $isAuthor = $article->authors()->where('user_id', $user->id)->exists();
-
-            $allowed = $article->submitted_by === $user->id
-                || ($isAuthor && ! $article->isDraft())
-                || $user->hasAnyRole(['editor-in-chief', 'managing-editor', 'admin'])
-                || ($user->hasRole('section-editor') && $article->editor_id === $user->id)
-                || $article->reviews()->where('reviewer_id', $user->id)->active()->exists();
-
-            abort_unless($allowed, 404);
+            abort_unless($user->can('viewPdf', $article), 404);
         }
 
         $disk = Storage::disk($article->pdf_disk);
