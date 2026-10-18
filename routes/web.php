@@ -154,7 +154,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/dashboard/editorial/{article}/corrections/{correction}', [EditorialController::class, 'destroyCorrection'])->name('editorial.corrections.destroy');
 
         // Discussions
-        Route::get('/dashboard/editorial/{article}/discussions', [DiscussionController::class, 'index'])->name('editorial.discussions.index');
         Route::post('/dashboard/editorial/{article}/discussions', [DiscussionController::class, 'store'])->name('editorial.discussions.store');
     });
 

@@ -23,26 +23,6 @@ use Illuminate\Http\Request;
  */
 class DiscussionController extends Controller
 {
-    public function index(Article $article, Request $request)
-    {
-        $this->authorize('viewEditorial', $article);
-
-        $user = $request->user();
-
-        $discussions = $article->discussions()
-            ->root()
-            ->with(['user.profile', 'replies.user.profile', 'review'])
-            ->latest()
-            ->paginate(20);
-
-        // Filter client-side by visibility — only show discussions the user can see
-        $discussions->setCollection(
-            $discussions->getCollection()->filter(fn ($d) => $d->isVisibleTo($user))
-        );
-
-        return view('dashboard.editorial.partials.discussions', compact('article', 'discussions'));
-    }
-
     public function store(Request $request, Article $article)
     {
         $validated = $request->validate([
