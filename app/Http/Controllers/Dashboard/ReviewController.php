@@ -77,7 +77,7 @@ class ReviewController extends Controller
             ->with('replies.user.profile', 'user.profile')
             ->latest()
             ->get();
-        $canDiscuss = app(DiscussionPolicy::class)->create($request->user(), $review->article, DiscussionScope::Editorial);
+        $canDiscuss = app(DiscussionPolicy::class)->create($request->user(), $review->article, DiscussionScope::Editorial, $review);
 
         return view('dashboard.reviews.show', compact('review', 'responseLetter', 'previousOwnReview', 'threads', 'canDiscuss'));
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\Discussion;
 use App\Models\OutboxEvent;
+use App\Models\Review;
 use App\Models\User;
 use App\Notifications\NewDiscussionMessage;
 use App\Notifications\NewDiscussionThread;
@@ -53,7 +54,19 @@ class DiscussionController extends Controller
 
         $scope = DiscussionScope::from($validated['scope']);
 
-        $this->authorizeCreate($request->user(), $article, $scope, $validated['parent_id'] ?? null);
+        // A reply inherits the visibility scope and review link from
+        // its parent thread (SPEC-06/BR-6) — the posted values are
+        // ignored for replies.
+        $parent = isset($validated['parent_id'])
+            ? Discussion::findOrFail($validated['parent_id'])
+            : null;
+
+        if ($parent) {
+            $scope = $parent->scope;
+            $validated['review_id'] = $parent->review_id;
+        }
+
+        $this->authorizeCreate($request->user(), $article, $scope, $parent, $validated['review_id'] ?? null);
 
         $discussion = Discussion::create([
             'article_id' => $article->id,
@@ -110,15 +123,29 @@ class DiscussionController extends Controller
         return back()->with('success', 'Обсуждение переоткрыто.');
     }
 
-    private function authorizeCreate(User $user, Article $article, DiscussionScope $scope, ?int $parentId): void
+    /**
+     * PURPOSE: Gates message creation. The review binding is resolved
+     * from the explicit review_id or inherited from the parent thread
+     * (BR-6) — it is what lets a reviewer write inside the editorial
+     * thread of their own active review, and nothing else.
+     */
+    private function authorizeCreate(User $user, Article $article, DiscussionScope $scope, ?Discussion $parent, ?int $reviewId): void
     {
-        if ($parentId) {
-            $parent = Discussion::findOrFail($parentId);
-            abort_unless(app(DiscussionPolicy::class)->view($user, $parent), 403);
-            abort_if($parent->is_resolved, 403, 'Нельзя отвечать в закрытое обсуждение.');
+        $review = null;
+
+        if ($reviewId !== null) {
+            $review = Review::findOrFail($reviewId);
+            abort_unless($review->article_id === $article->id, 403);
         }
 
-        abort_unless(app(DiscussionPolicy::class)->create($user, $article, $scope), 403);
+        if ($parent) {
+            abort_unless(app(DiscussionPolicy::class)->view($user, $parent), 403);
+            abort_if($parent->is_resolved, 403, 'Нельзя отвечать в закрытое обсуждение.');
+
+            $review ??= $parent->review;
+        }
+
+        abort_unless(app(DiscussionPolicy::class)->create($user, $article, $scope, $review), 403);
     }
 
     private function notifyParticipants(Discussion $discussion, User $author): void

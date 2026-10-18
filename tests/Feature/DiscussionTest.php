@@ -580,3 +580,152 @@ test('discussion site-only preference still dispatches notification', function (
 
     Notification::assertSentTo($author, NewDiscussionMessage::class);
 });
+
+// ==========================================
+// AC-3 / BR-4: Reviewer writes inside the thread bound to their active review
+// ==========================================
+
+test('reviewer with an active review can start a review-bound discussion', function () {
+    $reviewer = ($this->createReviewer)();
+
+    $article = Article::factory()->create(['status' => ArticleStatus::InReview]);
+
+    $review = Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::InProgress,
+    ]);
+
+    $this->actingAs($reviewer)
+        ->post(route('submissions.discussions.store', $article), [
+            'scope' => DiscussionScope::Editorial->value,
+            'review_id' => $review->id,
+            'message' => 'Вопрос по рукописи',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($article->discussions)->toHaveCount(1);
+    expect($article->discussions->first())
+        ->scope->toBe(DiscussionScope::Editorial)
+        ->review_id->toBe($review->id)
+        ->user_id->toBe($reviewer->id);
+});
+
+test('reviewer can reply in the thread bound to their review', function () {
+    $eic = ($this->createEic)();
+    $reviewer = ($this->createReviewer)();
+
+    $article = Article::factory()->create(['status' => ArticleStatus::InReview]);
+
+    $review = Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::InProgress,
+    ]);
+
+    $parent = Discussion::factory()->create([
+        'article_id' => $article->id,
+        'user_id' => $eic->id,
+        'scope' => DiscussionScope::Editorial,
+        'review_id' => $review->id,
+        'message' => 'Editor question',
+    ]);
+
+    $this->actingAs($reviewer)
+        ->post(route('submissions.discussions.store', $article), [
+            'scope' => DiscussionScope::Editorial->value,
+            'parent_id' => $parent->id,
+            'message' => 'Reviewer answer',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $reply = $article->discussions->where('parent_id', $parent->id)->first();
+
+    expect($reply)->not->toBeNull()
+        ->and($reply->review_id)->toBe($review->id)
+        ->and($reply->user_id)->toBe($reviewer->id);
+});
+
+test('reviewer cannot post an editorial message without a review binding', function () {
+    $reviewer = ($this->createReviewer)();
+
+    $article = Article::factory()->create(['status' => ArticleStatus::InReview]);
+
+    $this->actingAs($reviewer)
+        ->post(route('submissions.discussions.store', $article), [
+            'scope' => DiscussionScope::Editorial->value,
+            'message' => 'Без привязки к рецензии',
+        ])
+        ->assertForbidden();
+
+    expect($article->discussions)->toHaveCount(0);
+});
+
+test('reviewer cannot bind a review of another article', function () {
+    $reviewer = ($this->createReviewer)();
+
+    $article = Article::factory()->create(['status' => ArticleStatus::InReview]);
+    $otherArticle = Article::factory()->create(['status' => ArticleStatus::InReview]);
+
+    $review = Review::factory()->create([
+        'article_id' => $otherArticle->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::InProgress,
+    ]);
+
+    $this->actingAs($reviewer)
+        ->post(route('submissions.discussions.store', $article), [
+            'scope' => DiscussionScope::Editorial->value,
+            'review_id' => $review->id,
+            'message' => 'Чужая статья',
+        ])
+        ->assertForbidden();
+
+    expect($article->discussions)->toHaveCount(0);
+});
+
+test('reviewer with a declined review cannot write in the thread', function () {
+    $reviewer = ($this->createReviewer)();
+
+    $article = Article::factory()->create(['status' => ArticleStatus::InReview]);
+
+    $review = Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::Declined,
+    ]);
+
+    $this->actingAs($reviewer)
+        ->post(route('submissions.discussions.store', $article), [
+            'scope' => DiscussionScope::Editorial->value,
+            'review_id' => $review->id,
+            'message' => 'После отказа',
+        ])
+        ->assertForbidden();
+
+    expect($article->discussions)->toHaveCount(0);
+});
+
+test('reviewer cannot start an article-scope discussion', function () {
+    $reviewer = ($this->createReviewer)();
+
+    $article = Article::factory()->create(['status' => ArticleStatus::InReview]);
+
+    $review = Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::InProgress,
+    ]);
+
+    $this->actingAs($reviewer)
+        ->post(route('submissions.discussions.store', $article), [
+            'scope' => DiscussionScope::Article->value,
+            'review_id' => $review->id,
+            'message' => 'Общая видимость недоступна рецензенту',
+        ])
+        ->assertForbidden();
+
+    expect($article->discussions)->toHaveCount(0);
+});

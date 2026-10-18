@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Enums\DiscussionScope;
 use App\Models\Article;
 use App\Models\Discussion;
+use App\Models\Review;
 use App\Models\User;
 
 /**
@@ -42,13 +43,32 @@ class DiscussionPolicy
         return false;
     }
 
-    public function create(User $user, Article $article, DiscussionScope $scope): bool
+    /**
+     * PURPOSE: Who may start a discussion thread (or reply in one)
+     * on an article: leadership and the assigned section editor in
+     * any scope, the submitter in "article" scope, and a reviewer —
+     * only inside the editorial thread bound to their own ACTIVE
+     * review (declined/cancelled/finished reviewers cannot write).
+     *
+     * SPECIFICATION: SPEC-06/AC-1, SPEC-06/AC-3, SPEC-06/BR-4
+     */
+    public function create(User $user, Article $article, DiscussionScope $scope, ?Review $review = null): bool
     {
         if ($user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor'])) {
             return true;
         }
 
         if ($user->hasRole('section-editor') && $article->editor_id === $user->id) {
+            return true;
+        }
+
+        if (
+            $review !== null
+            && $scope === DiscussionScope::Editorial
+            && $review->article_id === $article->id
+            && $review->reviewer_id === $user->id
+            && $review->status->isActive()
+        ) {
             return true;
         }
 

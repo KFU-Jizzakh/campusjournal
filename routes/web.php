@@ -163,9 +163,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:submit-article|manage-submissions')
         ->name('editorial.download-copyedited-file');
 
-    // Author discussions (requires submit-article permission)
+    // Discussion messages (authorized via DiscussionPolicy: authors,
+    // editors, and reviewers writing inside the thread bound to their
+    // own active review)
+    Route::post('/dashboard/articles/{article}/discussions', [DiscussionController::class, 'store'])
+        ->middleware('permission:submit-article|review-article')
+        ->name('submissions.discussions.store');
+
+    // Author actions (requires submit-article permission)
     Route::middleware('permission:submit-article')->group(function () {
-        Route::post('/dashboard/articles/{article}/discussions', [DiscussionController::class, 'store'])->name('submissions.discussions.store');
         Route::post('/dashboard/articles/{article}/approve-galley', [SubmissionController::class, 'approveGalley'])->name('submissions.approve-galley');
         Route::post('/dashboard/articles/{article}/request-revision', [SubmissionController::class, 'requestGalleyRevision'])->name('submissions.request-revision');
         Route::post('/dashboard/articles/{article}/withdraw', [SubmissionController::class, 'withdraw'])->name('submissions.withdraw');

@@ -59,7 +59,7 @@ test('resolved threads hide the reply form from the submitter', function () {
 
 // --- Review page (reviewer surface) ---
 
-test('reviewer sees no message form on the review page', function () {
+test('reviewer with an active review sees the message form on the review page', function () {
     $reviewer = User::factory()->create();
     $reviewer->assignRole('reviewer');
 
@@ -72,7 +72,7 @@ test('reviewer sees no message form on the review page', function () {
     $this->actingAs($reviewer)
         ->get(route('reviews.show', $review))
         ->assertOk()
-        ->assertDontSee(route('submissions.discussions.store', $article));
+        ->assertSee(route('submissions.discussions.store', $article));
 });
 
 // --- Editorial page (editor surface) ---
