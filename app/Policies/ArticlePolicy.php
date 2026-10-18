@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Enums\ArticleStatus;
-use App\Enums\ReviewStatus;
 use App\Models\Article;
 use App\Models\User;
 
@@ -186,7 +185,7 @@ class ArticlePolicy
 
         return $article->reviews()
             ->where('reviewer_id', $user->id)
-            ->whereNot('status', ReviewStatus::Declined)
+            ->active()
             ->exists();
     }
 

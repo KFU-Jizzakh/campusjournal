@@ -47,11 +47,15 @@ class ReviewController extends Controller
 
         $review->load('article.category', 'article.responseLetters.uploader');
 
-        // The author's response letter for this review's round (visible on re-review).
-        $responseLetter = $review->article->responseLetters
-            ->where('round', $review->round)
-            ->sortByDesc('id')
-            ->first();
+        // The author's response letter for this review's round (visible on
+        // re-review) — only while the reviewer's assignment is active:
+        // declined and cancelled reviewers must not read it (SPEC-25/BR-4).
+        $responseLetter = $review->status->isActive()
+            ? $review->article->responseLetters
+                ->where('round', $review->round)
+                ->sortByDesc('id')
+                ->first()
+            : null;
 
         // The reviewer's own completed review from an earlier round.
         $previousOwnReview = $review->article->reviews()

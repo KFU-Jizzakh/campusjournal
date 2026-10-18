@@ -51,4 +51,21 @@ enum ReviewStatus: string
     {
         return in_array($target, $this->allowedTransitions());
     }
+
+    /**
+     * Statuses that count as an active reviewer assignment — the
+     * access boundary for manuscripts and response letters. Declined
+     * and cancelled reviewers keep no access.
+     *
+     * SPECIFICATION: SPEC-05/BR-4, SPEC-25/BR-4
+     */
+    public static function active(): array
+    {
+        return [self::Pending, self::InProgress, self::Completed];
+    }
+
+    public function isActive(): bool
+    {
+        return in_array($this, self::active(), true);
+    }
 }

@@ -8,7 +8,8 @@ use App\Models\User;
 /**
  * PURPOSE: Gates response-letter file downloads — editors see all
  * letters, the author (and credited coauthors) see their own, and a
- * reviewer sees the letter of the round they are assigned to.
+ * reviewer with an active review sees the letter of that round
+ * (declined and cancelled reviewers do not).
  *
  * SPECIFICATION: SPEC-25/BR-4
  */
@@ -29,6 +30,7 @@ class ResponseLetterPolicy
         return $article->reviews()
             ->where('reviewer_id', $user->id)
             ->where('round', $responseLetter->round)
+            ->active()
             ->exists();
     }
 }

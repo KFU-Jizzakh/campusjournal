@@ -66,6 +66,16 @@ class Review extends Model
     }
 
     /**
+     * Scope for reviews that count as an active reviewer assignment —
+     * declined and cancelled reviewers keep no access to manuscripts
+     * or response letters.
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', ReviewStatus::active());
+    }
+
+    /**
      * Scope for reviews that are overdue for submission
      */
     public function scopeOverdue($query)

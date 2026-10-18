@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ArticleStatus;
-use App\Enums\ReviewStatus;
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\Setting;
@@ -211,7 +210,8 @@ class ArticleController extends Controller
 
         // Published articles are publicly accessible
         // Non-published articles require the user to be an author (submitter
-        // or credited coauthor), an editor, or a reviewer of the article
+        // or credited coauthor), an editor, or a reviewer with an active
+        // (non-declined, non-cancelled) review of the article
         if (! in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted])) {
             $user = auth()->user();
             abort_unless($user, 404);
@@ -222,7 +222,7 @@ class ArticleController extends Controller
                 || ($isAuthor && ! $article->isDraft())
                 || $user->hasAnyRole(['editor-in-chief', 'managing-editor', 'admin'])
                 || ($user->hasRole('section-editor') && $article->editor_id === $user->id)
-                || $article->reviews()->where('reviewer_id', $user->id)->exists();
+                || $article->reviews()->where('reviewer_id', $user->id)->active()->exists();
 
             abort_unless($allowed, 404);
         }
@@ -249,7 +249,8 @@ class ArticleController extends Controller
      *
      * Access is restricted to authenticated users who are either:
      * - editorial staff (admin, EiC, ME, or assigned section editor), or
-     * - an assigned reviewer with an active (non-declined) review.
+     * - an assigned reviewer with an active (non-declined, non-cancelled)
+     *   review.
      *
      * The file is always served from the local (private) disk — never from
      * the public disk — so it cannot be discovered through URL guessing.
@@ -267,7 +268,7 @@ class ArticleController extends Controller
 
         $allowed = $user->hasAnyRole(['editor-in-chief', 'managing-editor', 'admin'])
             || ($user->hasRole('section-editor') && $article->editor_id === $user->id)
-            || $article->reviews()->where('reviewer_id', $user->id)->whereNot('status', ReviewStatus::Declined)->exists();
+            || $article->reviews()->where('reviewer_id', $user->id)->active()->exists();
 
         abort_unless($allowed, 404);
 
