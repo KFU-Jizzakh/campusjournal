@@ -488,21 +488,16 @@
         <div class="bg-white rounded-lg border border-gray-200 p-6">
             <h3 class="font-semibold text-gray-900 mb-4">Обсуждения</h3>
 
-            <form method="POST" action="{{ route('submissions.discussions.store', $article) }}" class="mb-6 p-4 bg-gray-50 rounded-lg">
-                @csrf
-                <input type="hidden" name="scope" value="article">
-                <textarea name="message" rows="2" required maxlength="5000"
-                    placeholder="Задать вопрос редактору..."
-                    class="block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm mb-2"></textarea>
-                <x-primary-button class="text-xs px-3 py-1">Отправить</x-primary-button>
-            </form>
-
-            @php
-                $visibleDiscussions = $article->discussions
-                    ->where('parent_id', null)
-                    ->filter(fn($d) => auth()->user() ? $d->isVisibleTo(auth()->user(), $article) : false)
-                    ->sortByDesc('created_at');
-            @endphp
+            @if($canDiscuss)
+                <form method="POST" action="{{ route('submissions.discussions.store', $article) }}" class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    @csrf
+                    <input type="hidden" name="scope" value="article">
+                    <textarea name="message" rows="2" required maxlength="5000"
+                        placeholder="Задать вопрос редактору..."
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm mb-2"></textarea>
+                    <x-primary-button class="text-xs px-3 py-1">Отправить</x-primary-button>
+                </form>
+            @endif
 
             @if($visibleDiscussions->isEmpty())
                 <p class="text-sm text-gray-400 text-center py-4">Нет обсуждений</p>
@@ -533,7 +528,7 @@
                                 </div>
                             @endif
 
-                            @if(!$thread->is_resolved)
+                            @if($thread->canReply)
                                 <form method="POST" action="{{ route('submissions.discussions.store', $article) }}" class="mt-3 flex items-start gap-2">
                                     @csrf
                                     <input type="hidden" name="parent_id" value="{{ $thread->id }}">

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\DiscussionScope;
 use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Policies\DiscussionPolicy;
 use App\Support\ReviewerStats;
 use Illuminate\Http\Request;
 
@@ -65,7 +67,19 @@ class ReviewController extends Controller
             ->orderByDesc('completed_at')
             ->first();
 
-        return view('dashboard.reviews.show', compact('review', 'responseLetter', 'previousOwnReview'));
+        // Discussion threads and the ability to post are precomputed so
+        // the view stays declarative — the message form is rendered only
+        // for users the discussion policy allows to create messages.
+        // The policy is invoked directly (like
+        // DiscussionController::authorizeCreate does) because Gate would
+        // resolve ArticlePolicy from the article argument.
+        $threads = $review->discussions()->root()
+            ->with('replies.user.profile', 'user.profile')
+            ->latest()
+            ->get();
+        $canDiscuss = app(DiscussionPolicy::class)->create($request->user(), $review->article, DiscussionScope::Editorial);
+
+        return view('dashboard.reviews.show', compact('review', 'responseLetter', 'previousOwnReview', 'threads', 'canDiscuss'));
     }
 
     public function update(Request $request, Review $review)

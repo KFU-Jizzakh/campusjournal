@@ -905,38 +905,31 @@
 
             {{-- Filter tabs --}}
             <div class="flex items-center gap-1 mb-4 border-b border-gray-200 pb-2">
-                @php $activeTab = request('tab', 'all'); @endphp
                 <a href="{{ url()->current() }}#discussions" class="text-xs px-3 py-1.5 rounded-t-md {{ $activeTab === 'all' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700' }}">Все</a>
                 <a href="{{ url()->current() }}?tab=article#discussions" class="text-xs px-3 py-1.5 rounded-t-md {{ $activeTab === 'article' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700' }}">Общие</a>
                 <a href="{{ url()->current() }}?tab=editorial#discussions" class="text-xs px-3 py-1.5 rounded-t-md {{ $activeTab === 'editorial' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700' }}">Редакционные</a>
             </div>
 
             {{-- New thread form --}}
-            <form method="POST" action="{{ route('editorial.discussions.store', $article) }}" class="mb-6 p-4 bg-gray-50 rounded-lg">
-                @csrf
-                <div>
-                    <textarea name="message" rows="2" required maxlength="5000"
-                        placeholder="Новое сообщение..."
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm"></textarea>
-                </div>
-                <div class="flex items-center justify-between mt-2">
-                    <select name="scope" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary">
-                        <option value="article">Общее</option>
-                        <option value="editorial">Редакционное</option>
-                    </select>
-                    <x-primary-button class="text-xs px-3 py-1">Отправить</x-primary-button>
-                </div>
-            </form>
+            @if($canDiscuss)
+                <form method="POST" action="{{ route('editorial.discussions.store', $article) }}" class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    @csrf
+                    <div>
+                        <textarea name="message" rows="2" required maxlength="5000"
+                            placeholder="Новое сообщение..."
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm"></textarea>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <select name="scope" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary">
+                            <option value="article">Общее</option>
+                            <option value="editorial">Редакционное</option>
+                        </select>
+                        <x-primary-button class="text-xs px-3 py-1">Отправить</x-primary-button>
+                    </div>
+                </form>
+            @endif
 
             {{-- Threads list --}}
-            @php
-                $visibleDiscussions = $article->discussions
-                    ->where('parent_id', null)
-                    ->filter(fn($d) => $d->isVisibleTo(auth()->user(), $article))
-                    ->when($activeTab !== 'all', fn($c) => $c->filter(fn($d) => $d->scope->value === $activeTab))
-                    ->sortByDesc('created_at');
-            @endphp
-
             @if($visibleDiscussions->isEmpty())
                 <p class="text-sm text-gray-400 text-center py-4">Нет обсуждений</p>
             @else
@@ -987,7 +980,7 @@
                             @endif
 
                             {{-- Reply form --}}
-                            @if(!$thread->is_resolved)
+                            @if($thread->canReply)
                                 <form method="POST" action="{{ route('editorial.discussions.store', $article) }}" class="mt-3 flex items-start gap-2">
                                     @csrf
                                     <input type="hidden" name="parent_id" value="{{ $thread->id }}">

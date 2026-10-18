@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\Country;
+use App\Enums\DiscussionScope;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\Author;
@@ -11,6 +12,7 @@ use App\Models\CopyrightAgreement;
 use App\Models\User;
 use App\Notifications\AuthorSubmissionReceived;
 use App\Notifications\InvitationNotification;
+use App\Policies\DiscussionPolicy;
 use App\Rules\ClaimableOrcid;
 use App\Rules\Orcid;
 use Illuminate\Http\Request;
@@ -150,16 +152,31 @@ class SubmissionController extends Controller
 
         $article->load('authors', 'category', 'reviews', 'responseLetters.uploader', 'references', 'discussions.article', 'discussions.user.profile', 'discussions.replies.user.profile', 'latestAgreement.agreement');
 
+        $user = $request->user();
+
         $article->discussions
-            ->filter(fn ($d) => $d->isVisibleTo($request->user(), $article))
-            ->each(function ($d) use ($request) {
-                $d->wasUnread = $d->isUnreadBy($request->user());
-                $d->readBy($request->user());
+            ->filter(fn ($d) => $d->isVisibleTo($user, $article))
+            ->each(function ($d) use ($user) {
+                $d->wasUnread = $d->isUnreadBy($user);
+                $d->readBy($user);
             });
+
+        // Threads and form visibility are precomputed so the view stays
+        // declarative: coauthors can read threads but cannot start or
+        // reply to them — DiscussionPolicy::create allows the submitter
+        // (and editors) only. The policy is invoked directly (like
+        // DiscussionController::authorizeCreate does) because Gate would
+        // resolve ArticlePolicy from the article argument.
+        $canDiscuss = app(DiscussionPolicy::class)->create($user, $article, DiscussionScope::Article);
+        $visibleDiscussions = $article->discussions
+            ->where('parent_id', null)
+            ->filter(fn ($d) => $d->isVisibleTo($user, $article))
+            ->sortByDesc('created_at')
+            ->each(fn ($d) => $d->canReply = $canDiscuss && ! $d->is_resolved);
 
         $timelineSteps = $article->workflowSteps();
 
-        return view('dashboard.articles.show', compact('article', 'timelineSteps'));
+        return view('dashboard.articles.show', compact('article', 'timelineSteps', 'visibleDiscussions', 'canDiscuss'));
     }
 
     public function edit(Request $request, Article $article)

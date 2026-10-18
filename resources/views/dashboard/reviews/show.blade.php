@@ -141,10 +141,6 @@
             <div class="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 class="font-semibold text-gray-900 mb-3">Обсуждение с редактором</h3>
 
-                @php
-                    $threads = $review->discussions()->root()->with('replies.user.profile', 'user.profile')->latest()->get();
-                @endphp
-
                 @if($threads->isNotEmpty())
                     <div class="space-y-4 mb-4">
                         @foreach($threads as $thread)
@@ -173,15 +169,17 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('submissions.discussions.store', $review->article) }}" class="flex items-start gap-2">
-                    @csrf
-                    <input type="hidden" name="scope" value="editorial">
-                    <input type="hidden" name="review_id" value="{{ $review->id }}">
-                    <textarea name="message" rows="2" required maxlength="5000"
-                        placeholder="Сообщение редактору..."
-                        class="flex-1 border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm"></textarea>
-                    <x-primary-button class="text-xs px-3 py-1">Отправить</x-primary-button>
-                </form>
+                @if($canDiscuss)
+                    <form method="POST" action="{{ route('submissions.discussions.store', $review->article) }}" class="flex items-start gap-2">
+                        @csrf
+                        <input type="hidden" name="scope" value="editorial">
+                        <input type="hidden" name="review_id" value="{{ $review->id }}">
+                        <textarea name="message" rows="2" required maxlength="5000"
+                            placeholder="Сообщение редактору..."
+                            class="flex-1 border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary text-sm"></textarea>
+                        <x-primary-button class="text-xs px-3 py-1">Отправить</x-primary-button>
+                    </form>
+                @endif
             </div>
         @endif
     </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Enums\ArticleStatus;
+use App\Enums\DiscussionScope;
 use App\Enums\ReviewType;
 use App\Http\Controllers\Controller;
 use App\Jobs\DepositArticleToCrossref;
@@ -14,6 +15,7 @@ use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\Review;
 use App\Models\User;
+use App\Policies\DiscussionPolicy;
 use App\Services\Doi\DoiMinter;
 use App\Support\DashboardInbox;
 use App\Support\DecisionLetter;
@@ -144,8 +146,21 @@ class EditorialController extends Controller
                 $d->readBy($user);
             });
 
+        // Discussion tab, threads and form visibility are precomputed so
+        // the view stays declarative. The policy is invoked directly
+        // (like DiscussionController::authorizeCreate does) because Gate
+        // would resolve ArticlePolicy from the article argument.
+        $activeTab = $request->input('tab', 'all');
+        $canDiscuss = app(DiscussionPolicy::class)->create($user, $article, DiscussionScope::Editorial);
+        $visibleDiscussions = $article->discussions
+            ->where('parent_id', null)
+            ->filter(fn ($d) => $d->isVisibleTo($user, $article))
+            ->when($activeTab !== 'all', fn ($threads) => $threads->filter(fn ($d) => $d->scope->value === $activeTab))
+            ->sortByDesc('created_at')
+            ->each(fn ($d) => $d->canReply = $canDiscuss && ! $d->is_resolved);
+
         return view('dashboard.editorial.show', compact(
-            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'decisionTemplates', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections', 'responseLettersByRound', 'canManage'
+            'article', 'issues', 'editorOptions', 'reviewerOptions', 'timelineSteps', 'decisionTemplates', 'showAssignEditor', 'showPublish', 'showGalleyUpload', 'showWithdraw', 'showRetract', 'showCorrections', 'responseLettersByRound', 'canManage', 'visibleDiscussions', 'activeTab', 'canDiscuss'
         ));
     }
 
