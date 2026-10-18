@@ -106,3 +106,79 @@ test('short titles skip the duplicate check', function () {
 
     expect(Article::where('title', 'Введение')->count())->toBe(2);
 });
+
+// --- The confirming request reuses the parked PDF ---
+// File inputs are not repopulated by the warning redirect, so the
+// first attempt's upload must survive until confirmation.
+
+test('confirming a duplicate warning submits without re-attaching the pdf', function () {
+    $author = User::factory()->create();
+    $author->assignRole('author');
+
+    Article::factory()->submitted()->create([
+        'title' => 'Методы машинного обучения в образовании',
+    ]);
+
+    // Step 1: first attempt carries the file and triggers the warning.
+    submitAs($author, ['title' => 'Методы машинного обучения в образовании'])
+        ->assertSessionHas('warning');
+
+    expect(Article::where('title', 'Методы машинного обучения в образовании')->count())->toBe(1);
+
+    // Step 2: the confirming request sends no file — the parked
+    // upload is reused.
+    $payload = submitPayload([
+        'title' => 'Методы машинного обучения в образовании',
+        'duplicate_acknowledged' => '1',
+    ]);
+    unset($payload['pdf_file']);
+
+    test()->actingAs($author)
+        ->post(route('submissions.store'), $payload)
+        ->assertRedirect(route('submissions.show', Article::latest('id')->first()));
+
+    $article = Article::where('submitted_by', $author->id)->firstOrFail();
+
+    expect($article->pdf_path)->toStartWith('submissions/')
+        ->and(Article::where('title', 'Методы машинного обучения в образовании')->count())->toBe(2);
+
+    Storage::disk('local')->assertExists($article->pdf_path);
+});
+
+test('parked pdf is not reused for a different title', function () {
+    $author = User::factory()->create();
+    $author->assignRole('author');
+
+    Article::factory()->submitted()->create([
+        'title' => 'Методы машинного обучения в образовании',
+    ]);
+
+    submitAs($author, ['title' => 'Методы машинного обучения в образовании'])
+        ->assertSessionHas('warning');
+
+    $payload = submitPayload([
+        'title' => 'Другое уникальное название рукописи',
+        'duplicate_acknowledged' => '1',
+    ]);
+    unset($payload['pdf_file']);
+
+    test()->actingAs($author)
+        ->post(route('submissions.store'), $payload)
+        ->assertSessionHasErrors('pdf_file');
+
+    expect(Article::where('title', 'Другое уникальное название рукописи')->exists())->toBeFalse();
+});
+
+test('submission without a pdf file is still rejected', function () {
+    $author = User::factory()->create();
+    $author->assignRole('author');
+
+    $payload = submitPayload(['title' => 'Совершенно уникальное название работы']);
+    unset($payload['pdf_file']);
+
+    test()->actingAs($author)
+        ->post(route('submissions.store'), $payload)
+        ->assertSessionHasErrors('pdf_file');
+
+    expect(Article::where('submitted_by', $author->id)->exists())->toBeFalse();
+});

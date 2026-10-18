@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +30,14 @@ use Illuminate\Validation\ValidationException;
  */
 class SubmissionController extends Controller
 {
+    /**
+     * Session key holding the manuscript PDF parked by the
+     * duplicate-warning redirect: file inputs cannot be repopulated
+     * by withInput(), so the first attempt's upload is reused when
+     * the author confirms the submission.
+     */
+    private const PENDING_PDF_KEY = 'submission.pending_pdf';
+
     public function create(Request $request)
     {
         $categories = Category::orderBy('sort_order')->get();
@@ -47,7 +56,17 @@ class SubmissionController extends Controller
             'abstract_en' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
             'keywords' => 'nullable|string|max:1000',
-            'pdf_file' => 'required|file|mimetypes:application/pdf|max:51200',
+            // Required on a first attempt, but nullable when confirming
+            // the duplicate warning: the warning redirect cannot
+            // repopulate a file input, so the confirming request may
+            // legitimately carry no file — see resolveSubmissionPdf(),
+            // which still rejects a missing PDF.
+            'pdf_file' => [
+                Rule::requiredIf(! $request->boolean('duplicate_acknowledged')),
+                'file',
+                'mimetypes:application/pdf',
+                'max:51200',
+            ],
             ...$this->authorRules($request->user()),
             'references' => 'nullable|string|max:10000',
             ...$this->fundingRules(),
@@ -59,13 +78,17 @@ class SubmissionController extends Controller
         $duplicates = $this->findDuplicateTitles($validated['title']);
 
         if ($duplicates->isNotEmpty() && ! $request->boolean('duplicate_acknowledged')) {
+            if ($request->file('pdf_file')) {
+                $this->rememberPendingSubmissionPdf($request, $validated['title']);
+            }
+
             return back()
                 ->withInput()
                 ->with('warning', __('dashboard.duplicate_warning'))
                 ->with('duplicates', $duplicates->all());
         }
 
-        $pdfPath = $request->file('pdf_file')->store('submissions', 'local');
+        $pdfPath = $this->resolveSubmissionPdf($request, $validated['title']);
 
         $keywords = ! empty($validated['keywords'])
             ? array_map('trim', explode(',', $validated['keywords']))
@@ -461,5 +484,64 @@ class SubmissionController extends Controller
         $lower = mb_strtolower($title);
 
         return trim((string) preg_replace('/\s+/u', ' ', (string) preg_replace('/[^\p{L}\p{N}]+/u', ' ', $lower)));
+    }
+
+    /**
+     * Park the uploaded manuscript PDF in the session so the request
+     * confirming the duplicate warning can reuse it — file inputs are
+     * not repopulated by withInput(). The title guard prevents a
+     * parked upload from an abandoned attempt being attached to a
+     * different manuscript.
+     */
+    private function rememberPendingSubmissionPdf(Request $request, string $title): void
+    {
+        $previous = $request->session()->get(self::PENDING_PDF_KEY);
+
+        if (is_array($previous) && ! empty($previous['path'])) {
+            Storage::disk('local')->delete($previous['path']);
+        }
+
+        $request->session()->put(self::PENDING_PDF_KEY, [
+            'title' => $title,
+            'path' => $request->file('pdf_file')->store('submissions-pending', 'local'),
+        ]);
+    }
+
+    /**
+     * Resolve the manuscript PDF for the submission being stored: a
+     * freshly uploaded file wins; otherwise the copy parked by the
+     * duplicate-warning redirect is promoted from its pending
+     * location. Throws a validation error when neither exists.
+     */
+    private function resolveSubmissionPdf(Request $request, string $title): string
+    {
+        if ($request->file('pdf_file')) {
+            $this->forgetPendingSubmissionPdf($request);
+
+            return $request->file('pdf_file')->store('submissions', 'local');
+        }
+
+        $pending = $request->session()->pull(self::PENDING_PDF_KEY, []);
+
+        if (is_array($pending) && ($pending['title'] ?? null) === $title && ! empty($pending['path'])) {
+            $path = 'submissions/'.Str::random(40).'.pdf';
+
+            Storage::disk('local')->move($pending['path'], $path);
+
+            return $path;
+        }
+
+        throw ValidationException::withMessages([
+            'pdf_file' => __('validation.required', ['attribute' => 'pdf_file']),
+        ]);
+    }
+
+    private function forgetPendingSubmissionPdf(Request $request): void
+    {
+        $pending = $request->session()->pull(self::PENDING_PDF_KEY, []);
+
+        if (is_array($pending) && ! empty($pending['path'])) {
+            Storage::disk('local')->delete($pending['path']);
+        }
     }
 }
