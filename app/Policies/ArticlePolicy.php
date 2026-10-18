@@ -269,13 +269,17 @@ class ArticlePolicy
     }
 
     /**
-     * PURPOSE: Authorise retracting a published article.
+     * PURPOSE: Authorise retracting a published article — leadership
+     * only, and subject to the conflict-of-interest boundary: an EiC
+     * or managing editor who authored the manuscript cannot retract
+     * it themselves (the admin override in canManageWorkflow stands).
      *
      * SPECIFICATION: SPEC-16/BR-2
      */
     public function retract(User $user, Article $article): bool
     {
-        return $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
+        return $this->canManageWorkflow($user, $article)
+            && $user->hasAnyRole(['admin', 'editor-in-chief', 'managing-editor']);
     }
 
     /**
