@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Mail;
 /**
  * PURPOSE: Sends email reminders to reviewers with overdue
  * response or approaching/overdue review deadlines.
- *
- * SPECIFICATION: SPEC-02/AC-3, SPEC-03/AC-2
  */
 class SendReviewReminders extends Command
 {
@@ -101,7 +99,6 @@ class SendReviewReminders extends Command
         try {
             Mail::to($review->reviewer->email)->queue(new ReviewReminderMailable($review, $isResponseReminder));
 
-            // Update reminded_at timestamp
             $review->update(['reminded_at' => now()]);
 
             $this->info("Sent reminder to {$review->reviewer->email} for review {$review->id}");

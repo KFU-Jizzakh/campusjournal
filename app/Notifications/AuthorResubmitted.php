@@ -13,8 +13,6 @@ use Illuminate\Notifications\Notification;
  * PURPOSE: In-app and email notification sent to the editor
  * when the author resubmits the article after a revision
  * request.
- *
- * SPECIFICATION: SPEC-01/AC-7
  */
 class AuthorResubmitted extends Notification implements ShouldQueue
 {

@@ -17,8 +17,6 @@ use Intervention\Image\ImageManager;
  * PURPOSE: Handles upload, download, and deletion of
  * supplementary files with type, visibility, and license
  * metadata; generates thumbnails for images.
- *
- * SPECIFICATION: SPEC-07/AC-1, SPEC-07/AC-2, SPEC-07/AC-6, SPEC-07/AC-7
  */
 class ArticleFileController extends Controller
 {

@@ -12,8 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * copyright agreement version at the time of article submission,
  * preserving the version reference, timestamp, IP address, and
  * accepting user for audit trail.
- *
- * SPECIFICATION: SPEC-14/AC-3, SPEC-14/BR-2, SPEC-14/BR-3, SPEC-14/BR-4
  */
 #[WithoutTimestamps]
 #[Fillable(['article_id', 'copyright_agreement_id', 'accepted_by', 'accepted_ip'])]

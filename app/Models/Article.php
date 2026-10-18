@@ -57,8 +57,6 @@ use Illuminate\Support\Facades\Storage;
  * PURPOSE: Core editorial workflow entity representing a submitted
  * manuscript, managing the full lifecycle from draft through peer
  * review, decision, copyediting, production, and publication.
- *
- * SPECIFICATION: SPEC-01/AC-1, SPEC-01/AC-7, SPEC-01/BR-1, SPEC-01/BR-2, SPEC-01/BR-3, SPEC-01/BR-4, SPEC-01/BR-5, SPEC-01/BR-6, SPEC-01/BR-7, SPEC-02/BR-6, SPEC-04/BR-1, SPEC-04/BR-5, SPEC-05/BR-1, SPEC-05/BR-2, SPEC-05/BR-3, SPEC-05/BR-4, SPEC-13/BR-1, SPEC-13/BR-2, SPEC-13/BR-3, SPEC-15/AC-2, SPEC-15/AC-4, SPEC-15/BR-1, SPEC-15/BR-2, SPEC-15/BR-3, SPEC-15/BR-4, SPEC-15/BR-5, SPEC-16/BR-1, SPEC-16/BR-2, SPEC-16/BR-3, SPEC-17/BR-1, SPEC-25/BR-1, SPEC-25/BR-2, SPEC-25/BR-3, SPEC-25/BR-4
  */
 #[Fillable(['title', 'abstract_ru', 'abstract_en', 'body', 'doi', 'keywords', 'funding', 'pages', 'first_page', 'last_page', 'views_count', 'downloads_count', 'pdf_path', 'blinded_pdf_path', 'blinded_at', 'blinded_by', 'status', 'review_type', 'current_round', 'issue_id', 'category_id', 'submitted_by', 'submitted_at', 'published_at', 'doi_registered_at', 'editor_id', 'decision', 'decision_comments', 'decided_at', 'decided_by', 'copyedited_at', 'copyedited_by', 'copyedited_file_path', 'copyedited_file_uploaded_at', 'copyedited_file_uploaded_by', 'production_at', 'production_by', 'galley_pdf_path', 'galley_uploaded_at', 'galley_uploaded_by', 'galley_sent_at', 'galley_sent_by', 'galley_approved_at', 'galley_approved_by', 'withdrawal_reason', 'withdrawn_at', 'retraction_reason', 'retracted_at'])]
 class Article extends Model
@@ -93,8 +91,6 @@ class Article extends Model
      * PURPOSE: Guard the public visibility invariant — a published
      * or retracted article cannot be saved against an issue that
      * has not been published.
-     *
-     * SPECIFICATION: SPEC-24/BR-1
      */
     protected static function booted(): void
     {
@@ -137,8 +133,6 @@ class Article extends Model
 
     /**
      * The user who uploaded the anonymised manuscript for double-blind review.
-     *
-     * SPECIFICATION: SPEC-05/AC-3, SPEC-05/AC-4
      */
     public function blindedBy(): BelongsTo
     {
@@ -158,8 +152,6 @@ class Article extends Model
     /**
      * The user who uploaded the corrected manuscript file
      * during the Copyediting stage.
-     *
-     * SPECIFICATION: SPEC-04/AC-4a
      */
     public function copyeditedFileUploadedBy(): BelongsTo
     {
@@ -173,8 +165,6 @@ class Article extends Model
 
     /**
      * The user who uploaded the typeset galley PDF.
-     *
-     * SPECIFICATION: SPEC-13/AC-1
      */
     public function galleyUploadedBy(): BelongsTo
     {
@@ -183,8 +173,6 @@ class Article extends Model
 
     /**
      * The user who sent the galley proof to the author.
-     *
-     * SPECIFICATION: SPEC-13/AC-1
      */
     public function galleySentBy(): BelongsTo
     {
@@ -193,8 +181,6 @@ class Article extends Model
 
     /**
      * The user (author) who approved the galley proof.
-     *
-     * SPECIFICATION: SPEC-13/AC-4
      */
     public function galleyApprovedBy(): BelongsTo
     {
@@ -203,8 +189,6 @@ class Article extends Model
 
     /**
      * Galley revision request records, newest first.
-     *
-     * SPECIFICATION: SPEC-13/BR-3
      */
     public function galleyRevisions(): HasMany
     {
@@ -226,8 +210,6 @@ class Article extends Model
     /**
      * Author response letters submitted with revision resubmissions,
      * ordered by review round.
-     *
-     * SPECIFICATION: SPEC-25/AC-2
      */
     public function responseLetters(): HasMany
     {
@@ -247,8 +229,6 @@ class Article extends Model
     /**
      * Post-publication corrections: corrigenda, errata,
      * and expressions of concern.
-     *
-     * SPECIFICATION: SPEC-16/AC-4, SPEC-16/BR-6
      */
     public function corrections(): HasMany
     {
@@ -267,8 +247,6 @@ class Article extends Model
 
     /**
      * Joined raw reference texts for pre-filling the dashboard textarea.
-     *
-     * SPECIFICATION: SPEC-15/BR-6
      */
     public function getReferencesTextAttribute(): string
     {
@@ -285,9 +263,7 @@ class Article extends Model
     /**
      * Copyright agreement acceptance records for this article,
      * newest first. Multiple records exist when an article is
-     * resubmitted after revision (BR-2).
-     *
-     * SPECIFICATION: SPEC-14/AC-3, SPEC-14/BR-2, SPEC-14/BR-4
+     * resubmitted after revision.
      */
     public function agreements(): HasMany
     {
@@ -296,8 +272,6 @@ class Article extends Model
 
     /**
      * Most recent copyright agreement acceptance record.
-     *
-     * SPECIFICATION: SPEC-14/AC-4
      */
     public function latestAgreement(): HasOne
     {
@@ -307,8 +281,6 @@ class Article extends Model
     /**
      * The license under which the article is published,
      * derived from the latest accepted CopyrightAgreement.
-     *
-     * SPECIFICATION: SPEC-14/AC-6, SPEC-14/BR-5
      */
     public function publicationLicense(): ?ArticleFileLicense
     {
@@ -318,8 +290,6 @@ class Article extends Model
     /**
      * Record acceptance of the given copyright agreement version
      * by the specified user from the given IP address.
-     *
-     * SPECIFICATION: SPEC-14/AC-3, SPEC-14/BR-1, SPEC-14/BR-2
      */
     public function saveAgreement(CopyrightAgreement $agreement, User $user, string $ip): ArticleAgreement
     {
@@ -367,8 +337,6 @@ class Article extends Model
 
     /**
      * Validate and perform a status transition.
-     *
-     * SPECIFICATION: SPEC-01/BR-5, SPEC-04/BR-5
      */
     public function transitionTo(ArticleStatus $target): void
     {
@@ -382,8 +350,6 @@ class Article extends Model
     /**
      * Create a new article submission from the given data,
      * attach the submitter, and transition to Submitted status.
-     *
-     * SPECIFICATION: SPEC-01/AC-1
      */
     public static function submit(User $submitter, array $data): static
     {
@@ -393,7 +359,7 @@ class Article extends Model
             // Never auto-assign: the submitter, a user who no longer holds
             // the section-editor role (stale Filament mapping), or — see
             // syncAuthors() — a conflicted editor detected once the
-            // author list is synced (SPEC-02/BR-9).
+            // author list is synced.
             $sectionEditorId = Category::query()->whereKey($data['category_id'])->value('section_editor_id');
             if ($sectionEditorId !== null && ! User::role('section-editor')->whereKey($sectionEditorId)->exists()) {
                 $sectionEditorId = null;
@@ -423,8 +389,6 @@ class Article extends Model
      * Resubmit after a revision request — clear decision fields
      * and transition back to Submitted status.
      * Notifies the assigned editor that the author resubmitted.
-     *
-     * SPECIFICATION: SPEC-01/AC-7, SPEC-01/BR-5
      */
     public function revise(array $data): void
     {
@@ -484,8 +448,6 @@ class Article extends Model
     /**
      * Update article data, automatically handling revision
      * resubmission when in Revision status.
-     *
-     * SPECIFICATION: SPEC-01/BR-5, SPEC-01/BR-6
      */
     public function updateOrRevise(array $data): void
     {
@@ -498,8 +460,6 @@ class Article extends Model
 
     /**
      * Assign a section editor to the article (must be in Submitted status).
-     *
-     * SPECIFICATION: SPEC-02/AC-2, SPEC-02/BR-1, SPEC-02/BR-2, SPEC-02/BR-3
      */
     public function assignEditor(User $editor): void
     {
@@ -529,8 +489,6 @@ class Article extends Model
     /**
      * Assign a reviewer to the article with response and review
      * deadlines; transition article to InReview if Submitted.
-     *
-     * SPECIFICATION: SPEC-02/AC-3, SPEC-02/BR-4, SPEC-02/BR-5, SPEC-02/BR-6, SPEC-02/BR-7, SPEC-02/BR-8, SPEC-05/BR-2
      */
     public function assignReviewer(User $reviewer, User $assignedBy): Review
     {
@@ -551,7 +509,7 @@ class Article extends Model
             }
 
             // Guard: double-blind requires an anonymised PDF before reviewers can be assigned.
-            // Prevents author identity exposure through the manuscript file. SPECIFICATION: SPEC-05/BR-2
+            // Prevents author identity exposure through the manuscript file. SPECIFICATION:
             if ($lockedArticle->review_type === ReviewType::DoubleBlind && ! $lockedArticle->blinded_pdf_path) {
                 throw new MissingBlindedPdfException;
             }
@@ -626,8 +584,6 @@ class Article extends Model
     /**
      * Make an editorial decision (accept/revision/reject).
      * Requires at least one completed review.
-     *
-     * SPECIFICATION: SPEC-04/AC-2, SPEC-04/BR-1
      */
     public function decide(string $decision, string $comments, User $decidedBy): void
     {
@@ -672,8 +628,6 @@ class Article extends Model
 
     /**
      * Transition the article from Accepted to Copyediting status.
-     *
-     * SPECIFICATION: SPEC-04/AC-4, SPEC-04/BR-5
      */
     public function sendToCopyediting(User $actor): void
     {
@@ -707,8 +661,6 @@ class Article extends Model
     /**
      * Upload a corrected manuscript file during the Copyediting stage,
      * replacing any previously uploaded version.
-     *
-     * SPECIFICATION: SPEC-04/AC-4, SPEC-04/AC-4a
      */
     public function uploadCopyeditedFile(User $actor, string $filePath): void
     {
@@ -740,8 +692,6 @@ class Article extends Model
 
     /**
      * Delete the corrected manuscript file uploaded during Copyediting.
-     *
-     * SPECIFICATION: SPEC-04/AC-4a
      */
     public function deleteCopyeditedFile(User $actor): void
     {
@@ -771,8 +721,6 @@ class Article extends Model
 
     /**
      * Transition the article from Copyediting to Production status.
-     *
-     * SPECIFICATION: SPEC-04/AC-5, SPEC-04/BR-4a, SPEC-04/BR-5
      */
     public function sendToProduction(User $actor): void
     {
@@ -810,10 +758,8 @@ class Article extends Model
     /**
      * Publish the article — assign to an issue, set published_at,
      * mint and persist a DOI if none exists, and transition to
-     * Published status. Requires prior author galley approval (BR-1)
-     * and a published issue (SPEC-24/BR-1).
-     *
-     * SPECIFICATION: SPEC-04/AC-6, SPEC-04/BR-6, SPEC-04/BR-7, SPEC-13/BR-1, SPEC-08/AC-2, SPEC-08/BR-2a, SPEC-24/BR-1
+     * Published status. Requires prior author galley approval
+     * and a published issue.
      */
     public function publish(Issue $issue): void
     {
@@ -859,8 +805,6 @@ class Article extends Model
 
     /**
      * Send the uploaded galley proof to the author for final approval.
-     *
-     * SPECIFICATION: SPEC-13/AC-1, SPEC-13/AC-2, SPEC-13/BR-3
      */
     public function sendGalleyToAuthor(User $actor): void
     {
@@ -899,8 +843,6 @@ class Article extends Model
     /**
      * Approve the galley proof, unblocking publication.
      * Notifies the editor that the author approved the galley.
-     *
-     * SPECIFICATION: SPEC-13/AC-4, SPEC-13/BR-1
      */
     public function approveGalley(User $actor): void
     {
@@ -928,8 +870,6 @@ class Article extends Model
     /**
      * Request revisions to the galley proof, returning the
      * article to Production and notifying the editor.
-     *
-     * SPECIFICATION: SPEC-13/AC-5, SPEC-13/BR-2, SPEC-13/BR-3
      */
     public function requestGalleyRevision(User $actor, string $comment): void
     {
@@ -967,8 +907,6 @@ class Article extends Model
     /**
      * Withdraw the article before publication.
      * Only possible from non-terminal, non-published statuses.
-     *
-     * SPECIFICATION: SPEC-16/AC-1, SPEC-16/AC-2, SPEC-16/BR-1, SPEC-16/BR-3
      */
     public function withdraw(string $reason, User $actor): void
     {
@@ -1023,8 +961,6 @@ class Article extends Model
     /**
      * Retract a published article. Article remains visible
      * but marked as retracted with a reason.
-     *
-     * SPECIFICATION: SPEC-16/AC-3, SPEC-16/BR-2, SPEC-16/BR-4
      */
     public function retract(string $reason, User $actor): void
     {
@@ -1065,8 +1001,6 @@ class Article extends Model
      * is resolved by resolvePrimaryAuthor (adoption of an unlinked ORCID
      * row), coauthors by resolveCoauthorByOrcid. Cleans up orphaned
      * coauthors no longer attached to any article.
-     *
-     * SPECIFICATION: SPEC-01/AC-1, SPEC-01/BR-4, SPEC-01/BR-8
      */
     public function syncAuthors(User $submitter, array $authorData, array $coauthorsData = []): void
     {
@@ -1132,7 +1066,7 @@ class Article extends Model
 
         // A conflicted assigned editor (linked account or pivot-email
         // match) is released back to the unassigned pool — same silent
-        // semantics as the auto-assign itself (SPEC-02/BR-9).
+        // semantics as the auto-assign itself.
         if ($this->editor_id !== null) {
             $editor = User::find($this->editor_id);
 
@@ -1141,7 +1075,6 @@ class Article extends Model
             }
         }
 
-        // Delete previous coauthors that are no longer attached to any article
         if ($previousCoauthorIds->isNotEmpty()) {
             Author::whereIn('id', $previousCoauthorIds)
                 ->whereNull('user_id')
@@ -1225,8 +1158,6 @@ class Article extends Model
      * Check whether the article has any active (pending or in-progress)
      * reviewers, used as a guard for review_type changes and blinded
      * PDF deletion.
-     *
-     * SPECIFICATION: SPEC-05/BR-1, SPEC-05/BR-3
      */
     public function hasActiveReviewers(): bool
     {
@@ -1237,8 +1168,6 @@ class Article extends Model
 
     /**
      * Change the review anonymity model for this article.
-     *
-     * SPECIFICATION: SPEC-05/AC-1, SPEC-05/BR-1
      */
     public function setReviewType(ReviewType $type): void
     {
@@ -1369,8 +1298,6 @@ class Article extends Model
 
     /**
      * Completed reviews of the current review round only.
-     *
-     * SPECIFICATION: SPEC-25/BR-1
      */
     public function currentRoundCompletedReviews(): HasMany
     {
@@ -1413,7 +1340,7 @@ class Article extends Model
      * PURPOSE: Visual lifecycle stepper for the article page — steps
      * from submission to publication with per-step state and date.
      *
-     * SPECIFICATION: Empty for drafts and withdrawn articles; rejected
+     * Empty for drafts and withdrawn articles; rejected
      * articles terminate the stepper at the decision step. The `current`
      * state marks the article's active pipeline position — for statuses
      * awaiting a future milestone (e.g. Approved) it denotes the next
@@ -1584,8 +1511,6 @@ class Article extends Model
     /**
      * PURPOSE: Detect the institution identifier type (doi/isni/ror)
      * for JATS `<institution-id>` output from a funder_identifier URL.
-     *
-     * SPECIFICATION: SPEC-17/BR-3
      */
     public static function funderIdentifierType(?string $identifier): ?string
     {
@@ -1604,8 +1529,6 @@ class Article extends Model
     /**
      * Users who should receive status-change notifications:
      * the submitter plus any coauthors linked to a User account.
-     *
-     * SPECIFICATION: SPEC-12/BR-2
      */
     public function notifiableUsers(): Collection
     {
@@ -1625,7 +1548,7 @@ class Article extends Model
 
     /**
      * Whether a notification of the same type was already sent
-     * for this article within the last hour (BR-3 throttling).
+     * for this article within the last hour.
      */
     public function wasRecentlyNotified(string $event): bool
     {
@@ -1653,8 +1576,6 @@ class Article extends Model
      * Sync references from an array of text lines. Deletes existing
      * references, creates new rows with auto-extracted DOI, and
      * recalculates citation counts.
-     *
-     * SPECIFICATION: SPEC-15/BR-2, SPEC-15/BR-4, SPEC-15/BR-5
      */
     public function syncReferences(array $lines): void
     {
@@ -1683,8 +1604,6 @@ class Article extends Model
      * Count how many times each reference is cited in the article body.
      * Finds bracket citations ([1], [1,2], [1-3]) and maps resolved
      * indices to references by order column.
-     *
-     * SPECIFICATION: SPEC-15/AC-4
      */
     public function countCitations(): void
     {

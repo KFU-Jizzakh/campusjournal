@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\View;
  * <updates> block with one <update> per pending update is added.
  * An explicit $doi overrides the article's stored DOI (used when
  * the DOI was minted but could not be persisted yet).
- *
- * SPECIFICATION: SPEC-08/AC-4, SPEC-16/AC-5, SPEC-16/BR-7, SPEC-16/BR-8
  */
 class CrossrefXmlBuilder
 {
@@ -64,8 +62,6 @@ class CrossrefXmlBuilder
      * retraction update dated by retracted_at. Each update carries
      * the article's DOI — or the explicit minted DOI when it could
      * not be persisted yet.
-     *
-     * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
      */
     private function buildUpdates(Article $article, ?string $updateType, ?string $doi = null): array
     {

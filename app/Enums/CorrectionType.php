@@ -5,8 +5,6 @@ namespace App\Enums;
 /**
  * PURPOSE: Defines the types of post-publication corrections
  * that can be attached to a published article.
- *
- * SPECIFICATION: SPEC-16/BR-6
  */
 enum CorrectionType: string
 {

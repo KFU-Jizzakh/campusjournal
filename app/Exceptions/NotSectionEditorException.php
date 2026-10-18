@@ -5,8 +5,6 @@ namespace App\Exceptions;
 /**
  * PURPOSE: Domain exception thrown when a user assigned as section
  * editor does not have the section-editor role.
- *
- * SPECIFICATION: SPEC-02/BR-2
  */
 class NotSectionEditorException extends \DomainException
 {

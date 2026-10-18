@@ -12,8 +12,6 @@ use Illuminate\Support\Collection;
  * PURPOSE: Builds Eloquent queries for OAI-PMH ListIdentifiers
  * and ListRecords verbs with metadata format, set, and date-range
  * filtering.
- *
- * SPECIFICATION: SPEC-09/AC-8, SPEC-09/AC-9
  */
 class OaiRecordQuery
 {

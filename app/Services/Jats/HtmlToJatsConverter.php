@@ -10,8 +10,6 @@ use DOMText;
 /**
  * PURPOSE: Converts article body HTML to a JATS body subtree
  * by traversing the DOM and mapping elements to JATS equivalents.
- *
- * SPECIFICATION: SPEC-10/AC-6
  */
 class HtmlToJatsConverter
 {

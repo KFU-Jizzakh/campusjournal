@@ -13,8 +13,6 @@ use Illuminate\Queue\SerializesModels;
 /**
  * PURPOSE: Email notification sent to a reviewer when they are
  * assigned to review an article (single-blind or open).
- *
- * SPECIFICATION: SPEC-02/AC-3
  */
 class ReviewAssignedMailable extends Mailable
 {

@@ -18,8 +18,6 @@ use Illuminate\Http\Request;
  * PURPOSE: Handles creation, resolution, and reopening of
  * discussion threads with scope-based visibility and
  * participant notifications.
- *
- * SPECIFICATION: SPEC-06/AC-1, SPEC-06/AC-3, SPEC-06/AC-4, SPEC-06/AC-8
  */
 class DiscussionController extends Controller
 {
@@ -35,7 +33,7 @@ class DiscussionController extends Controller
         $scope = DiscussionScope::from($validated['scope']);
 
         // A reply inherits the visibility scope and review link from
-        // its parent thread (SPEC-06/BR-6) — the posted values are
+        // its parent thread — the posted values are
         // ignored for replies.
         $parent = isset($validated['parent_id'])
             ? Discussion::findOrFail($validated['parent_id'])
@@ -106,7 +104,7 @@ class DiscussionController extends Controller
     /**
      * PURPOSE: Gates message creation. The review binding is resolved
      * from the explicit review_id or inherited from the parent thread
-     * (BR-6) — it is what lets a reviewer write inside the editorial
+     * — it is what lets a reviewer write inside the editorial
      * thread of their own active review, and nothing else.
      */
     private function authorizeCreate(User $user, Article $article, DiscussionScope $scope, ?Discussion $parent, ?int $reviewId): void

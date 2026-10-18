@@ -5,8 +5,6 @@ namespace App\Enums;
 /**
  * PURPOSE: Defines Creative Commons and copyright licence types
  * for supplementary files with labels, descriptions, and URLs.
- *
- * SPECIFICATION: SPEC-07/AC-1
  */
 enum ArticleFileLicense: string
 {

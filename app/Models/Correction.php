@@ -11,8 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * PURPOSE: Post-publication correction notice linked to a
  * published article — corrigendum, erratum, or expression
  * of concern.
- *
- * SPECIFICATION: SPEC-16/AC-4, SPEC-16/BR-5, SPEC-16/BR-6
  */
 #[Fillable(['article_id', 'type', 'title', 'description', 'file_path', 'published_at', 'created_by'])]
 class Correction extends Model

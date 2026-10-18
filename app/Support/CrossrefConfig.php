@@ -18,8 +18,6 @@ final class CrossrefConfig
      * PURPOSE: Returns the configured Crossmark policy DOI, falling
      * back to the deprecated CROSSMARK_POLICY_URL variable and
      * validating the result against the Crossref doi_t pattern.
-     *
-     * SPECIFICATION: SPEC-16/BR-7, SPEC-16/AC-10
      */
     public static function policyDoi(?string $doi, ?string $legacyUrl = null): ?string
     {
@@ -43,8 +41,6 @@ final class CrossrefConfig
      * not a valid Crossref DOI — the misconfiguration operators must
      * be warned about. Returns false when nothing was configured or
      * the value is valid.
-     *
-     * SPECIFICATION: SPEC-16/BR-7
      */
     public static function misconfigured(?string $doi, ?string $legacyUrl = null): bool
     {
@@ -59,8 +55,6 @@ final class CrossrefConfig
      * CROSSMARK_POLICY_DOI when set, the deprecated
      * CROSSMARK_POLICY_URL when it is the only supplied value.
      * Returns null when nothing is misconfigured.
-     *
-     * SPECIFICATION: SPEC-16/BR-7
      */
     public static function invalidVariable(?string $doi, ?string $legacyUrl = null): ?string
     {
@@ -80,8 +74,6 @@ final class CrossrefConfig
      * DOI is misconfigured, naming the offending variable. Safe to
      * call from AppServiceProvider::boot (facades and cache are fully
      * available there, unlike during config evaluation).
-     *
-     * SPECIFICATION: SPEC-16/BR-7
      */
     public static function warnIfMisconfigured(): void
     {
@@ -111,8 +103,6 @@ final class CrossrefConfig
      * PURPOSE: Splits and validates the Crossmark domains list,
      * keeping only entries that satisfy the schema's cm_domain
      * pattern (min 4 chars, dotted hostname).
-     *
-     * SPECIFICATION: SPEC-16/BR-7
      */
     public static function domains(?string $raw): array
     {

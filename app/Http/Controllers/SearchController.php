@@ -7,8 +7,6 @@ use App\Models\Article;
 /**
  * PURPOSE: Full-text search across published article titles,
  * abstracts, and keywords with LIKE matching.
- *
- * SPECIFICATION: SPEC-11/AC-6, SPEC-11/AC-7
  */
 class SearchController extends Controller
 {

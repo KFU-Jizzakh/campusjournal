@@ -5,8 +5,6 @@ namespace App\Enums;
 /**
  * PURPOSE: Defines supplementary file categories with their
  * accepted MIME types, file extensions, and display icons.
- *
- * SPECIFICATION: SPEC-07/AC-1
  */
 enum ArticleFileType: string
 {

@@ -5,9 +5,6 @@ namespace App\Rules;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
-/**
- * PURPOSE: Validation rule for ORCID iD format.
- */
 class Orcid implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void

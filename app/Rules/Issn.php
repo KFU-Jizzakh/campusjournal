@@ -7,8 +7,6 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
  * PURPOSE: Validation rule for ISSN format (XXXX-XXXX) with ISO 3297 mod 11 check digit.
- *
- * SPECIFICATION: SPEC-09, SPEC-10, SPEC-11
  */
 class Issn implements ValidationRule
 {

@@ -45,8 +45,8 @@ beforeEach(function () {
 });
 
 // ==========================================
-// AC-1: Editor can view/change review type (no reviewers assigned yet)
-// BR-1: Type locked after first non-declined reviewer
+// Editor can view/change review type (no reviewers assigned yet)
+// Type locked after first non-declined reviewer
 // ==========================================
 
 test('editor can change review type to double-blind when no reviewers assigned', function () {
@@ -109,8 +109,8 @@ test('editor can change review type when only declined reviewers exist', functio
 });
 
 // ==========================================
-// AC-2: Double-blind → anonymized upload block appears
-// AC-3: Upload anonymized PDF → indicator shows file + date
+// Double-blind → anonymized upload block appears
+// Upload anonymized PDF → indicator shows file + date
 // ==========================================
 
 test('editor can upload blinded pdf for double-blind article', function () {
@@ -155,7 +155,7 @@ test('upload blinded pdf rejects non-pdf file', function () {
 });
 
 // ==========================================
-// AC-4: Editor can replace anonymized file
+// Editor can replace anonymized file
 // ==========================================
 
 test('editor can replace blinded pdf', function () {
@@ -192,8 +192,8 @@ test('editor can replace blinded pdf', function () {
 });
 
 // ==========================================
-// AC-5: Delete anonymized file only if no active reviewers
-// BR-3: No delete of anonymized PDF with active reviewers
+// Delete anonymized file only if no active reviewers
+// No delete of anonymized PDF with active reviewers
 // ==========================================
 
 test('editor can delete blinded pdf when no active reviewers', function () {
@@ -253,7 +253,7 @@ test('editor cannot delete blinded pdf when active reviewers exist', function ()
 });
 
 // ==========================================
-// AC-6 / BR-4: Double-blind → reviewer gets anonymized PDF
+// Double-blind → reviewer gets anonymized PDF
 // ==========================================
 
 test('double-blind reviewer gets blinded pdf link', function () {
@@ -285,7 +285,7 @@ test('double-blind reviewer gets blinded pdf link', function () {
 });
 
 // ==========================================
-// AC-7 / BR-6: Double-blind → author name hidden from reviewer everywhere
+// Double-blind → author name hidden from reviewer everywhere
 // ==========================================
 
 test('double-blind hides author name from reviewer', function () {
@@ -310,7 +310,7 @@ test('double-blind hides author name from reviewer', function () {
 });
 
 // ==========================================
-// AC-8: Type change hidden after reviewer assignment
+// Type change hidden after reviewer assignment
 // ==========================================
 
 test('review type change section hidden when active reviewers exist', function () {
@@ -335,8 +335,8 @@ test('review type change section hidden when active reviewers exist', function (
 });
 
 // ==========================================
-// AC-9: Author/editor always get original manuscript
-// BR-5: Author never sees reviewer name
+// Author/editor always get original manuscript
+// Author never sees reviewer name
 // ==========================================
 
 test('author article page does not show blinded pdf reference', function () {
@@ -382,7 +382,7 @@ test('author never sees reviewer identity', function () {
 });
 
 // ==========================================
-// BR-2: No reviewer assignment on double-blind without anonymized PDF
+// No reviewer assignment on double-blind without anonymized PDF
 // ==========================================
 
 test('cannot assign reviewer on double-blind article without blinded pdf', function () {

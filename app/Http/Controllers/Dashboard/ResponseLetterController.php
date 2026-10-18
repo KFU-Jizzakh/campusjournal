@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Storage;
 /**
  * PURPOSE: Serves author response-letter attachments to editors,
  * the author, and reviewers of the corresponding round.
- *
- * SPECIFICATION: SPEC-25/AC-2, SPEC-25/BR-4
  */
 class ResponseLetterController extends Controller
 {

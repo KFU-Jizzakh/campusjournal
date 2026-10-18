@@ -59,7 +59,7 @@ function rfaLetter(Article $article): void
     ]);
 }
 
-// --- Cancelled reviewers lose access (SPEC-25/BR-4) ---
+// --- Cancelled reviewers lose access ---
 
 test('cancelled reviewer cannot download the manuscript or blinded pdf', function () {
     [$article, $reviewer] = rfaArticle(ReviewStatus::Cancelled);

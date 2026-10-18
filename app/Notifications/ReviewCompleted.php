@@ -12,8 +12,6 @@ use Illuminate\Notifications\Notification;
 /**
  * PURPOSE: In-app and email notification sent to the assigning
  * editor when a reviewer completes their review.
- *
- * SPECIFICATION: SPEC-03/AC-4
  */
 class ReviewCompleted extends Notification implements ShouldQueue
 {

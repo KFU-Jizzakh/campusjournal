@@ -10,8 +10,6 @@ use App\Models\User;
  * PURPOSE: Defines row-level access control for reviews, gating
  * view, update, accept, and decline actions by reviewer assignment
  * and role; admin has broad override respecting the state machine.
- *
- * SPECIFICATION: SPEC-03/BR-3
  */
 class ReviewPolicy
 {

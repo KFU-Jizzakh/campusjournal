@@ -327,3 +327,54 @@ test('about page returns 404 when page not in db', function () {
 test('education page returns 404 when page not in db', function () {
     $this->get(route('education'))->assertNotFound();
 });
+
+// --- Policy pages ---
+
+test('peer review policy page renders anonymously', function () {
+    Page::factory()->create([
+        'slug' => 'peer-review',
+        'title' => 'Рецензирование',
+        'body' => '<h1>Политика рецензирования</h1>',
+    ]);
+
+    $this->get(route('peer-review'))
+        ->assertOk()
+        ->assertSee('Рецензирование')
+        ->assertSee('Политика рецензирования');
+});
+
+test('publication ethics policy page renders anonymously', function () {
+    Page::factory()->create([
+        'slug' => 'publication-ethics',
+        'title' => 'Публикационная этика',
+        'body' => '<h1>Этические принципы</h1>',
+    ]);
+
+    $this->get(route('publication-ethics'))
+        ->assertOk()
+        ->assertSee('Публикационная этика');
+});
+
+test('archiving policy page renders anonymously', function () {
+    Page::factory()->create([
+        'slug' => 'archiving',
+        'title' => 'Архивирование',
+        'body' => '<h1>Политика архивирования</h1>',
+    ]);
+
+    $this->get(route('archiving'))
+        ->assertOk()
+        ->assertSee('Архивирование');
+});
+
+test('policy page without a cms row returns 404', function () {
+    $this->get(route('archiving'))->assertNotFound();
+});
+
+test('footer links to the policy pages on every public page', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('/peer-review')
+        ->assertSee('/publication-ethics')
+        ->assertSee('/archiving');
+});

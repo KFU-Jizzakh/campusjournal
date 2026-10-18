@@ -384,7 +384,7 @@ test('assigned reviewer of the round can download the response letter file', fun
         ->assertOk();
 });
 
-// --- Round-aware production checklist (SPEC-25/BR-1) ---
+// --- Round-aware production checklist ---
 
 test('production checklist counts only completed reviews of the current round', function () {
     $article = Article::factory()->inReview()->create(['current_round' => 2]);

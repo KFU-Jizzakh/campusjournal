@@ -19,7 +19,7 @@ use Spatie\Permission\Exceptions\PermissionDoesNotExist;
  * derived from workflow state (not from notifications) and ordered
  * by urgency (overdue first).
  *
- * SPECIFICATION: Items are per role — author: drafts to submit,
+ * Items are per role — author: drafts to submit,
  * revisions to resubmit, galley proofs to approve; reviewer: pending
  * invitations and reviews to write; editors: the next editorial
  * action per article; everyone: unread visible discussion threads.
@@ -57,9 +57,6 @@ class DashboardInbox
         return self::can($user, 'manage-submissions');
     }
 
-    /**
-     * PURPOSE: Drop the per-request memoized inbox collections.
-     */
     public static function flush(): void
     {
         self::$cache = [];
@@ -448,8 +445,6 @@ class DashboardInbox
      * Uses the eager-loaded `reviews` collection (callers run
      * `->with('reviews')`) — avoids the per-article query that
      * `Article::canBeDecided()` would trigger inside lists.
-     *
-     * SPECIFICATION: SPEC-25/BR-1
      */
     public static function hasCompletedReview(Article $article): bool
     {

@@ -5,8 +5,6 @@ namespace App\Enums;
 /**
  * PURPOSE: Defines the review anonymity model:
  * single-blind (default), double-blind, or open.
- *
- * SPECIFICATION: SPEC-05/BR-1, SPEC-05/BR-4
  */
 enum ReviewType: string
 {

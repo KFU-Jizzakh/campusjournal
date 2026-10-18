@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\Http;
 /**
  * PURPOSE: HTTP client for submitting Crossref deposit XML
  * via multipart POST to the configured endpoint.
- *
- * SPECIFICATION: SPEC-08/AC-5
  */
 class CrossrefClient
 {

@@ -8,8 +8,6 @@ use Illuminate\Support\Carbon;
 /**
  * PURPOSE: Stateless resumption token implementation using
  * base64url-encoded JSON with HMAC-SHA256 signature.
- *
- * SPECIFICATION: SPEC-09/AC-8, SPEC-09/BR-3
  */
 class ResumptionToken
 {

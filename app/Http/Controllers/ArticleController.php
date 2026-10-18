@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\Storage;
  * PURPOSE: Serves published article listings, detail pages,
  * PDF downloads, BibTeX/RIS/JATS exports, and blinded PDF
  * access for double-blind reviewers.
- *
- * SPECIFICATION: SPEC-10/AC-1, SPEC-10/AC-9, SPEC-10/AC-10, SPEC-11/AC-4, SPEC-11/AC-5, SPEC-18/AC-1, SPEC-18/AC-2
  */
 class ArticleController extends Controller
 {
@@ -104,8 +102,6 @@ class ArticleController extends Controller
      *
      * The citation key is the `bibtex_key_prefix` site setting
      * (empty by default) prepended to the article id.
-     *
-     * SPECIFICATION: SPEC-10/AC-9, SPEC-10/BR-5
      */
     public function exportBibtex(Article $article)
     {
@@ -153,8 +149,6 @@ class ArticleController extends Controller
 
     /**
      * Export a published article as a RIS record.
-     *
-     * SPECIFICATION: SPEC-10/AC-10
      */
     public function exportRis(Article $article)
     {
@@ -248,8 +242,6 @@ class ArticleController extends Controller
      * the public disk — so it cannot be discovered through URL guessing.
      * Returns a 404 for missing files rather than a 403 to avoid information
      * leakage about the existence of blinded manuscripts.
-     *
-     * SPECIFICATION: SPEC-05/AC-6
      */
     public function blindedPdf(Article $article)
     {
@@ -275,8 +267,6 @@ class ArticleController extends Controller
     /**
      * Serve the typeset galley PDF for download.
      * Accessible to editorial staff and the article submitter.
-     *
-     * SPECIFICATION: SPEC-13/AC-3
      */
     public function galleyPdf(Article $article)
     {

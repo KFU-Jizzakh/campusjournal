@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Cache;
 /**
  * PURPOSE: Resolves OAI-PMH sets into filtered article queries
  * for category-based and issue-based set hierarchies.
- *
- * SPECIFICATION: SPEC-09/AC-7
  */
 class OaiSetResolver
 {

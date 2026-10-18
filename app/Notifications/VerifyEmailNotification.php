@@ -11,8 +11,6 @@ use Illuminate\Support\Facades\URL;
 /**
  * PURPOSE: Email notification in Russian asking the user to confirm
  * their email address via a signed verification link.
- *
- * SPECIFICATION: SPEC-23/AC-1, SPEC-23/AC-3, SPEC-23/AC-5, SPEC-23/AC-6
  */
 class VerifyEmailNotification extends VerifyEmail implements ShouldQueue
 {
@@ -21,8 +19,6 @@ class VerifyEmailNotification extends VerifyEmail implements ShouldQueue
     /**
      * PURPOSE: Builds the Russian verification email with the signed
      * verification link.
-     *
-     * SPECIFICATION: SPEC-23/AC-1
      */
     public function toMail($notifiable)
     {
@@ -41,8 +37,6 @@ class VerifyEmailNotification extends VerifyEmail implements ShouldQueue
      * PURPOSE: Builds an absolute verification link whose signature covers
      * only the path and query string, so it still validates when a
      * TLS-terminating reverse proxy forwards the request over plain HTTP.
-     *
-     * SPECIFICATION: SPEC-23/AC-10, SPEC-23/BR-5
      */
     protected function verificationUrl($notifiable)
     {

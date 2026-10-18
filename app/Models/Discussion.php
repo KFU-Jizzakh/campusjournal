@@ -16,8 +16,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * PURPOSE: Threaded discussion message attached to an article,
  * supporting article-scoped and editorial-scoped threads,
  * optional review binding, and editor resolution.
- *
- * SPECIFICATION: SPEC-06/AC-5, SPEC-06/BR-1, SPEC-06/BR-4
  */
 #[Fillable(['article_id', 'user_id', 'parent_id', 'review_id', 'scope', 'message', 'is_resolved', 'resolved_at', 'resolved_by'])]
 class Discussion extends Model
@@ -79,7 +77,7 @@ class Discussion extends Model
      * section-editor: threads on assigned articles; article-scope:
      * submitter or credited coauthor; review-bound: the reviewer).
      *
-     * SPECIFICATION: Must stay in parity with DiscussionPolicy::view.
+     * Must stay in parity with DiscussionPolicy::view.
      */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {

@@ -76,11 +76,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         return $this->hasRole('admin') || $this->hasPermissionTo('manage-content');
     }
 
-    /**
-     * PURPOSE: Queues the Russian verification email to the user's address.
-     *
-     * SPECIFICATION: SPEC-23/AC-1, AC-3, AC-5, AC-6, AC-8
-     */
     public function sendEmailVerificationNotification()
     {
         $this->notify(new VerifyEmailNotification);
@@ -105,7 +100,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
      * PURPOSE: Localized display label for a role slug, shared by the
      * dashboard navigation badges and the Filament user table.
      *
-     * SPECIFICATION: Falls back to a humanized slug when no translation exists.
+     * Falls back to a humanized slug when no translation exists.
      */
     public static function roleLabel(string $role): string
     {
@@ -118,7 +113,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
      * PURPOSE: Role badges (label + status-badge color) for the dashboard
      * navigation, ordered by descending role importance.
      *
-     * SPECIFICATION: Returns an empty array when the user has no roles.
+     * Returns an empty array when the user has no roles.
      */
     public function roleBadges(): array
     {
@@ -146,7 +141,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
      * PURPOSE: Drops the reviewer role. Blocked while the user has
      * active review assignments (pending or in progress).
      *
-     * SPECIFICATION: Throws ReviewerRoleRemovalBlockedException.
+     * Throws ReviewerRoleRemovalBlockedException.
      */
     public function stopBeingReviewer(): void
     {
@@ -161,9 +156,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         $this->removeRole('reviewer');
     }
 
-    /**
-     * PURPOSE: Whether the reviewer self-registration setting is open.
-     */
     public static function reviewerRegistrationOpen(): bool
     {
         return Setting::get('reviewer_self_registration', '1') === '1';

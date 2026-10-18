@@ -12,8 +12,6 @@ use Illuminate\Notifications\Notification;
 /**
  * PURPOSE: In-app and email notification sent to the editor
  * when a reviewer declines the review invitation.
- *
- * SPECIFICATION: SPEC-03/AC-3
  */
 class ReviewerDeclined extends Notification implements ShouldQueue
 {

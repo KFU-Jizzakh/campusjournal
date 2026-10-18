@@ -13,8 +13,6 @@ use Illuminate\Support\Str;
 /**
  * PURPOSE: In-app and email notification for a new discussion thread,
  * dispatched when a root message is created.
- *
- * SPECIFICATION: SPEC-06/AC-7, SPEC-06/AC-10, SPEC-06/BR-10
  */
 class NewDiscussionThread extends Notification implements ShouldQueue
 {

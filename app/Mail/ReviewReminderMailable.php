@@ -13,8 +13,6 @@ use Illuminate\Queue\SerializesModels;
 /**
  * PURPOSE: Email reminder sent to reviewers with overdue
  * response or approaching review deadlines.
- *
- * SPECIFICATION: SPEC-02/AC-3, SPEC-03/AC-2
  */
 class ReviewReminderMailable extends Mailable
 {

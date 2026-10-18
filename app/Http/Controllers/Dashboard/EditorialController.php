@@ -32,8 +32,6 @@ use Illuminate\Support\Facades\Storage;
  * PURPOSE: Handles the editorial workflow: listing articles,
  * assigning editors and reviewers, making decisions, and
  * progressing through copyediting, production, and publication.
- *
- * SPECIFICATION: SPEC-02/AC-1, SPEC-02/AC-2, SPEC-02/AC-3, SPEC-04/AC-1, SPEC-04/AC-2, SPEC-04/AC-4, SPEC-04/AC-5, SPEC-04/AC-6, SPEC-05/AC-1, SPEC-05/AC-3, SPEC-16/AC-1, SPEC-16/AC-2, SPEC-16/AC-3, SPEC-16/AC-4
  */
 class EditorialController extends Controller
 {
@@ -224,7 +222,7 @@ class EditorialController extends Controller
      * PURPOSE: Journal analytics for EiC/managing editors: pipeline funnel,
      * decision and turnaround averages, section-editor workload.
      *
-     * SPECIFICATION: Gated by the publish-issue permission.
+     * Gated by the publish-issue permission.
      */
     public function stats(Request $request)
     {
@@ -334,8 +332,6 @@ class EditorialController extends Controller
      *
      * Domain exceptions (e.g. MissingBlindedPdfException, DuplicateReviewerException)
      * are caught and shown to the user as flash error messages.
-     *
-     * SPECIFICATION: SPEC-02/AC-3
      */
     public function assignReviewer(Request $request, Article $article)
     {
@@ -482,8 +478,6 @@ class EditorialController extends Controller
      * Validates against the three allowed ReviewType values. Delegates the
      * actual model change to Article::setReviewType, which enforces the
      * active-reviewers guard and logs the OutboxEvent.
-     *
-     * SPECIFICATION: SPEC-05/AC-1
      */
     public function setReviewType(Request $request, Article $article)
     {
@@ -509,8 +503,6 @@ class EditorialController extends Controller
      * Records who uploaded and when, and writes an OutboxEvent for the
      * audit trail. The file is stored on the local (private) disk so
      * it is never directly accessible via a public URL.
-     *
-     * SPECIFICATION: SPEC-05/AC-3
      */
     public function uploadBlindedPdf(Request $request, Article $article)
     {
@@ -545,8 +537,6 @@ class EditorialController extends Controller
      * Blocked while active reviewers exist — removing the blinded PDF
      * during an ongoing double-blind review would break the anonymity
      * contract. Clears all blinded_pdf_* columns and writes an OutboxEvent.
-     *
-     * SPECIFICATION: SPEC-05/AC-3
      */
     public function deleteBlindedPdf(Request $request, Article $article)
     {
@@ -578,8 +568,6 @@ class EditorialController extends Controller
     /**
      * Upload the typeset galley PDF during the Production stage,
      * replacing any previously uploaded version.
-     *
-     * SPECIFICATION: SPEC-13/AC-1
      */
     public function uploadGalleyPdf(Request $request, Article $article)
     {
@@ -614,8 +602,6 @@ class EditorialController extends Controller
 
     /**
      * Send the uploaded galley proof to the author for final approval.
-     *
-     * SPECIFICATION: SPEC-13/AC-1, SPEC-13/AC-2
      */
     public function sendGalleyToAuthor(Request $request, Article $article)
     {
@@ -633,8 +619,6 @@ class EditorialController extends Controller
     /**
      * Upload the corrected manuscript file during the Copyediting stage,
      * replacing any previously uploaded version.
-     *
-     * SPECIFICATION: SPEC-04/AC-4, SPEC-04/AC-4a
      */
     public function uploadCopyeditedFile(Request $request, Article $article)
     {
@@ -663,8 +647,6 @@ class EditorialController extends Controller
 
     /**
      * Download the corrected manuscript file.
-     *
-     * SPECIFICATION: SPEC-04/AC-4a
      */
     public function downloadCopyeditedFile(Article $article)
     {
@@ -692,8 +674,6 @@ class EditorialController extends Controller
 
     /**
      * Delete the corrected manuscript file.
-     *
-     * SPECIFICATION: SPEC-04/AC-4a
      */
     public function deleteCopyeditedFile(Request $request, Article $article)
     {
@@ -715,8 +695,6 @@ class EditorialController extends Controller
     /**
      * Withdraw an article from the editorial workflow.
      * Only pre-published articles can be withdrawn.
-     *
-     * SPECIFICATION: SPEC-16/AC-2
      */
     public function withdraw(Request $request, Article $article)
     {
@@ -739,8 +717,6 @@ class EditorialController extends Controller
      * Retract a published article. Article remains visible
      * with a retraction notice. Re-deposits DOI with Crossmark
      * retraction metadata if Crossref is enabled.
-     *
-     * SPECIFICATION: SPEC-16/AC-3
      */
     public function retract(Request $request, Article $article)
     {
@@ -769,8 +745,6 @@ class EditorialController extends Controller
 
     /**
      * Add a post-publication correction to a published article.
-     *
-     * SPECIFICATION: SPEC-16/AC-4
      */
     public function storeCorrection(Request $request, Article $article)
     {
@@ -819,8 +793,6 @@ class EditorialController extends Controller
 
     /**
      * Delete a post-publication correction.
-     *
-     * SPECIFICATION: SPEC-16/AC-4
      */
     public function destroyCorrection(Request $request, Article $article, Correction $correction)
     {
@@ -849,8 +821,6 @@ class EditorialController extends Controller
      * PURPOSE: Whether a Crossref deposit can be dispatched: the service is
      * enabled and the DOI prefix is configured. Gates the initial deposit
      * on publication (a DOI registration is meaningful without Crossmark).
-     *
-     * SPECIFICATION: SPEC-08/BR-1, SPEC-08/BR-2a
      */
     private function crossrefReady(): bool
     {
@@ -861,8 +831,6 @@ class EditorialController extends Controller
      * PURPOSE: Whether the Crossmark policy DOI is configured. A
      * re-deposit without it would render no <crossmark>/<updates>
      * block, so the retraction/correction would never reach Crossref.
-     *
-     * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
      */
     private function crossmarkConfigured(): bool
     {
@@ -874,8 +842,6 @@ class EditorialController extends Controller
      * reported in the warning flash, distinguishing an invalid policy
      * DOI value from a simply missing one and naming the offending
      * environment variable.
-     *
-     * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
      */
     private function crossmarkSkipReason(): string
     {
@@ -892,8 +858,6 @@ class EditorialController extends Controller
      * PURPOSE: Whether a Crossmark re-deposit (retraction/correction)
      * can be dispatched: initial deposit readiness plus a configured
      * Crossmark policy DOI.
-     *
-     * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
      */
     private function crossmarkReDepositReady(): bool
     {

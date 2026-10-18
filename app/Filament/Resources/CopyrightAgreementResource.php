@@ -17,8 +17,6 @@ use Filament\Tables\Table;
  * agreement templates. Manages creation, editing, and
  * activation/deletion of agreement versions for
  * author acceptance during submission.
- *
- * SPECIFICATION: SPEC-14/AC-5, SPEC-14/BR-3, SPEC-14/BR-4
  */
 class CopyrightAgreementResource extends Resource
 {

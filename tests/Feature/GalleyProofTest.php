@@ -41,7 +41,7 @@ function createGalleyPdf(): UploadedFile
 }
 
 // ==========================================
-// AC-1: Editor uploads galley PDF
+// Editor uploads galley PDF
 // ==========================================
 
 test('editor can upload galley PDF to production article', function () {
@@ -123,7 +123,7 @@ test('re-uploading galley PDF replaces the old file', function () {
 });
 
 // ==========================================
-// AC-2 + AC-4: Send to author and approve
+// Send to author and approve
 // ==========================================
 
 test('editor can send galley to author', function () {
@@ -212,7 +212,7 @@ test('non-author cannot approve galley', function () {
 });
 
 // ==========================================
-// AC-5 + BR-2: Revision requests (unlimited cycles)
+// Revision requests (unlimited cycles)
 // ==========================================
 
 test('author can request galley revision with comment', function () {
@@ -354,7 +354,7 @@ test('after revision request, article returns to Production and editor can re-se
 });
 
 // ==========================================
-// AC-6 + BR-1: Publication blocked until approval
+// Publication blocked until approval
 // ==========================================
 
 test('editor can publish article with approved galleys', function () {

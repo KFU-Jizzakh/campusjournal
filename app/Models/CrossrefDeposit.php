@@ -10,8 +10,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * PURPOSE: Audit trail for Crossref DOI registration attempts,
  * tracking status, payload, and response for each deposit.
- *
- * SPECIFICATION: SPEC-08/AC-6, SPEC-08/BR-3
  */
 #[Fillable(['article_id', 'doi', 'batch_id', 'xml_payload', 'status', 'http_status', 'response_body', 'error', 'attempted_by'])]
 class CrossrefDeposit extends Model

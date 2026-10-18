@@ -14,8 +14,6 @@ use Illuminate\Console\Command;
  * CROSSMARK_POLICY_DOI was missing or invalid. Run it once the
  * policy DOI has been configured to backfill skipped updates.
  * Supports --dry-run.
- *
- * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
  */
 class CrossrefRedeposit extends Command
 {
@@ -82,8 +80,6 @@ class CrossrefRedeposit extends Command
      * `retraction` for retracted articles (the builder appends the
      * correction updates before the retraction update), `correction`
      * otherwise.
-     *
-     * SPECIFICATION: SPEC-16/AC-5, SPEC-16/BR-7
      */
     private function updateTypeFor(Article $article): string
     {

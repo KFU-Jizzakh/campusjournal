@@ -5,8 +5,6 @@ namespace App\Enums;
 /**
  * PURPOSE: Defines access levels for supplementary files:
  * public, editorial-only, or visible to assigned reviewers.
- *
- * SPECIFICATION: SPEC-07/BR-3, SPEC-07/BR-4
  */
 enum ArticleFileVisibility: string
 {

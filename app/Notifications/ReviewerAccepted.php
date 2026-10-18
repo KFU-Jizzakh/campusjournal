@@ -12,8 +12,6 @@ use Illuminate\Notifications\Notification;
 /**
  * PURPOSE: In-app and email notification sent to the editor when a
  * reviewer accepts the review invitation.
- *
- * SPECIFICATION: SPEC-03/AC-2
  */
 class ReviewerAccepted extends Notification implements ShouldQueue
 {

@@ -5,8 +5,6 @@ namespace App\Exceptions;
 /**
  * PURPOSE: Domain exception thrown when the same reviewer is assigned
  * to an article twice (non-declined reviews only).
- *
- * SPECIFICATION: SPEC-02/BR-8
  */
 class DuplicateReviewerException extends \DomainException
 {

@@ -12,8 +12,6 @@ use Illuminate\Notifications\Notification;
  * PURPOSE: In-app and email notification sent to a reviewer when the
  * editor re-invites them for a new review round of an article they
  * already reviewed in an earlier round.
- *
- * SPECIFICATION: SPEC-25/AC-3
  */
 class ReviewReRequested extends Notification implements ShouldQueue
 {

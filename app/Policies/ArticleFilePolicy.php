@@ -11,8 +11,6 @@ use App\Models\User;
  * PURPOSE: Defines access control for supplementary article files,
  * granting visibility based on file access level, article status,
  * and user role (author, editor, reviewer).
- *
- * SPECIFICATION: SPEC-07/BR-3, SPEC-07/BR-4
  */
 class ArticleFilePolicy
 {

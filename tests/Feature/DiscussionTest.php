@@ -46,7 +46,7 @@ beforeEach(function () {
 });
 
 // ==========================================
-// AC-1 / BR-1 / BR-2: Author creates discussion with article scope
+// Author creates discussion with article scope
 // ==========================================
 
 test('author can create discussion on own article', function () {
@@ -71,7 +71,7 @@ test('author can create discussion on own article', function () {
 });
 
 /**
- * NOTE: SPEC-06/BR-1 ("discussions only for active articles") is not
+ * NOTE: -1 ("discussions only for active articles") is not
  * enforced by DiscussionPolicy::create(). The policy only checks roles
  * and article ownership, not article status. Both draft and published
  * articles currently allow discussion creation. This should eventually
@@ -94,7 +94,7 @@ test('discussions are currently allowed on draft articles due to policy gap', fu
 });
 
 // ==========================================
-// AC-2 / BR-6: Editor replies, inherits scope
+// Editor replies, inherits scope
 // ==========================================
 
 test('editor reply inherits parent scope', function () {
@@ -128,7 +128,7 @@ test('editor reply inherits parent scope', function () {
 });
 
 // ==========================================
-// AC-3 / BR-4: Private editor-reviewer discussion, scope=editorial, review-bound
+// Private editor-reviewer discussion, scope=editorial, review-bound
 // ==========================================
 
 test('editor can create editorial discussion bound to review', function () {
@@ -164,7 +164,7 @@ test('editor can create editorial discussion bound to review', function () {
 });
 
 // ==========================================
-// AC-4 / BR-3: Internal editorial discussion, no review binding
+// Internal editorial discussion, no review binding
 // ==========================================
 
 test('editor can create internal editorial discussion', function () {
@@ -190,7 +190,7 @@ test('editor can create internal editorial discussion', function () {
 });
 
 // ==========================================
-// AC-5: Discussion list shows scope and review badges
+// Discussion list shows scope and review badges
 // ==========================================
 
 test('editorial view shows scope badges on discussions', function () {
@@ -223,7 +223,7 @@ test('editorial view shows scope badges on discussions', function () {
 });
 
 // ==========================================
-// AC-6: Unread message indicator
+// Unread message indicator
 // ==========================================
 
 test('unread discussions show blue dot indicator', function () {
@@ -280,7 +280,7 @@ test('guest always sees discussion as read', function () {
 });
 
 // ==========================================
-// AC-7: In-app notifications sent
+// In-app notifications sent
 // ==========================================
 
 test('author gets notification when editor replies', function () {
@@ -330,7 +330,7 @@ test('editors get notified on new discussion thread', function () {
 });
 
 // ==========================================
-// AC-8 / BR-8: Editor can close/reopen threads
+// Editor can close/reopen threads
 // ==========================================
 
 test('editor can close a discussion thread', function () {
@@ -381,7 +381,7 @@ test('editor can reopen a closed discussion thread', function () {
 });
 
 // ==========================================
-// AC-9: Author sees closed status, cannot reopen (BR-8)
+// Author sees closed status, cannot reopen
 // ==========================================
 
 test('author cannot close a discussion thread', function () {
@@ -431,7 +431,7 @@ test('author cannot reopen a discussion thread', function () {
 });
 
 // ==========================================
-// BR-5: Author cannot see editorial scope messages
+// Author cannot see editorial scope messages
 // ==========================================
 
 test('author cannot see editorial scope discussions', function () {
@@ -458,7 +458,7 @@ test('author cannot see editorial scope discussions', function () {
 });
 
 // ==========================================
-// BR-9: Reply in closed thread forbidden
+// Reply in closed thread forbidden
 // ==========================================
 
 test('cannot reply to closed discussion', function () {
@@ -487,7 +487,7 @@ test('cannot reply to closed discussion', function () {
 });
 
 // ==========================================
-// BR-7: Sender not notified of own message
+// Sender not notified of own message
 // ==========================================
 
 test('sender is not notified of own message', function () {
@@ -508,7 +508,7 @@ test('sender is not notified of own message', function () {
 });
 
 // ==========================================
-// SPEC-06 AC-10 / BR-10: Discussion notification preferences
+// Discussion notification preferences
 // ==========================================
 
 test('discussion notifications respect user preferences when disabled', function () {
@@ -582,7 +582,7 @@ test('discussion site-only preference still dispatches notification', function (
 });
 
 // ==========================================
-// AC-3 / BR-4: Reviewer writes inside the thread bound to their active review
+// Reviewer writes inside the thread bound to their active review
 // ==========================================
 
 test('reviewer with an active review can start a review-bound discussion', function () {

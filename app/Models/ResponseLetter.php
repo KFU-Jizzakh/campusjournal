@@ -9,8 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * PURPOSE: Author's point-by-point response to reviewers, submitted
  * alongside a revision resubmission and scoped to the new review round.
- *
- * SPECIFICATION: SPEC-25/AC-2, SPEC-25/BR-2
  */
 #[Fillable(['article_id', 'round', 'body', 'file_path', 'uploaded_by'])]
 class ResponseLetter extends Model

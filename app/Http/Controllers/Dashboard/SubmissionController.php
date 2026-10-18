@@ -27,8 +27,6 @@ use Illuminate\Validation\ValidationException;
  * PURPOSE: Handles article submission creation, editing of
  * drafts, and resubmission after revision, managing PDF
  * upload and author metadata synchronisation.
- *
- * SPECIFICATION: SPEC-01/AC-1, SPEC-01/AC-2, SPEC-01/AC-6, SPEC-01/AC-7
  */
 class SubmissionController extends Controller
 {
@@ -310,8 +308,6 @@ class SubmissionController extends Controller
 
     /**
      * Author approves the galley proof, unblocking publication.
-     *
-     * SPECIFICATION: SPEC-13/AC-4
      */
     public function approveGalley(Request $request, Article $article)
     {
@@ -328,8 +324,6 @@ class SubmissionController extends Controller
 
     /**
      * Author requests revisions to the galley proof.
-     *
-     * SPECIFICATION: SPEC-13/AC-5
      */
     public function requestGalleyRevision(Request $request, Article $article)
     {
@@ -350,8 +344,6 @@ class SubmissionController extends Controller
 
     /**
      * Author withdraws their article before publication.
-     *
-     * SPECIFICATION: SPEC-16/AC-1
      */
     public function withdraw(Request $request, Article $article)
     {

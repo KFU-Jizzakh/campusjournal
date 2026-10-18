@@ -8,9 +8,7 @@ use App\Models\Organization;
 /**
  * PURPOSE: Serves the public homepage with upcoming events
  * and partner organisations. Planned issues are intentionally
- * not shown (SPEC-24/AC-3).
- *
- * SPECIFICATION: SPEC-24/AC-3
+ * not shown.
  */
 class HomeController extends Controller
 {

@@ -9,8 +9,6 @@ use App\Models\Article;
  * PURPOSE: Idempotent DOI generator producing a full DOI as the
  * configured Crossref prefix plus a short, opaque random suffix
  * (Crossref best practice: no readable metadata in suffixes).
- *
- * SPECIFICATION: SPEC-08/AC-2, SPEC-08/BR-2, SPEC-08/BR-2a, SPEC-08/BR-2b, SPEC-08/BR-2c
  */
 class DoiMinter
 {
@@ -58,8 +56,6 @@ class DoiMinter
 
     /**
      * Whether a DOI can be generated (a prefix must be configured).
-     *
-     * SPECIFICATION: SPEC-08/BR-2a
      */
     public function isConfigured(): bool
     {
@@ -70,8 +66,6 @@ class DoiMinter
      * Whether DOI deposits can be dispatched: the Crossref service is
      * enabled and the prefix is configured. Used by all dispatch paths
      * (publication, backfill, Filament manual deposit, crossmark).
-     *
-     * SPECIFICATION: SPEC-08/BR-1, SPEC-08/BR-2a
      */
     public function isReady(): bool
     {

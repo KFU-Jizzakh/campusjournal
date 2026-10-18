@@ -331,7 +331,7 @@ test('countFor matches inbox count for editor with mixed workload', function () 
         ->toBe(DashboardInbox::for($editor)->count());
 });
 
-// --- Round-aware decision task (SPEC-25/BR-1) ---
+// --- Round-aware decision task ---
 
 test('decision task appears only when the current round has a completed review', function () {
     $eic = User::factory()->create();

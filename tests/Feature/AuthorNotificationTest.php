@@ -35,7 +35,7 @@ beforeEach(function () {
 });
 
 // ==========================================
-// AC-1: Submission received notification
+// Submission received notification
 // ==========================================
 
 test('author receives submission notification when article is submitted', function () {
@@ -58,7 +58,7 @@ test('author receives submission notification when article is submitted', functi
 });
 
 // ==========================================
-// AC-4: Status change notifications
+// Status change notifications
 // ==========================================
 
 test('author receives status notification when article enters InReview', function () {
@@ -110,7 +110,7 @@ test('author receives decision notification', function () {
 });
 
 // ==========================================
-// AC-6 / BR-1: Notification preferences
+// Notification preferences
 // ==========================================
 
 test('user with status notifications disabled does not receive them', function () {
@@ -162,7 +162,7 @@ test('user with email disabled still gets in-app notification', function () {
 });
 
 // ==========================================
-// BR-3: Throttling — no duplicate within 1 hour
+// Throttling — no duplicate within 1 hour
 // ==========================================
 
 test('assigning additional reviewers does not re-send in-review notification', function () {
@@ -231,7 +231,7 @@ test('notifications index page loads for author', function () {
 });
 
 // ==========================================
-// Galley proof notifications (SPEC-13)
+// Galley proof notifications
 // ==========================================
 
 test('author receives AuthorGalleyReady when galley sent', function () {
@@ -295,7 +295,7 @@ test('author does not receive duplicate notification on re-send without revision
 // This is correct behavior per the existing notification throttle mechanism.
 
 // ==========================================
-// SPEC-12 AC-1: Coauthor receives submission notification
+// Coauthor receives submission notification
 // ==========================================
 
 test('coauthor receives submission notification', function () {
@@ -325,7 +325,7 @@ test('coauthor receives submission notification', function () {
 });
 
 // ==========================================
-// SPEC-13 AC-4: Editor receives notification when author approves galley
+// Editor receives notification when author approves galley
 // ==========================================
 
 test('editor receives AuthorApprovedGalley when author approves galley', function () {
@@ -345,7 +345,7 @@ test('editor receives AuthorApprovedGalley when author approves galley', functio
 });
 
 // ==========================================
-// SPEC-01 AC-7: Editor receives notification when author revises
+// Editor receives notification when author revises
 // ==========================================
 
 test('editor receives AuthorResubmitted when author resubmits after revision', function () {

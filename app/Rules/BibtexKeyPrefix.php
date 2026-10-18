@@ -8,8 +8,6 @@ use Illuminate\Contracts\Validation\ValidationRule;
 /**
  * PURPOSE: Validation rule for the BibTeX citation-key prefix —
  * allows only letters, digits, hyphens and underscores (empty allowed).
- *
- * SPECIFICATION: SPEC-10/AC-9
  */
 class BibtexKeyPrefix implements ValidationRule
 {

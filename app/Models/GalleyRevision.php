@@ -11,8 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * PURPOSE: Append-only record of each galley revision request
  * made by the author, capturing who requested, the comment,
  * and when.
- *
- * SPECIFICATION: SPEC-13/BR-3
  */
 #[Fillable(['article_id', 'requested_by', 'comment'])]
 #[WithoutTimestamps]

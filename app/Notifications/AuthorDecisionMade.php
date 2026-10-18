@@ -13,8 +13,6 @@ use Illuminate\Support\Str;
 /**
  * PURPOSE: In-app and email notification sent to the author and
  * coauthors when the editor makes a decision on their article.
- *
- * SPECIFICATION: SPEC-12/AC-3, SPEC-12/BR-2
  */
 class AuthorDecisionMade extends Notification implements ShouldQueue
 {

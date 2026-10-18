@@ -5,8 +5,6 @@ namespace App\Exceptions;
 /**
  * PURPOSE: Thrown when attempting to delete a corrected manuscript file
  * while the article is not in the Copyediting stage.
- *
- * SPECIFICATION: SPEC-04/AC-4a
  */
 final class DeleteCopyeditedFileFailedException extends \DomainException
 {

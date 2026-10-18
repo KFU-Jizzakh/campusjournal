@@ -144,7 +144,7 @@ test('user without review permission cannot access reviews', function () {
 });
 
 // ==========================================
-// SPEC-03 AC-2: Editor receives notification when reviewer accepts
+// Editor receives notification when reviewer accepts
 // ==========================================
 
 test('editor receives ReviewerAccepted notification when reviewer accepts', function () {
@@ -174,7 +174,7 @@ test('editor receives ReviewerAccepted notification when reviewer accepts', func
 });
 
 // ==========================================
-// SPEC-03 AC-3: Editor receives notification when reviewer declines
+// Editor receives notification when reviewer declines
 // ==========================================
 
 test('editor receives ReviewerDeclined notification when reviewer declines', function () {
@@ -204,7 +204,7 @@ test('editor receives ReviewerDeclined notification when reviewer declines', fun
 });
 
 // ==========================================
-// SPEC-03 AC-4: Editor receives notification when review is completed
+// Editor receives notification when review is completed
 // ==========================================
 
 test('editor receives ReviewCompleted notification when review is completed', function () {

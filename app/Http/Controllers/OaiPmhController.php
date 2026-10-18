@@ -23,8 +23,6 @@ use Illuminate\Support\Facades\View;
 /**
  * PURPOSE: OAI-PMH 2.0 protocol endpoint supporting 6 verbs
  * with Dublin Core, DOAJ, Crossref, and NLM metadata formats.
- *
- * SPECIFICATION: SPEC-09/AC-1, SPEC-09/AC-2, SPEC-09/AC-3, SPEC-09/AC-4, SPEC-09/AC-5, SPEC-09/AC-6, SPEC-09/AC-7, SPEC-09/AC-8, SPEC-09/AC-9
  */
 class OaiPmhController extends Controller
 {

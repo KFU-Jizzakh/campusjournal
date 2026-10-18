@@ -10,8 +10,6 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 /**
  * PURPOSE: Immutable append-only audit log recording every domain
  * event with actor, subject, event name, and payload snapshot.
- *
- * SPECIFICATION: SPEC-01/AC-1, SPEC-01/AC-7, SPEC-02/AC-2, SPEC-02/AC-3, SPEC-03/AC-2, SPEC-03/AC-3, SPEC-03/AC-4, SPEC-04/AC-2, SPEC-04/AC-4, SPEC-04/AC-5, SPEC-04/AC-6, SPEC-05/AC-3, SPEC-06/AC-1
  */
 #[Fillable(['actor_id', 'name', 'subject_type', 'subject_id', 'payload'])]
 class OutboxEvent extends Model

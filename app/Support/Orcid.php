@@ -2,9 +2,6 @@
 
 namespace App\Support;
 
-/**
- * PURPOSE: ORCID identifier validation and format helper.
- */
 final class Orcid
 {
     public static function isValid(?string $orcid): bool

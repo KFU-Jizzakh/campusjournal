@@ -7,8 +7,6 @@ use App\Models\Article;
 /**
  * PURPOSE: Generates and parses OAI-PMH record identifiers
  * using the oai:repository:article:{id} scheme.
- *
- * SPECIFICATION: SPEC-09/AC-9
  */
 class OaiIdentifier
 {

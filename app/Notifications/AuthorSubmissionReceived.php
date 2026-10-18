@@ -12,8 +12,6 @@ use Illuminate\Notifications\Notification;
 /**
  * PURPOSE: In-app and email notification sent to the author and
  * coauthors when their manuscript is successfully submitted.
- *
- * SPECIFICATION: SPEC-12/AC-1, SPEC-12/BR-2
  */
 class AuthorSubmissionReceived extends Notification implements ShouldQueue
 {

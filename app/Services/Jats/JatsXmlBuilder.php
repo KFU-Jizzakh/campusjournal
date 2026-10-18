@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\View;
  * PURPOSE: Generates JATS/NLM Publishing 1.3 XML for article
  * export, supporting uploaded override and HTML-to-JATS body
  * conversion.
- *
- * SPECIFICATION: SPEC-10/AC-1, SPEC-10/AC-3, SPEC-10/AC-4, SPEC-10/AC-5, SPEC-10/BR-1, SPEC-10/BR-2
  */
 class JatsXmlBuilder
 {

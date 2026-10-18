@@ -13,8 +13,6 @@ use Illuminate\Notifications\Notification;
  * PURPOSE: In-app and email notification sent to the author and
  * coauthors when the article status changes (InReview,
  * Copyediting, Production, Published).
- *
- * SPECIFICATION: SPEC-12/AC-4, SPEC-12/AC-5, SPEC-12/BR-2
  */
 class AuthorStatusChanged extends Notification implements ShouldQueue
 {

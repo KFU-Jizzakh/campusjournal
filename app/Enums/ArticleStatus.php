@@ -5,8 +5,6 @@ namespace App\Enums;
 /**
  * PURPOSE: Defines the article editorial workflow state machine
  * with labels, colours, and allowed status transitions.
- *
- * SPECIFICATION: SPEC-01/BR-5, SPEC-02/BR-6, SPEC-04/BR-5, SPEC-13/BR-1, SPEC-16/BR-1, SPEC-16/BR-2
  */
 enum ArticleStatus: string
 {

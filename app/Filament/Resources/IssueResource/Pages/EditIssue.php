@@ -15,8 +15,6 @@ class EditIssue extends EditRecord
      * PURPOSE: Block unpublishing an issue that still contains
      * published or retracted articles, showing a notification
      * instead of saving.
-     *
-     * SPECIFICATION: SPEC-24/AC-5, SPEC-24/BR-1
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {

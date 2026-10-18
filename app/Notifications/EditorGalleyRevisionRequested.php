@@ -13,8 +13,6 @@ use Illuminate\Support\Str;
 /**
  * PURPOSE: In-app and email notification sent to the editor
  * when the author requests revisions to the galley proof.
- *
- * SPECIFICATION: SPEC-13/AC-5
  */
 class EditorGalleyRevisionRequested extends Notification implements ShouldQueue
 {

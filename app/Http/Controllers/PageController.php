@@ -8,8 +8,6 @@ use App\Models\Page;
  * PURPOSE: Serves static CMS pages (About, For Authors,
  * Contacts, Join, Peer Review, Publication Ethics, Archiving, Education)
  * by slug lookup.
- *
- * SPECIFICATION: SPEC-20, SPEC-21
  */
 class PageController extends Controller
 {
@@ -30,8 +28,6 @@ class PageController extends Controller
     /**
      * PURPOSE: Renders the education section page listing
      * the journal's educational services.
-     *
-     * SPECIFICATION: SPEC-21
      */
     public function education()
     {
@@ -59,11 +55,6 @@ class PageController extends Controller
         ]);
     }
 
-    /**
-     * PURPOSE: Renders the peer review policy page.
-     *
-     * SPECIFICATION: SPEC-20
-     */
     public function peerReview()
     {
         $page = Page::where('slug', 'peer-review')->firstOrFail();
@@ -71,11 +62,6 @@ class PageController extends Controller
         return view('pages.show', compact('page'));
     }
 
-    /**
-     * PURPOSE: Renders the publication ethics policy page.
-     *
-     * SPECIFICATION: SPEC-20
-     */
     public function publicationEthics()
     {
         $page = Page::where('slug', 'publication-ethics')->firstOrFail();
@@ -83,11 +69,6 @@ class PageController extends Controller
         return view('pages.show', compact('page'));
     }
 
-    /**
-     * PURPOSE: Renders the archiving policy page.
-     *
-     * SPECIFICATION: SPEC-20
-     */
     public function archiving()
     {
         $page = Page::where('slug', 'archiving')->firstOrFail();

@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\File;
 /**
  * PURPOSE: Generates public/robots.txt referencing the sitemap
  * URL derived from APP_URL.
- *
- * SPECIFICATION: SPEC-11/AC-3
  */
 class GenerateRobotsTxt extends Command
 {

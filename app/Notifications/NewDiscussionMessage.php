@@ -14,8 +14,6 @@ use Illuminate\Support\Str;
  * PURPOSE: In-app and email notification for a new reply in an
  * existing discussion thread, dispatched to all participants
  * except the message author.
- *
- * SPECIFICATION: SPEC-06/AC-7, SPEC-06/AC-10, SPEC-06/BR-10
  */
 class NewDiscussionMessage extends Notification implements ShouldQueue
 {

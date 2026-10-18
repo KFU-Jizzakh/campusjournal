@@ -13,8 +13,6 @@ use Illuminate\Notifications\Notification;
  * PURPOSE: In-app and email notification sent to the author
  * when the editor sends a typeset galley proof for final
  * review and approval.
- *
- * SPECIFICATION: SPEC-13/AC-2
  */
 class AuthorGalleyReady extends Notification implements ShouldQueue
 {

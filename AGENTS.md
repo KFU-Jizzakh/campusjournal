@@ -7,7 +7,6 @@ Academic journal management system with full editorial workflow.
 - Use Conventional Commits spec for commit msg
 - Don't commit
 - Use ripgrep instead of grep if available
-- The feature’s behavior and key points from Acceptance Criteria and Business Rules must be covered by tests.
 
 # Stack
 
@@ -122,7 +121,7 @@ Two layers work together:
 
 `ResponseLetterPolicy` gates response-letter attachments: editors see all letters, the author/coauthors see their own, a reviewer sees the letter of the round they are assigned to.
 
-## Review rounds (SPEC-25)
+## Review rounds
 
 Peer review is round-based: `articles.current_round` + `reviews.round`. `Article::revise()` (resubmission after a revision decision) increments the round, requires a response letter (`response_letters`, created in the same transaction), and clears `blinded_pdf_path/at/by` so a double-blind next round never reuses the previous anonymised PDF. `ReviewStatus` `Completed`/`Declined` stay terminal — a new round is always a new `reviews` row. The duplicate-assignment guard and the partial unique index `reviews_article_reviewer_active_unique` are scoped per round, so a reviewer who completed/declined an earlier round can be re-invited (`ReviewReRequested` notification); `decide()`/`canBeDecided()` only count completed reviews of the current round.
 

@@ -5,8 +5,6 @@ namespace App\Enums;
 /**
  * PURPOSE: Defines discussion visibility scope: article-wide
  * (author + editors) or editorial-only (editors only).
- *
- * SPECIFICATION: SPEC-06/BR-2, SPEC-06/BR-3
  */
 enum DiscussionScope: string
 {

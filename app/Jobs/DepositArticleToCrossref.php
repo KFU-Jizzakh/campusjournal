@@ -20,8 +20,6 @@ use Throwable;
  * PURPOSE: Queued job for depositing a published article's DOI
  * metadata to Crossref with 3 retries and exponential backoff.
  * Supports Crossmark update deposits (retraction/correction).
- *
- * SPECIFICATION: SPEC-08/AC-1, SPEC-08/AC-6, SPEC-08/AC-7, SPEC-08/AC-8, SPEC-08/AC-9, SPEC-08/BR-2c, SPEC-08/BR-3, SPEC-08/BR-4, SPEC-16/AC-5, SPEC-16/BR-7, SPEC-16/BR-8
  */
 class DepositArticleToCrossref implements ShouldQueue
 {
@@ -47,7 +45,7 @@ class DepositArticleToCrossref implements ShouldQueue
         // Reuse the DOI reserved in a previous deposit record when the
         // article row has none yet (e.g. the early persist failed and
         // this is a retry) — the suffix must never change between
-        // deposit attempts (SPEC-08/BR-2c).
+        // deposit attempts.
         $doi = $this->article->latestCrossrefDeposit?->doi
             ?? $minter->mint($this->article);
 

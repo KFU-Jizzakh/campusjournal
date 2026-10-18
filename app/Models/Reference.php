@@ -11,8 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * PURPOSE: Single bibliographic reference belonging to an
  * article, with auto-extracted DOI, positional ordering,
  * citation-count tracking, and individual format export.
- *
- * SPECIFICATION: SPEC-15
  */
 #[Fillable(['article_id', 'raw', 'doi', 'order', 'cited_count'])]
 class Reference extends Model

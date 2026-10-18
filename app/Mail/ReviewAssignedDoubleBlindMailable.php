@@ -12,8 +12,6 @@ use Illuminate\Queue\SerializesModels;
 /**
  * PURPOSE: Email notification sent to a reviewer assigned to a
  * double-blind article, including anonymisation notice.
- *
- * SPECIFICATION: SPEC-05/AC-7
  */
 class ReviewAssignedDoubleBlindMailable extends Mailable
 {

@@ -12,8 +12,6 @@ use Illuminate\Notifications\Notification;
 /**
  * PURPOSE: In-app and email notification sent to the author and
  * coauthors when a peer review of their article is completed.
- *
- * SPECIFICATION: SPEC-12/AC-2, SPEC-12/BR-2
  */
 class AuthorReviewCompleted extends Notification implements ShouldQueue
 {

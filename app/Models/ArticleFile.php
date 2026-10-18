@@ -18,8 +18,6 @@ use Illuminate\Support\Facades\Storage;
 /**
  * PURPOSE: Supplementary file attached to an article with type,
  * visibility, licence, and optional thumbnail generation.
- *
- * SPECIFICATION: SPEC-07/AC-1, SPEC-07/AC-2, SPEC-07/BR-1, SPEC-07/BR-2, SPEC-07/BR-4
  */
 #[Fillable(['article_id', 'file_path', 'original_name', 'file_type', 'visibility', 'license', 'language', 'file_size', 'mime_type', 'uploaded_by', 'disk'])]
 class ArticleFile extends Model

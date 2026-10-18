@@ -22,8 +22,6 @@ use Illuminate\Support\Facades\DB;
 /**
  * PURPOSE: Peer review entity managing the reviewer lifecycle
  * from invitation through acceptance, completion, and deadlines.
- *
- * SPECIFICATION: SPEC-02/AC-3, SPEC-03/AC-2, SPEC-03/AC-3, SPEC-03/AC-4, SPEC-03/AC-5
  */
 #[Fillable(['article_id', 'reviewer_id', 'assigned_by', 'recommendation', 'comments_for_editor', 'comments_for_author', 'quality_rating', 'rated_by', 'rated_at', 'status', 'round', 'assigned_at', 'completed_at', 'response_due_at', 'review_due_at', 'reminded_at'])]
 class Review extends Model
@@ -201,8 +199,6 @@ class Review extends Model
     /**
      * Accept the review invitation and transition to InProgress.
      * Notifies the assigning editor that the reviewer accepted.
-     *
-     * SPECIFICATION: SPEC-03/AC-2, SPEC-03/BR-1
      */
     public function accept(): void
     {
@@ -223,8 +219,6 @@ class Review extends Model
     /**
      * Decline the review invitation.
      * Notifies the assigning editor that the reviewer declined.
-     *
-     * SPECIFICATION: SPEC-03/AC-3, SPEC-03/BR-2
      */
     public function decline(): void
     {
@@ -246,8 +240,6 @@ class Review extends Model
      * Complete the review with recommendation and comments
      * for both the editor and the author.
      * Notifies the assigning editor that the review is complete.
-     *
-     * SPECIFICATION: SPEC-03/AC-4, SPEC-03/BR-1
      */
     public function complete(string $recommendation, string $commentsForEditor, string $commentsForAuthor): void
     {

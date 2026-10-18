@@ -14,8 +14,6 @@ use Illuminate\Http\Request;
  * PURPOSE: Handles reviewer actions: listing assigned reviews,
  * viewing review details, accepting, declining, and completing
  * reviews with recommendations and comments.
- *
- * SPECIFICATION: SPEC-03/AC-1, SPEC-03/AC-2, SPEC-03/AC-3, SPEC-03/AC-4
  */
 class ReviewController extends Controller
 {
@@ -51,7 +49,7 @@ class ReviewController extends Controller
 
         // The author's response letter for this review's round (visible on
         // re-review) — only while the reviewer's assignment is active:
-        // declined and cancelled reviewers must not read it (SPEC-25/BR-4).
+        // declined and cancelled reviewers must not read it.
         $responseLetter = $review->status->isActive()
             ? $review->article->responseLetters
                 ->where('round', $review->round)

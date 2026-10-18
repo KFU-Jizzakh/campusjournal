@@ -5,8 +5,6 @@ namespace App\Enums;
 /**
  * PURPOSE: Defines the review lifecycle state machine
  * with labels, colours, and allowed status transitions.
- *
- * SPECIFICATION: SPEC-03/BR-1, SPEC-03/BR-2
  */
 enum ReviewStatus: string
 {
@@ -56,8 +54,6 @@ enum ReviewStatus: string
      * Statuses that count as an active reviewer assignment — the
      * access boundary for manuscripts and response letters. Declined
      * and cancelled reviewers keep no access.
-     *
-     * SPECIFICATION: SPEC-05/BR-4, SPEC-25/BR-4
      */
     public static function active(): array
     {

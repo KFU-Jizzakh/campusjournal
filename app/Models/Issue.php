@@ -14,8 +14,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * PURPOSE: Journal issue with volume, number, year, DOI,
  * and published/planned status, containing published articles.
- *
- * SPECIFICATION: SPEC-24/BR-1, SPEC-24/BR-2
  */
 #[Fillable(['volume', 'number', 'year', 'title', 'theme', 'description', 'cover_path', 'pdf_path', 'doi', 'published_at', 'status'])]
 class Issue extends Model
@@ -43,8 +41,6 @@ class Issue extends Model
      * PURPOSE: Guard the public visibility invariant — an issue
      * cannot lose its published status while it still contains
      * published articles.
-     *
-     * SPECIFICATION: SPEC-24/BR-1
      */
     protected static function booted(): void
     {
@@ -60,22 +56,11 @@ class Issue extends Model
         });
     }
 
-    /**
-     * PURPOSE: Tells whether the issue is publicly visible.
-     *
-     * SPECIFICATION: SPEC-24/BR-2
-     */
     public function isPublished(): bool
     {
         return $this->status === 'published';
     }
 
-    /**
-     * PURPOSE: Tells whether the issue still contains published
-     * or retracted articles (SPEC-24/BR-1 treats them equally).
-     *
-     * SPECIFICATION: SPEC-24/BR-1
-     */
     public function hasPublishedArticles(): bool
     {
         return $this->articles()

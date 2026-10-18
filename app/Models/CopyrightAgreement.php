@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\DB;
  * title, short summary for the submission form, full legal
  * text, and the license type (CC BY, etc.). Only one version is
  * active at a time; version number auto-increments for audit trail.
- *
- * SPECIFICATION: SPEC-14/AC-1, SPEC-14/AC-5, SPEC-14/AC-6, SPEC-14/BR-3, SPEC-14/BR-4, SPEC-14/BR-5
  */
 #[Fillable(['version', 'title', 'short_text', 'full_text', 'license', 'is_active', 'published_at'])]
 class CopyrightAgreement extends Model

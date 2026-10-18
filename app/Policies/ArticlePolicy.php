@@ -10,8 +10,6 @@ use App\Models\User;
  * PURPOSE: Defines row-level access control for articles,
  * gating view, edit, editorial workflow, review type, and
  * blinded PDF operations by role and article ownership.
- *
- * SPECIFICATION: SPEC-01/BR-1, SPEC-02/BR-1, SPEC-02/BR-4, SPEC-04/BR-1, SPEC-04/BR-6, SPEC-05/BR-1, SPEC-05/BR-4
  */
 class ArticlePolicy
 {
@@ -147,21 +145,11 @@ class ArticlePolicy
             && $user->hasPermissionTo('publish-issue');
     }
 
-    /**
-     * PURPOSE: Authorise changing the review type of an article.
-     *
-     * SPECIFICATION: SPEC-05/AC-1
-     */
     public function manageReviewType(User $user, Article $article): bool
     {
         return $this->canManageWorkflow($user, $article);
     }
 
-    /**
-     * PURPOSE: Authorise uploading or deleting an anonymised manuscript.
-     *
-     * SPECIFICATION: SPEC-05/AC-3
-     */
     public function uploadBlindedPdf(User $user, Article $article): bool
     {
         return $this->canManageWorkflow($user, $article);
@@ -174,8 +162,6 @@ class ArticlePolicy
      * section editor, or a reviewer with an active assignment
      * (declined and cancelled reviewers keep no access). The single
      * gate behind ArticleController::pdf().
-     *
-     * SPECIFICATION: SPEC-05/AC-6, SPEC-05/BR-4
      */
     public function viewPdf(User $user, Article $article): bool
     {
@@ -204,8 +190,6 @@ class ArticlePolicy
     /**
      * PURPOSE: Authorise uploading the typeset galley PDF
      * during the Production stage.
-     *
-     * SPECIFICATION: SPEC-13/AC-1
      */
     public function uploadGalleyPdf(User $user, Article $article): bool
     {
@@ -215,8 +199,6 @@ class ArticlePolicy
     /**
      * PURPOSE: Authorise sending the galley proof to the
      * author for final approval.
-     *
-     * SPECIFICATION: SPEC-13/AC-1
      */
     public function sendGalleyToAuthor(User $user, Article $article): bool
     {
@@ -226,8 +208,6 @@ class ArticlePolicy
     /**
      * PURPOSE: Authorise the article submitter to approve
      * the galley proof.
-     *
-     * SPECIFICATION: SPEC-13/AC-4
      */
     public function approveGalley(User $user, Article $article): bool
     {
@@ -237,8 +217,6 @@ class ArticlePolicy
     /**
      * PURPOSE: Authorise the article submitter to request
      * galley proof revisions.
-     *
-     * SPECIFICATION: SPEC-13/AC-5
      */
     public function requestGalleyRevision(User $user, Article $article): bool
     {
@@ -248,8 +226,6 @@ class ArticlePolicy
     /**
      * PURPOSE: Authorise uploading the corrected manuscript file
      * during the Copyediting stage.
-     *
-     * SPECIFICATION: SPEC-04/AC-4
      */
     public function uploadCopyeditedFile(User $user, Article $article): bool
     {
@@ -259,8 +235,6 @@ class ArticlePolicy
     /**
      * PURPOSE: Authorise deleting the corrected manuscript file
      * during the Copyediting stage.
-     *
-     * SPECIFICATION: SPEC-04/AC-4a
      */
     public function deleteCopyeditedFile(User $user, Article $article): bool
     {
@@ -271,8 +245,6 @@ class ArticlePolicy
      * PURPOSE: Authorise downloading the corrected manuscript file.
      * Editorial staff (workflow managers) and the article submitter
      * can download the copyedited file.
-     *
-     * SPECIFICATION: SPEC-04/AC-4a
      */
     public function downloadCopyeditedFile(User $user, Article $article): bool
     {
@@ -285,8 +257,6 @@ class ArticlePolicy
      * only, and subject to the conflict-of-interest boundary: an EiC
      * or managing editor who authored the manuscript cannot retract
      * it themselves (the admin override in canManageWorkflow stands).
-     *
-     * SPECIFICATION: SPEC-16/BR-2
      */
     public function retract(User $user, Article $article): bool
     {
@@ -297,8 +267,6 @@ class ArticlePolicy
     /**
      * PURPOSE: Authorise withdrawing an article before publication.
      * The article submitter and workflow managers can withdraw.
-     *
-     * SPECIFICATION: SPEC-16/AC-1, SPEC-16/AC-2
      */
     public function withdraw(User $user, Article $article): bool
     {
@@ -309,11 +277,6 @@ class ArticlePolicy
         return $this->canManageWorkflow($user, $article);
     }
 
-    /**
-     * PURPOSE: Authorise managing corrections on published articles.
-     *
-     * SPECIFICATION: SPEC-16/BR-5
-     */
     public function manageCorrections(User $user, Article $article): bool
     {
         return $this->canManageWorkflow($user, $article);

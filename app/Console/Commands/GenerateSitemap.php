@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\View;
 /**
  * PURPOSE: Generates public/sitemap.xml with all public URLs
  * using low-memory cursor() traversal.
- *
- * SPECIFICATION: SPEC-11/AC-1, SPEC-11/AC-2, SPEC-21/AC-7
  */
 class GenerateSitemap extends Command
 {

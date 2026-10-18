@@ -200,7 +200,7 @@ test('section-editor cannot sendToProduction on unassigned article', function ()
     expect($editor->can('sendToProduction', $article))->toBeFalse();
 });
 
-// --- Galley policies (SPEC-13) ---
+// --- Galley policies ---
 
 test('editor-in-chief can send galley to author', function () {
     $eic = User::factory()->create();

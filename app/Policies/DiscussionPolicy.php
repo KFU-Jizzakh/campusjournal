@@ -12,8 +12,6 @@ use App\Models\User;
  * PURPOSE: Defines visibility and action permissions for discussion
  * threads based on scope (article/editorial), review binding,
  * and user role.
- *
- * SPECIFICATION: SPEC-06/BR-2, SPEC-06/BR-3, SPEC-06/BR-8
  */
 class DiscussionPolicy
 {
@@ -49,8 +47,6 @@ class DiscussionPolicy
      * any scope, the submitter in "article" scope, and a reviewer —
      * only inside the editorial thread bound to their own ACTIVE
      * review (declined/cancelled/finished reviewers cannot write).
-     *
-     * SPECIFICATION: SPEC-06/AC-1, SPEC-06/AC-3, SPEC-06/BR-4
      */
     public function create(User $user, Article $article, DiscussionScope $scope, ?Review $review = null): bool
     {

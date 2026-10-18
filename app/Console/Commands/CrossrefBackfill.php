@@ -10,8 +10,6 @@ use Illuminate\Console\Command;
 /**
  * PURPOSE: Dispatches Crossref DOI deposits for published
  * articles without a registered DOI. Supports --dry-run.
- *
- * SPECIFICATION: SPEC-08/AC-9
  */
 class CrossrefBackfill extends Command
 {

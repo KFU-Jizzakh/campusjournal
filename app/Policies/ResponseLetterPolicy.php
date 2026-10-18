@@ -10,8 +10,6 @@ use App\Models\User;
  * letters, the author (and credited coauthors) see their own, and a
  * reviewer with an active review sees the letter of that round
  * (declined and cancelled reviewers do not).
- *
- * SPECIFICATION: SPEC-25/BR-4
  */
 class ResponseLetterPolicy
 {
