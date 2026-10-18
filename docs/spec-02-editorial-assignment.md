@@ -32,7 +32,7 @@ Status: IMPLEMENTED
 - BR-6: When the first reviewer is assigned, the article transitions from "Submitted" to "In Review"
 - BR-7: Reviewer response deadline — 7 days, review deadline — 30 days (configurable in settings)
 - BR-8: Duplicate reviewer assignment is blocked at both the application and database level
-- BR-9: Rubric auto-assignment never picks the submitter, a user without the section-editor role, or a conflicted editor (an author of the submission, claimed via `user_id` link or unclaimed via pivot email snapshot matching the account email); an auto-assignment found to be conflicted when authors are synced is released back to the unassigned pool. The same email snapshot counts as conflict evidence for manual assignment and workflow actions (deny-side only)
+- BR-9: Rubric auto-assignment never picks the submitter, a user without the section-editor role, or a conflicted editor (an author of the submission, claimed via `user_id` link or unclaimed via pivot email snapshot matching the account email); an auto-assignment found to be conflicted when authors are synced is released back to the unassigned pool. The same email snapshot counts as conflict evidence for manual assignment and workflow actions (deny-side only). Bulk assignment enforces the same boundary per article: articles the acting user authored are skipped (reported in the skipped counter), never silently assigned
 
 ## Behavior
 
@@ -69,6 +69,13 @@ Given the article lists the selected user as an author (claimed account link, or
 When  the EiC attempts to assign that user as editor
 Then  an exception is thrown with an error message
 But   the assignment is not performed
+
+#### Scenario: Bulk assignment skips conflicted articles (BR-9)
+
+Given the acting EiC authored one of the articles selected for bulk editor assignment
+When  the bulk assignment runs
+Then  the other articles get the section editor
+And   the authored article is skipped and stays unassigned
 
 ### Rule: Rubric auto-assignment (BR-9)
 

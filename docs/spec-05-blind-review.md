@@ -32,7 +32,7 @@ Status: IMPLEMENTED
 - BR-1: The review type cannot be changed after at least one reviewer is assigned (excluding declined)
 - BR-2: A reviewer cannot be assigned in double-blind without an uploaded blinded manuscript
 - BR-3: The blinded manuscript cannot be deleted while there are active reviewers
-- BR-4: The reviewer always receives the anonymized PDF in double-blind, the original in other types
+- BR-4: The reviewer receives the anonymized PDF in double-blind, the original in other types — only while their review is active; declined and cancelled reviewers get neither
 - BR-5: The author never sees the reviewer's name
 - BR-6: The reviewer never sees the author's name in double-blind
 

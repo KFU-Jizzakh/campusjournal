@@ -28,6 +28,7 @@ Status: IMPLEMENTED
 - BR-2: After declining, the review is finished; the editor can assign another reviewer
 - BR-3: The reviewer sees and can only act on their own reviews (admin is an exception)
 - BR-4: Admin can accept/decline/complete any review (editorial substitution), but only within allowed status transitions
+- BR-5: Manuscript access (the original and, in double-blind, the anonymized PDF) and the response letter of the round are available to a reviewer only while their assignment is active — declined and cancelled reviewers keep no access (see SPEC-05/BR-4, SPEC-25/BR-4)
 
 ## Behavior
 

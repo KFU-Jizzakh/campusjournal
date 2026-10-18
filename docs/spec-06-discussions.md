@@ -18,6 +18,7 @@ Status: IMPLEMENTED
 - AC-8: The editor closes a thread (marked "Resolved") — replies are blocked, the thread is collapsed and greyed out; can be reopened
 - AC-9: The author sees that the thread is closed but cannot reopen it
 - AC-10: In profile settings, the user can disable email notifications for discussions or all discussion notifications
+- AC-11: The reviewer writes to the editor from the "Discussion with editor" block on the review page — the message is created with "editorial" scope linked to their review; the block is available only while the review is active
 
 ## UI/UX Notes
 
@@ -43,6 +44,7 @@ Status: IMPLEMENTED
 - BR-8: Only an editor can close threads
 - BR-9: Replying to a closed thread is prohibited
 - BR-10: Discussion notifications are enabled by default (email and in-app)
+- BR-11: A reviewer may create messages only in "editorial" scope bound to their own active review — a declined or cancelled assignment removes write access (reading past threads is unaffected). A reply inherits the scope and the review link from the parent thread, and the message form is rendered only for users the policy allows to write
 
 ## Behavior
 
@@ -90,6 +92,28 @@ When  they switch to the "Editorial" tab, click "New message", and send
 Then  the message is created with "editorial" visibility, without a review link
 And   all editors with access to the article receive a notification
 But   the author and reviewers do not see this message
+
+#### Scenario: Reviewer writes to the editor (AC-11, BR-11)
+
+Given the reviewer has an active review of the article
+When  they send a message from the review page
+Then  the message is created with "editorial" visibility linked to that review
+And   the editors with access to the article receive a notification
+But   the author does not see this message
+
+#### Scenario: Reviewer without an active review cannot write (BR-11)
+
+Given the reviewer's review is declined or cancelled
+When  they attempt to post a message
+Then  the request is rejected
+But   no message is created
+
+#### Scenario: Reviewer cannot post outside their review thread (BR-11)
+
+Given the reviewer has an active review of the article
+When  they attempt to post a message with "general" scope, or an "editorial" message not bound to their review
+Then  the request is rejected
+But   no message is created
 
 ### Rule: Closing and reopening threads (BR-8, BR-9)
 

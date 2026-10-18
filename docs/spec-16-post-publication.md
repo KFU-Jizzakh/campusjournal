@@ -32,7 +32,7 @@ Status: IMPLEMENTED
 ## Business Rules
 
 - BR-1: Withdrawal moves article to terminal status Withdrawn; only possible from non-terminal, non-published statuses
-- BR-2: Retraction is only possible from Published status, performed by EiC or managing editor
+- BR-2: Retraction is only possible from Published status, performed by EiC or managing editor — a leadership user who authored the manuscript (as submitter or credited coauthor) cannot retract it themselves; the admin override stands
 - BR-3: Withdrawn articles are hidden from public site, visible only in editorial dashboard and author's submissions list
 - BR-4: Retracted articles remain publicly accessible with a retraction watermar/banner and the retraction reason
 - BR-5: Corrections can only be added to published articles by workflow managers

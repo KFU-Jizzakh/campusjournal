@@ -33,6 +33,7 @@ Status: IMPLEMENTED
 - BR-6: In statuses other than "Revision", a simple data update is applied
 - BR-7: When replacing the PDF, the old file is deleted from disk
 - BR-8: An ORCID linked to a different user account cannot be taken; records not linked to any account never block a claim — coauthor listings carry no verified ownership, so pre-listing somebody's ORCID cannot deny them their own record
+- BR-9: When a similar title is detected (normalized exact match, substring, or ≥88% similarity against submitted non-draft articles), the submission is bounced back with a warning and the list of similar manuscripts, and no article is created. The uploaded PDF is parked for the confirmation attempt — resubmitting the confirmed form does not require re-attaching the file. A parked PDF is reused only for the same title, and a submission without any PDF is rejected
 
 ## Behavior
 
@@ -71,6 +72,21 @@ Given somebody else's submission has listed the user's ORCID as a coauthor
 When  the user submits their own manuscript with that ORCID
 Then  validation passes and the existing unlinked record is adopted by the user
 And   the article is created
+
+#### Scenario: Similar title triggers a duplicate warning (BR-9)
+
+Given a submitted manuscript with a similar title exists
+When  the author submits a new manuscript
+Then  the form is returned with a warning and the list of similar titles
+And   no article is created
+And   the uploaded PDF is parked for the confirmation attempt
+
+#### Scenario: Confirming the duplicate warning (BR-9)
+
+Given the author saw the duplicate warning
+When  they resubmit the form without re-attaching the PDF
+Then  the parked PDF is reused and the article is created
+But   a parked PDF is never reused for a different title
 
 ### Rule: Revision after editorial decision (BR-5, BR-6, BR-7)
 
