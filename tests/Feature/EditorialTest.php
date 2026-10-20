@@ -2,6 +2,7 @@
 
 use App\Enums\ArticleStatus;
 use App\Enums\ReviewStatus;
+use App\Exceptions\UnknownDecisionException;
 use App\Models\Article;
 use App\Models\Issue;
 use App\Models\Review;
@@ -823,4 +824,15 @@ test('user without publish-issue permission cannot publish', function () {
             'issue_id' => $issue->id,
         ])
         ->assertForbidden();
+});
+
+test('decide rejects an unknown decision key with a domain exception', function () {
+    $eic = createEic();
+    $article = Article::factory()->inReview()->create();
+
+    // The model must stay safe even when the caller skipped validation.
+    expect(fn () => $article->decide('nonsense', 'Комментарий', $eic))
+        ->toThrow(UnknownDecisionException::class);
+
+    expect($article->fresh()->status)->toBe(ArticleStatus::InReview);
 });

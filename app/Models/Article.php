@@ -28,6 +28,7 @@ use App\Exceptions\ReviewerIsAuthorException;
 use App\Exceptions\ReviewTypeChangeForbiddenException;
 use App\Exceptions\SendToCopyeditingFailedException;
 use App\Exceptions\SendToProductionFailedException;
+use App\Exceptions\UnknownDecisionException;
 use App\Exceptions\UploadCopyeditedFileFailedException;
 use App\Notifications\AuthorApprovedGalley;
 use App\Notifications\AuthorDecisionMade;
@@ -594,6 +595,10 @@ class Article extends Model
             'reject' => ArticleStatus::Rejected,
         ];
 
+        if (! isset($statusMap[$decision])) {
+            throw new UnknownDecisionException;
+        }
+
         DB::transaction(function () use ($decision, $comments, $decidedBy, $statusMap) {
             $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
 
@@ -1005,83 +1010,85 @@ class Article extends Model
      */
     public function syncAuthors(User $submitter, array $authorData, array $coauthorsData = []): void
     {
-        $previousCoauthorIds = $this->authors()
-            ->whereNull('user_id')
-            ->pluck('authors.id');
+        DB::transaction(function () use ($submitter, $authorData, $coauthorsData) {
+            $previousCoauthorIds = $this->authors()
+                ->whereNull('user_id')
+                ->pluck('authors.id');
 
-        $primaryAuthor = $this->resolvePrimaryAuthor($submitter, [
-            'email' => $authorData['email'] ?? $submitter->email,
-            'full_name' => $authorData['full_name'],
-            'degree' => $authorData['degree'] ?? null,
-            'position' => $authorData['position'] ?? null,
-            'organization' => $authorData['organization'] ?? null,
-            'orcid' => $authorData['orcid'] ?? null,
-            'phone' => $authorData['phone'] ?? null,
-            'country' => $authorData['country'] ?? null,
-            'city' => $authorData['city'] ?? null,
-            'website' => $authorData['website'] ?? null,
-        ]);
-
-        $authors = [
-            $primaryAuthor->id => [
-                'order' => 1,
+            $primaryAuthor = $this->resolvePrimaryAuthor($submitter, [
                 'email' => $authorData['email'] ?? $submitter->email,
+                'full_name' => $authorData['full_name'],
+                'degree' => $authorData['degree'] ?? null,
+                'position' => $authorData['position'] ?? null,
+                'organization' => $authorData['organization'] ?? null,
+                'orcid' => $authorData['orcid'] ?? null,
                 'phone' => $authorData['phone'] ?? null,
                 'country' => $authorData['country'] ?? null,
                 'city' => $authorData['city'] ?? null,
                 'website' => $authorData['website'] ?? null,
-            ],
-        ];
+            ]);
 
-        foreach ($coauthorsData as $index => $coauthorData) {
-            $attrs = [
-                'full_name' => $coauthorData['full_name'],
-                'degree' => $coauthorData['degree'] ?? null,
-                'position' => $coauthorData['position'] ?? null,
-                'organization' => $coauthorData['organization'] ?? null,
-                'orcid' => $coauthorData['orcid'] ?? null,
-                'email' => $coauthorData['email'] ?? null,
-                'phone' => $coauthorData['phone'] ?? null,
-                'country' => $coauthorData['country'] ?? null,
-                'city' => $coauthorData['city'] ?? null,
-                'website' => $coauthorData['website'] ?? null,
+            $authors = [
+                $primaryAuthor->id => [
+                    'order' => 1,
+                    'email' => $authorData['email'] ?? $submitter->email,
+                    'phone' => $authorData['phone'] ?? null,
+                    'country' => $authorData['country'] ?? null,
+                    'city' => $authorData['city'] ?? null,
+                    'website' => $authorData['website'] ?? null,
+                ],
             ];
 
-            if (! empty($coauthorData['orcid'])) {
-                $coauthor = $this->resolveCoauthorByOrcid($coauthorData['orcid'], $attrs);
-            } else {
-                $coauthor = Author::create($attrs);
+            foreach ($coauthorsData as $index => $coauthorData) {
+                $attrs = [
+                    'full_name' => $coauthorData['full_name'],
+                    'degree' => $coauthorData['degree'] ?? null,
+                    'position' => $coauthorData['position'] ?? null,
+                    'organization' => $coauthorData['organization'] ?? null,
+                    'orcid' => $coauthorData['orcid'] ?? null,
+                    'email' => $coauthorData['email'] ?? null,
+                    'phone' => $coauthorData['phone'] ?? null,
+                    'country' => $coauthorData['country'] ?? null,
+                    'city' => $coauthorData['city'] ?? null,
+                    'website' => $coauthorData['website'] ?? null,
+                ];
+
+                if (! empty($coauthorData['orcid'])) {
+                    $coauthor = $this->resolveCoauthorByOrcid($coauthorData['orcid'], $attrs);
+                } else {
+                    $coauthor = Author::create($attrs);
+                }
+
+                $authors[$coauthor->id] = [
+                    'order' => $index + 2,
+                    'email' => $coauthorData['email'] ?? null,
+                    'phone' => $coauthorData['phone'] ?? null,
+                    'country' => $coauthorData['country'] ?? null,
+                    'city' => $coauthorData['city'] ?? null,
+                    'website' => $coauthorData['website'] ?? null,
+                ];
             }
 
-            $authors[$coauthor->id] = [
-                'order' => $index + 2,
-                'email' => $coauthorData['email'] ?? null,
-                'phone' => $coauthorData['phone'] ?? null,
-                'country' => $coauthorData['country'] ?? null,
-                'city' => $coauthorData['city'] ?? null,
-                'website' => $coauthorData['website'] ?? null,
-            ];
-        }
+            $this->authors()->sync($authors);
 
-        $this->authors()->sync($authors);
+            // A conflicted assigned editor (linked account or pivot-email
+            // match) is released back to the unassigned pool — same silent
+            // semantics as the auto-assign itself.
+            if ($this->editor_id !== null) {
+                $editor = User::find($this->editor_id);
 
-        // A conflicted assigned editor (linked account or pivot-email
-        // match) is released back to the unassigned pool — same silent
-        // semantics as the auto-assign itself.
-        if ($this->editor_id !== null) {
-            $editor = User::find($this->editor_id);
-
-            if ($editor !== null && $this->isAuthoredBy($editor)) {
-                $this->update(['editor_id' => null]);
+                if ($editor !== null && $this->isAuthoredBy($editor)) {
+                    $this->update(['editor_id' => null]);
+                }
             }
-        }
 
-        if ($previousCoauthorIds->isNotEmpty()) {
-            Author::whereIn('id', $previousCoauthorIds)
-                ->whereNull('user_id')
-                ->whereDoesntHave('articles')
-                ->delete();
-        }
+            if ($previousCoauthorIds->isNotEmpty()) {
+                Author::whereIn('id', $previousCoauthorIds)
+                    ->whereNull('user_id')
+                    ->whereDoesntHave('articles')
+                    ->delete();
+            }
+        });
     }
 
     /**
