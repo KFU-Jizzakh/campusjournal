@@ -203,17 +203,21 @@ class Review extends Model
     public function accept(): void
     {
         DB::transaction(function () {
-            $this->transitionTo(ReviewStatus::InProgress);
-            $this->save();
+            $locked = static::lockForUpdate()->findOrFail($this->id);
 
-            OutboxEvent::log('review.accepted', $this, [
-                'article_id' => $this->article_id,
+            $locked->transitionTo(ReviewStatus::InProgress);
+            $locked->save();
+
+            OutboxEvent::log('review.accepted', $locked, [
+                'article_id' => $locked->article_id,
             ]);
 
-            if ($this->assignedBy) {
-                $this->assignedBy->notify(new ReviewerAccepted($this));
+            if ($locked->assignedBy) {
+                $locked->assignedBy->notify(new ReviewerAccepted($locked));
             }
         });
+
+        $this->refresh();
     }
 
     /**
@@ -223,17 +227,21 @@ class Review extends Model
     public function decline(): void
     {
         DB::transaction(function () {
-            $this->transitionTo(ReviewStatus::Declined);
-            $this->save();
+            $locked = static::lockForUpdate()->findOrFail($this->id);
 
-            OutboxEvent::log('review.declined', $this, [
-                'article_id' => $this->article_id,
+            $locked->transitionTo(ReviewStatus::Declined);
+            $locked->save();
+
+            OutboxEvent::log('review.declined', $locked, [
+                'article_id' => $locked->article_id,
             ]);
 
-            if ($this->assignedBy) {
-                $this->assignedBy->notify(new ReviewerDeclined($this));
+            if ($locked->assignedBy) {
+                $locked->assignedBy->notify(new ReviewerDeclined($locked));
             }
         });
+
+        $this->refresh();
     }
 
     /**
@@ -244,28 +252,32 @@ class Review extends Model
     public function complete(string $recommendation, string $commentsForEditor, string $commentsForAuthor): void
     {
         DB::transaction(function () use ($recommendation, $commentsForEditor, $commentsForAuthor) {
-            $this->transitionTo(ReviewStatus::Completed);
+            $locked = static::lockForUpdate()->findOrFail($this->id);
 
-            $this->update([
+            $locked->transitionTo(ReviewStatus::Completed);
+
+            $locked->update([
                 'recommendation' => $recommendation,
                 'comments_for_editor' => $commentsForEditor,
                 'comments_for_author' => $commentsForAuthor,
                 'completed_at' => now(),
             ]);
 
-            OutboxEvent::log('review.completed', $this, [
-                'article_id' => $this->article_id,
+            OutboxEvent::log('review.completed', $locked, [
+                'article_id' => $locked->article_id,
                 'recommendation' => $recommendation,
             ]);
 
-            $this->article->notifiableUsers()->each(
-                fn (User $user) => $user->notify(new AuthorReviewCompleted($this))
+            $locked->article->notifiableUsers()->each(
+                fn (User $user) => $user->notify(new AuthorReviewCompleted($locked))
             );
 
-            if ($this->assignedBy) {
-                $this->assignedBy->notify(new ReviewCompleted($this));
+            if ($locked->assignedBy) {
+                $locked->assignedBy->notify(new ReviewCompleted($locked));
             }
         });
+
+        $this->refresh();
     }
 
     /**

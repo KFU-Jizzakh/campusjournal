@@ -2,6 +2,7 @@
 
 use App\Enums\ArticleStatus;
 use App\Enums\ReviewStatus;
+use App\Exceptions\InvalidTransitionException;
 use App\Models\Article;
 use App\Models\Review;
 use App\Models\User;
@@ -231,4 +232,41 @@ test('editor receives ReviewCompleted notification when review is completed', fu
 
     Notification::assertSentTo($eic, ReviewCompleted::class);
     Notification::assertNotSentTo($sectionEditor, ReviewCompleted::class);
+});
+
+test('review state transitions are exclusive', function () {
+    $review = Review::factory()->inProgress()->create();
+
+    $review->complete('accept', 'Замечаний нет', 'Рекомендую к печати');
+    expect($review->status)->toBe(ReviewStatus::Completed);
+
+    // A concurrent second complete() must fail the state machine
+    // instead of overwriting and re-notifying.
+    $review->complete('accept', 'Повтор', 'Повтор');
+})->throws(InvalidTransitionException::class);
+
+test('accepting a review twice is rejected by the state machine', function () {
+    $review = Review::factory()->create();
+    $review->accept();
+
+    expect($review->status)->toBe(ReviewStatus::InProgress);
+
+    $review->accept();
+})->throws(InvalidTransitionException::class);
+
+test('a rejected duplicate completion sends no duplicate notifications', function () {
+    Notification::fake();
+
+    $review = Review::factory()->inProgress()->create();
+
+    $review->complete('accept', 'Хорошо', 'Хорошо');
+    Notification::assertSentTimes(ReviewCompleted::class, 1);
+
+    try {
+        $review->complete('accept', 'Повтор', 'Повтор');
+    } catch (DomainException) {
+        // expected — the assertion below is the point
+    }
+
+    Notification::assertSentTimes(ReviewCompleted::class, 1);
 });

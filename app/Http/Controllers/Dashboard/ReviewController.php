@@ -90,7 +90,11 @@ class ReviewController extends Controller
             'comments_for_author' => 'required|string',
         ]);
 
-        $review->complete($validated['recommendation'], $validated['comments_for_editor'], $validated['comments_for_author']);
+        try {
+            $review->complete($validated['recommendation'], $validated['comments_for_editor'], $validated['comments_for_author']);
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('reviews.index')
             ->with('success', 'Рецензия отправлена.');
@@ -100,7 +104,11 @@ class ReviewController extends Controller
     {
         $this->authorize('accept', $review);
 
-        $review->accept();
+        try {
+            $review->accept();
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('reviews.index')
             ->with('success', 'Вы приняли заявку на рецензирование. Дедлайн: '.$review->review_due_at?->format('d.m.Y'));
@@ -110,7 +118,11 @@ class ReviewController extends Controller
     {
         $this->authorize('decline', $review);
 
-        $review->decline();
+        try {
+            $review->decline();
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('reviews.index')
             ->with('info', 'Вы отклонили заявку на рецензирование.');
