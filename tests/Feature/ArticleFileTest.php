@@ -13,6 +13,7 @@ use App\Policies\ArticleFilePolicy;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -53,6 +54,18 @@ beforeEach(function () {
         $user->assignRole('managing-editor');
 
         return $user;
+    };
+
+    // Real temp-file upload: testing fakes report the MIME derived from
+    // the file NAME, but production validation sniffs the CONTENT via
+    // finfo. This helper builds a Symfony UploadedFile over an actual
+    // temp file so mimetypes rules are exercised against real sniffing.
+    $this->makeContentUpload = function (string $name, string $content): SymfonyUploadedFile {
+        $path = tempnam(sys_get_temp_dir(), 'cj-upload');
+        file_put_contents($path, $content);
+        register_shutdown_function(fn () => @unlink($path));
+
+        return new SymfonyUploadedFile($path, $name, test: true);
     };
 });
 
@@ -177,6 +190,120 @@ test('upload validates file type mime', function () {
         ]);
 
     $response->assertSessionHasErrors('file');
+});
+
+test('author cannot upload html payload as other file type', function () {
+    $author = ($this->createAuthor)();
+    $article = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::Draft,
+    ]);
+
+    // Real HTML content under a .csv name: the finfo sniffer reports
+    // text/html, which is outside the "other" allowlist.
+    $response = $this->actingAs($author)
+        ->post(route('article-files.store', $article), [
+            'file' => ($this->makeContentUpload)('payload.csv', '<html><script>alert(1)</script></html>'),
+            'file_type' => ArticleFileType::Other->value,
+            'visibility' => ArticleFileVisibility::Public->value,
+        ]);
+
+    $response->assertSessionHasErrors('file');
+    expect($article->fresh()->files)->toHaveCount(0);
+});
+
+test('stored file extension is derived from content mime, never from the client filename', function () {
+    $author = ($this->createAuthor)();
+    $article = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::Draft,
+    ]);
+
+    // Content mime text/plain is inside the "other" allowlist; the .html
+    // client filename must not leak into the stored path — hashName()
+    // derives the extension from the guessed mime, so the file lands on
+    // disk as .txt and the public disk can never serve it as text/html.
+    $response = $this->actingAs($author)
+        ->post(route('article-files.store', $article), [
+            'file' => UploadedFile::fake()->create('payload.html', 64, 'text/plain'),
+            'file_type' => ArticleFileType::Other->value,
+            'visibility' => ArticleFileVisibility::Public->value,
+        ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    $file = $article->fresh()->files->first();
+    expect(pathinfo($file->file_path, PATHINFO_EXTENSION))->toBe('txt');
+    Storage::disk($file->disk)->assertExists($file->file_path);
+});
+
+test('author cannot upload file whose content mime is outside the allowlist', function () {
+    $author = ($this->createAuthor)();
+    $article = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::Draft,
+    ]);
+
+    // .pdf extension is allowed for "other", but the finfo-sniffed
+    // content mime (text/html) is not — the content-based mimetypes
+    // rule must reject it.
+    $response = $this->actingAs($author)
+        ->post(route('article-files.store', $article), [
+            'file' => ($this->makeContentUpload)('payload.pdf', '<script>alert(1)</script>'),
+            'file_type' => ArticleFileType::Other->value,
+            'visibility' => ArticleFileVisibility::Public->value,
+        ]);
+
+    $response->assertSessionHasErrors('file');
+    expect($article->fresh()->files)->toHaveCount(0);
+});
+
+test('upload with array file_type input yields validation error instead of crashing', function () {
+    $author = ($this->createAuthor)();
+    $article = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::Draft,
+    ]);
+
+    // file_type[]=x must not reach the "(string)" cast path — the
+    // enum lookup is skipped and Rule::enum rejects the array as 422.
+    $response = $this->actingAs($author)
+        ->post(route('article-files.store', $article), [
+            'file' => UploadedFile::fake()->create('document.pdf', 64, 'application/pdf'),
+            'file_type' => [ArticleFileType::Other->value],
+            'visibility' => ArticleFileVisibility::EditorialOnly->value,
+        ]);
+
+    $response->assertSessionHasErrors('file_type');
+    expect($article->fresh()->files)->toHaveCount(0);
+});
+
+test('author can upload legitimate archive or presentation as other file type', function () {
+    $author = ($this->createAuthor)();
+    $article = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::Draft,
+    ]);
+
+    $response = $this->actingAs($author)
+        ->post(route('article-files.store', $article), [
+            'file' => UploadedFile::fake()->create(
+                'slides.pptx',
+                64,
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+            ),
+            'file_type' => ArticleFileType::Other->value,
+            'visibility' => ArticleFileVisibility::Public->value,
+        ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    expect($article->fresh()->files)->toHaveCount(1);
+    $file = $article->files->first();
+    expect($file->file_type)->toBe(ArticleFileType::Other);
+    Storage::disk($file->disk)->assertExists($file->file_path);
 });
 
 test('upload creates thumbnail for images', function () {

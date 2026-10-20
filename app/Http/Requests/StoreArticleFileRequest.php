@@ -17,29 +17,37 @@ class StoreArticleFileRequest extends FormRequest
 
     public function rules(): array
     {
-        $fileType = $this->input('file_type');
-        $mimeTypes = $fileType
-            ? ArticleFileType::from($fileType)->mimeTypes()
-            : [];
+        $fileTypeInput = $this->input('file_type');
+        $fileType = is_string($fileTypeInput) ? ArticleFileType::tryFrom($fileTypeInput) : null;
+        $mimeTypes = $fileType?->mimeTypes() ?? [];
+        $extensions = $fileType?->extensions() ?? [];
 
-        $rules = [
-            'file' => [
-                'required',
-                'file',
-                'max:102400', // 100MB
-            ],
+        $fileRules = [
+            'required',
+            'file',
+            'max:102400', // 100MB
+        ];
+
+        // Defense in depth: content-based MIME check (finfo) AND the
+        // uploaded file's extension must both be inside the type's
+        // allowlist — a file with valid content stored under a dangerous
+        // extension (.html/.svg) would otherwise be served by the public
+        // disk with an executable content type.
+        if ($mimeTypes !== []) {
+            $fileRules[] = 'mimetypes:'.implode(',', $mimeTypes);
+        }
+
+        if ($extensions !== []) {
+            $fileRules[] = 'mimes:'.implode(',', $extensions);
+        }
+
+        return [
+            'file' => $fileRules,
             'file_type' => ['required', Rule::enum(ArticleFileType::class)],
             'visibility' => ['required', Rule::enum(ArticleFileVisibility::class)],
             'license' => ['nullable', Rule::enum(ArticleFileLicense::class)],
             'language' => ['nullable', 'string', 'size:2'],
         ];
-
-        // Add mimetype validation only if mime types are specified
-        if (! empty($mimeTypes) && $mimeTypes !== ['*/*']) {
-            $rules['file'][] = 'mimetypes:'.implode(',', $mimeTypes);
-        }
-
-        return $rules;
     }
 
     public function messages(): array
@@ -49,6 +57,7 @@ class StoreArticleFileRequest extends FormRequest
             'file.file' => 'Загруженный объект должен быть файлом.',
             'file.max' => 'Размер файла не должен превышать 100 МБ.',
             'file.mimetypes' => 'Недопустимый тип файла для выбранной категории.',
+            'file.mimes' => 'Недопустимое расширение файла для выбранной категории.',
             'file_type.required' => 'Необходимо указать тип файла.',
             'visibility.required' => 'Необходимо указать уровень доступа.',
         ];

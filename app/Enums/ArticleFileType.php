@@ -101,7 +101,32 @@ enum ArticleFileType: string
                 'application/xml',
                 'text/xml',
             ],
-            self::Other => ['*/*'],
+            // "Other" is a catch-all for legitimate research supplements —
+            // data tables, documents, archives, slide decks — never an
+            // open wildcard: anything the web disk could serve as an
+            // executable content type (html, svg, js...) must stay out.
+            self::Other => [
+                'text/csv',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/json',
+                'application/xml',
+                'text/xml',
+                'text/plain',
+                'text/tab-separated-values',
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.oasis.opendocument.text',
+                'text/rtf',
+                'application/zip',
+                'application/x-zip-compressed',
+                'application/x-tar',
+                'application/gzip',
+                'application/x-7z-compressed',
+                'application/vnd.ms-powerpoint',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            ],
         };
     }
 
@@ -114,11 +139,11 @@ enum ArticleFileType: string
             self::ResearchData => ['csv', 'xls', 'xlsx', 'json', 'xml', 'txt', 'tsv'],
             self::Image => ['jpg', 'jpeg', 'png', 'gif', 'tiff', 'tif', 'webp'],
             self::Video => ['mp4', 'webm', 'avi', 'mov'],
-            self::Audio => ['mp3', 'wav', 'ogg', 'flac', 'aac'],
+            self::Audio => ['mp3', 'wav', 'ogg', 'flac', 'aac', 'adts'],
             self::Code => ['zip', 'tar', 'gz', 'txt'],
             self::Document => ['pdf', 'doc', 'docx', 'odt', 'txt', 'rtf'],
             self::JatsXml => ['xml'],
-            self::Other => ['*'],
+            self::Other => ['csv', 'xls', 'xlsx', 'json', 'xml', 'txt', 'tsv', 'pdf', 'doc', 'docx', 'odt', 'rtf', 'zip', 'tar', 'gz', '7z', 'ppt', 'pptx'],
         };
     }
 }
