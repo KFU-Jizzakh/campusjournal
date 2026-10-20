@@ -52,6 +52,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * PURPOSE: Core editorial workflow entity representing a submitted
@@ -1478,6 +1479,52 @@ class Article extends Model
         return array_map(fn (array $item) => $item + [
             'rowClass' => $item['skipped'] ? 'text-gray-300' : ($item['done'] ? 'text-gray-700' : 'text-gray-400'),
         ], $items);
+    }
+
+    /**
+     * PURPOSE: schema.org JSON-LD payload for the public article page.
+     * Rendered through the x-json-ld component, which encodes the
+     * array with JSON_HEX flags so author-supplied values (title,
+     * abstract, keywords, author names) can never break out of the
+     * raw-text <script> element.
+     *
+     * @return array<string, mixed>
+     */
+    public function jsonLd(): array
+    {
+        $data = [
+            '@context' => 'https://schema.org',
+            '@type' => 'ScholarlyArticle',
+            'headline' => $this->title,
+            'author' => $this->authors->map(fn (Author $author) => array_filter([
+                '@type' => 'Person',
+                'name' => $author->full_name,
+                'identifier' => $author->orcid ? "https://orcid.org/{$author->orcid}" : null,
+            ], fn ($value) => $value !== null))->values()->all(),
+            'publisher' => ['@type' => 'Organization', 'name' => config('app.name')],
+        ];
+
+        if ($this->abstract_ru) {
+            $data['description'] = Str::limit($this->abstract_ru, 300);
+        }
+
+        if ($this->doi) {
+            $data['identifier'] = [
+                '@type' => 'PropertyValue',
+                'propertyID' => 'DOI',
+                'value' => $this->doi,
+            ];
+        }
+
+        if ($this->published_at) {
+            $data['datePublished'] = $this->published_at->toIso8601String();
+        }
+
+        if ($this->keywords) {
+            $data['keywords'] = implode(', ', $this->keywords);
+        }
+
+        return $data;
     }
 
     private function reviewStartedAt(): ?Carbon

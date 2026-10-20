@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 /**
  * PURPOSE: Journal issue with volume, number, year, DOI,
@@ -86,5 +87,44 @@ class Issue extends Model
         }
 
         return $label ?: 'Выпуск';
+    }
+
+    /**
+     * PURPOSE: schema.org JSON-LD payload for the public issue page.
+     * Rendered through the x-json-ld component, which encodes the
+     * array with JSON_HEX flags so values can never break out of the
+     * raw-text <script> element.
+     *
+     * @return array<string, mixed>
+     */
+    public function jsonLd(): array
+    {
+        $data = [
+            '@context' => 'https://schema.org',
+            '@type' => 'PublicationIssue',
+            'name' => $this->full_title,
+            'isPartOf' => [
+                '@type' => 'Periodical',
+                'name' => config('app.name'),
+            ],
+        ];
+
+        if ($this->description) {
+            $data['description'] = Str::limit($this->description, 300);
+        }
+
+        if ($this->published_at) {
+            $data['datePublished'] = $this->published_at->toIso8601String();
+        }
+
+        if ($this->volume) {
+            $data['volumeNumber'] = $this->volume;
+        }
+
+        if ($this->number) {
+            $data['issueNumber'] = $this->number;
+        }
+
+        return $data;
     }
 }

@@ -7,24 +7,7 @@
 @section('og_type', 'article')
 
 @push('meta')
-@php
-$jsonLd = [
-    '@context' => 'https://schema.org',
-    '@type' => 'ScholarlyArticle',
-    'headline' => $article->title,
-    'author' => $article->authors->map(fn ($a) => array_filter([
-        '@type' => 'Person',
-        'name' => $a->full_name,
-        'identifier' => $a->orcid ? "https://orcid.org/{$a->orcid}" : null,
-    ]))->values()->toArray(),
-    'publisher' => ['@type' => 'Organization', 'name' => config('app.name')],
-];
-if ($article->abstract_ru) $jsonLd['description'] = Str::limit($article->abstract_ru, 300);
-if ($article->doi) $jsonLd['identifier'] = ['@type' => 'PropertyValue', 'propertyID' => 'DOI', 'value' => $article->doi];
-if ($article->published_at) $jsonLd['datePublished'] = $article->published_at->toIso8601String();
-if ($article->keywords) $jsonLd['keywords'] = implode(', ', $article->keywords);
-@endphp
-<script type="application/ld+json">{!! json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}</script>
+<x-json-ld :data="$article->jsonLd()" />
 
 <meta name="citation_title" content="{{ $article->title }}">
 @foreach($article->authors as $author)

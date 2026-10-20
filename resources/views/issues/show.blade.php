@@ -7,22 +7,7 @@
 @section('og_type', 'website')
 
 @push('meta')
-@php
-$jsonLd = [
-    '@context' => 'https://schema.org',
-    '@type' => 'PublicationIssue',
-    'name' => $issue->full_title,
-    'isPartOf' => [
-        '@type' => 'Periodical',
-        'name' => config('app.name'),
-    ],
-];
-if ($issue->description) $jsonLd['description'] = Str::limit($issue->description, 300);
-if ($issue->published_at) $jsonLd['datePublished'] = $issue->published_at->toIso8601String();
-if ($issue->volume) $jsonLd['volumeNumber'] = $issue->volume;
-if ($issue->number) $jsonLd['issueNumber'] = $issue->number;
-@endphp
-<script type="application/ld+json">{!! json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}</script>
+<x-json-ld :data="$issue->jsonLd()" />
 @endpush
 
 @section('content')
