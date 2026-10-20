@@ -97,49 +97,55 @@ class SubmissionController extends Controller
 
         $agreement = CopyrightAgreement::current();
 
-        $article = DB::transaction(function () use ($request, $validated, $keywords, $pdfPath, $agreement) {
-            $article = Article::submit($request->user(), [
-                'title' => $validated['title'],
-                'abstract_ru' => $validated['abstract_ru'],
-                'abstract_en' => $validated['abstract_en'] ?? null,
-                'keywords' => $keywords,
-                'funding' => $validated['funding'] ?? null,
-                'category_id' => $validated['category_id'],
-                'pdf_path' => $pdfPath,
-            ]);
+        try {
+            $article = DB::transaction(function () use ($request, $validated, $keywords, $pdfPath, $agreement) {
+                $article = Article::submit($request->user(), [
+                    'title' => $validated['title'],
+                    'abstract_ru' => $validated['abstract_ru'],
+                    'abstract_en' => $validated['abstract_en'] ?? null,
+                    'keywords' => $keywords,
+                    'funding' => $validated['funding'] ?? null,
+                    'category_id' => $validated['category_id'],
+                    'pdf_path' => $pdfPath,
+                ]);
 
-            $article->syncAuthors(
-                $request->user(),
-                [
-                    'full_name' => $validated['author_name'],
-                    'degree' => $validated['author_degree'] ?? null,
-                    'position' => $validated['author_position'] ?? null,
-                    'organization' => $validated['author_organization'] ?? null,
-                    'email' => $validated['author_email'],
-                    'phone' => $validated['author_phone'],
-                    'country' => $validated['author_country'],
-                    'city' => $validated['author_city'],
-                    'website' => $validated['author_website'] ?? null,
-                    'orcid' => $validated['author_orcid'] ?? null,
-                ],
-                $validated['coauthors'] ?? [],
-            );
+                $article->syncAuthors(
+                    $request->user(),
+                    [
+                        'full_name' => $validated['author_name'],
+                        'degree' => $validated['author_degree'] ?? null,
+                        'position' => $validated['author_position'] ?? null,
+                        'organization' => $validated['author_organization'] ?? null,
+                        'email' => $validated['author_email'],
+                        'phone' => $validated['author_phone'],
+                        'country' => $validated['author_country'],
+                        'city' => $validated['author_city'],
+                        'website' => $validated['author_website'] ?? null,
+                        'orcid' => $validated['author_orcid'] ?? null,
+                    ],
+                    $validated['coauthors'] ?? [],
+                );
 
-            $lines = preg_split('/\r\n|\r|\n/', trim($validated['references'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
-            $article->syncReferences($lines);
+                $lines = preg_split('/\r\n|\r|\n/', trim($validated['references'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
+                $article->syncReferences($lines);
 
-            if ($agreement) {
-                $article->saveAgreement($agreement, $request->user(), $request->ip());
-            }
+                if ($agreement) {
+                    $article->saveAgreement($agreement, $request->user(), $request->ip());
+                }
 
-            $this->sendCoauthorInvitations($article);
+                $this->sendCoauthorInvitations($article);
 
-            $article->notifiableUsers()
-                ->reject(fn ($user) => $user->id === $article->submitted_by)
-                ->each(fn ($user) => $user->notify(new AuthorSubmissionReceived($article)));
+                $article->notifiableUsers()
+                    ->reject(fn ($user) => $user->id === $article->submitted_by)
+                    ->each(fn ($user) => $user->notify(new AuthorSubmissionReceived($article)));
 
-            return $article;
-        });
+                return $article;
+            });
+        } catch (\DomainException $e) {
+            $this->deleteStoredSubmissionFiles(array_filter([$pdfPath]));
+
+            return back()->withInput()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('submissions.show', $article)
             ->with('success', 'Рукопись успешно подана на рассмотрение.');
@@ -249,9 +255,9 @@ class SubmissionController extends Controller
         ];
 
         if ($request->hasFile('pdf_file')) {
-            if ($article->pdf_path) {
-                Storage::disk($article->pdf_disk)->delete($article->pdf_path);
-            }
+            // Store the new manuscript first; the old one is deleted only
+            // after the transaction commits — deleting before the update
+            // would lose the file if anything below rolls back.
             $data['pdf_path'] = $request->file('pdf_file')->store('submissions', 'local');
         }
 
@@ -262,49 +268,82 @@ class SubmissionController extends Controller
             ? $request->file('response_letter_file')->store('response-letters', 'local')
             : null;
 
-        DB::transaction(function () use ($request, $article, $validated, $data, $isRevision, $agreement, $responseLetterFilePath) {
-            $article->updateOrRevise($data);
+        $oldPdfPath = $article->pdf_path;
+        $oldPdfDisk = $article->pdf_disk;
 
-            // After revise() the article has moved to the new round — the
-            // response letter belongs to that new round.
-            if ($isRevision) {
-                $article->responseLetters()->create([
-                    'round' => $article->current_round,
-                    'body' => $validated['response_letter'],
-                    'file_path' => $responseLetterFilePath,
-                    'uploaded_by' => $request->user()->id,
-                ]);
-            }
+        try {
+            DB::transaction(function () use ($request, $article, $validated, $data, $isRevision, $agreement, $responseLetterFilePath) {
+                $article->updateOrRevise($data);
 
-            $article->syncAuthors(
-                $request->user(),
-                [
-                    'full_name' => $validated['author_name'],
-                    'degree' => $validated['author_degree'] ?? null,
-                    'position' => $validated['author_position'] ?? null,
-                    'organization' => $validated['author_organization'] ?? null,
-                    'email' => $validated['author_email'],
-                    'phone' => $validated['author_phone'],
-                    'country' => $validated['author_country'],
-                    'city' => $validated['author_city'],
-                    'website' => $validated['author_website'] ?? null,
-                    'orcid' => $validated['author_orcid'] ?? null,
-                ],
-                $validated['coauthors'] ?? [],
-            );
+                // After revise() the article has moved to the new round — the
+                // response letter belongs to that new round.
+                if ($isRevision) {
+                    $article->responseLetters()->create([
+                        'round' => $article->current_round,
+                        'body' => $validated['response_letter'],
+                        'file_path' => $responseLetterFilePath,
+                        'uploaded_by' => $request->user()->id,
+                    ]);
+                }
 
-            $lines = preg_split('/\r\n|\r|\n/', trim($validated['references'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
-            $article->syncReferences($lines);
+                $article->syncAuthors(
+                    $request->user(),
+                    [
+                        'full_name' => $validated['author_name'],
+                        'degree' => $validated['author_degree'] ?? null,
+                        'position' => $validated['author_position'] ?? null,
+                        'organization' => $validated['author_organization'] ?? null,
+                        'email' => $validated['author_email'],
+                        'phone' => $validated['author_phone'],
+                        'country' => $validated['author_country'],
+                        'city' => $validated['author_city'],
+                        'website' => $validated['author_website'] ?? null,
+                        'orcid' => $validated['author_orcid'] ?? null,
+                    ],
+                    $validated['coauthors'] ?? [],
+                );
 
-            $this->sendCoauthorInvitations($article);
+                $lines = preg_split('/\r\n|\r|\n/', trim($validated['references'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
+                $article->syncReferences($lines);
 
-            if ($isRevision && $agreement) {
-                $article->saveAgreement($agreement, $request->user(), $request->ip());
-            }
-        });
+                $this->sendCoauthorInvitations($article);
+
+                if ($isRevision && $agreement) {
+                    $article->saveAgreement($agreement, $request->user(), $request->ip());
+                }
+            });
+        } catch (\DomainException $e) {
+            // The transaction rolled back — remove freshly stored files so
+            // failed submissions leave no orphans behind.
+            $this->deleteStoredSubmissionFiles(array_filter([
+                $data['pdf_path'] ?? null,
+                $responseLetterFilePath,
+            ]));
+
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        // Delete-after-commit: the replacement is durable now, the old
+        // manuscript can go.
+        if (isset($data['pdf_path']) && $oldPdfPath) {
+            Storage::disk($oldPdfDisk)->delete($oldPdfPath);
+        }
 
         return redirect()->route('submissions.show', $article)
             ->with('success', 'Рукопись обновлена.');
+    }
+
+    /**
+     * Remove freshly stored submission artifacts after a failed
+     * transaction so no orphaned files are left on the disk.
+     *
+     * @param  array<int, string>  $paths
+     */
+    private function deleteStoredSubmissionFiles(array $paths): void
+    {
+        foreach ($paths as $path) {
+            Storage::disk('local')->delete($path);
+        }
     }
 
     /**
