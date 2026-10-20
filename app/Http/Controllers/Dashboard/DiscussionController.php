@@ -117,6 +117,10 @@ class DiscussionController extends Controller
         }
 
         if ($parent) {
+            // A reply must stay inside the route article's thread tree —
+            // a parent from another article would graft a foreign scope
+            // and review binding onto this article.
+            abort_unless($parent->article_id === $article->id, 403);
             abort_unless(app(DiscussionPolicy::class)->view($user, $parent), 403);
             abort_if($parent->is_resolved, 403, 'Нельзя отвечать в закрытое обсуждение.');
 

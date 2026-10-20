@@ -46,9 +46,13 @@ class ArticleFilePolicy
             return true;
         }
 
-        // Reviewers can see public and reviewers_only files
+        // Reviewers can see public and reviewers_only files — active
+        // assignments only: declined and cancelled reviewers keep no
+        // access to manuscripts (same boundary as ArticlePolicy::viewPdf
+        // and ResponseLetterPolicy).
         if ($user->hasRole('reviewer')) {
             $isReviewer = $file->article->reviews()
+                ->active()
                 ->where('reviewer_id', $user->id)
                 ->exists();
 

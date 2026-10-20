@@ -70,6 +70,40 @@ test('author can create discussion on own article', function () {
         ->message->toBe('Вопрос редактору по статье');
 });
 
+test('author cannot reply to a parent thread of another article', function () {
+    $author = ($this->createAuthor)();
+
+    $articleA = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::InReview,
+    ]);
+    $foreignThread = Discussion::create([
+        'article_id' => $articleA->id,
+        'user_id' => $author->id,
+        'scope' => DiscussionScope::Article,
+        'message' => 'Тред статьи A',
+    ]);
+
+    $articleB = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::InReview,
+    ]);
+
+    // The author may view their own thread on A and may post on B —
+    // only the article-binding guard blocks grafting A's thread onto B
+    // (which would inherit a foreign scope and review binding).
+    $this->actingAs($author)
+        ->post(route('submissions.discussions.store', $articleB), [
+            'scope' => 'article',
+            'message' => 'Ответ в чужой тред',
+            'parent_id' => $foreignThread->id,
+        ])
+        ->assertForbidden();
+
+    expect($articleB->discussions)->toHaveCount(0);
+    expect($foreignThread->replies)->toHaveCount(0);
+});
+
 /**
  * NOTE: -1 ("discussions only for active articles") is not
  * enforced by DiscussionPolicy::create(). The policy only checks roles

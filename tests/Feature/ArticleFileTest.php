@@ -498,6 +498,46 @@ test('reviewer cannot download editorial_only files', function () {
         ->assertNotFound();
 });
 
+test('declined reviewer cannot download reviewers_only files', function () {
+    $reviewer = ($this->createReviewer)();
+    $article = Article::factory()->inReview()->create();
+
+    Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::Declined,
+    ]);
+
+    $reviewerFile = ArticleFile::factory()
+        ->document($article)
+        ->withVisibility(ArticleFileVisibility::ReviewersOnly)
+        ->create();
+
+    $this->actingAs($reviewer)
+        ->get(route('article-files.download', $reviewerFile))
+        ->assertNotFound();
+});
+
+test('cancelled reviewer cannot download reviewers_only files', function () {
+    $reviewer = ($this->createReviewer)();
+    $article = Article::factory()->inReview()->create();
+
+    Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::Cancelled,
+    ]);
+
+    $reviewerFile = ArticleFile::factory()
+        ->document($article)
+        ->withVisibility(ArticleFileVisibility::ReviewersOnly)
+        ->create();
+
+    $this->actingAs($reviewer)
+        ->get(route('article-files.download', $reviewerFile))
+        ->assertNotFound();
+});
+
 test('editor can download any file', function () {
     $editor = ($this->createEditorInChief)();
     $article = Article::factory()->published()->create();
