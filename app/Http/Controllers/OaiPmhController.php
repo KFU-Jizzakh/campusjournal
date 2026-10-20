@@ -146,7 +146,9 @@ class OaiPmhController extends Controller
     {
         if (! empty($params['identifier'])) {
             $parsed = OaiIdentifier::parse($params['identifier']);
-            if (! $parsed || ! Article::withTrashed()->whereKey($parsed['id'])->exists()) {
+            $article = $parsed ? Article::withTrashed()->find($parsed['id']) : null;
+
+            if (! $article || ! $this->isServable($article)) {
                 throw new IdDoesNotExistException('Unknown identifier.');
             }
         }
@@ -256,7 +258,7 @@ class OaiPmhController extends Controller
 
         $article = Article::withTrashed()->with(['authors', 'issue', 'category'])->find($parsed['id']);
 
-        if (! $article || (! $article->trashed() && $article->status !== ArticleStatus::Published)) {
+        if (! $article || ! $this->isServable($article)) {
             throw new IdDoesNotExistException('Unknown identifier.');
         }
 
@@ -266,6 +268,22 @@ class OaiPmhController extends Controller
             'metadataPrefix' => $prefix,
             'electronicIssn' => Setting::get('journal_issn_electronic'),
         ])->render();
+    }
+
+    /**
+     * Whether the article may be exposed through OAI-PMH: published
+     * (or retracted — it stays publicly visible) while alive, or a
+     * tombstone after deletion — but only when it was actually
+     * published before being deleted. Keep in parity with the
+     * visibility criteria in OaiRecordQuery::run().
+     */
+    private function isServable(Article $article): bool
+    {
+        if ($article->trashed()) {
+            return $article->published_at !== null;
+        }
+
+        return in_array($article->status, [ArticleStatus::Published, ArticleStatus::Retracted], true);
     }
 
     private function buildRecord(Article $article): array

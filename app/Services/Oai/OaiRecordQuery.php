@@ -25,11 +25,15 @@ class OaiRecordQuery
 
         $query = Article::query()->withTrashed();
 
-        // Only published articles (trashed ones are tombstones of previously-published articles,
-        // so allow trashed regardless of status).
+        // Only published articles; trashed articles appear as tombstones,
+        // but only when they were actually published before deletion —
+        // a deleted draft or rejected manuscript must not leak metadata.
+        // Keep in parity with OaiPmhController::isServable().
         $query->where(function (Builder $q) {
             $q->published()
-                ->orWhereNotNull('deleted_at');
+                ->orWhere(fn (Builder $q) => $q
+                    ->whereNotNull('deleted_at')
+                    ->whereNotNull('published_at'));
         });
 
         if (! empty($params['from'])) {

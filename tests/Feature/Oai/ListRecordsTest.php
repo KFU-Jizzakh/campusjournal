@@ -117,3 +117,16 @@ test('ListRecords emits tombstone for soft-deleted published articles', function
 
     expect($body)->toContain('status="deleted"');
 });
+
+test('ListRecords omits soft-deleted unpublished articles', function () {
+    $draft = Article::factory()->create(['status' => 'draft', 'title' => 'Leaked Draft']);
+    $draft->delete();
+    $rejected = Article::factory()->create(['status' => 'rejected', 'title' => 'Leaked Rejected']);
+    $rejected->delete();
+
+    $body = $this->get('/oai?verb=ListRecords&metadataPrefix=oai_dc')->getContent();
+
+    expect($body)->not->toContain('Leaked Draft');
+    expect($body)->not->toContain('Leaked Rejected');
+    expect($body)->not->toContain('status="deleted"');
+});

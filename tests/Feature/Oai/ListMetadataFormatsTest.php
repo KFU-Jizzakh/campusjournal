@@ -26,3 +26,13 @@ test('unknown identifier yields idDoesNotExist', function () {
 
     expect($body)->toContain('code="idDoesNotExist"');
 });
+
+test('soft-deleted unpublished article yields idDoesNotExist', function () {
+    $article = Article::factory()->create(['status' => 'draft']);
+    $article->delete();
+    $id = 'oai:test.example:article:'.$article->id;
+
+    $body = $this->get('/oai?verb=ListMetadataFormats&identifier='.urlencode($id))->getContent();
+
+    expect($body)->toContain('code="idDoesNotExist"');
+});

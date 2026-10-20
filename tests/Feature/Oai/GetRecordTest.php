@@ -37,3 +37,33 @@ test('draft article not accessible', function () {
 
     expect($body)->toContain('code="idDoesNotExist"');
 });
+
+test('soft-deleted unpublished article returns idDoesNotExist', function () {
+    $article = Article::factory()->create(['status' => ArticleStatus::Rejected]);
+    $article->delete();
+    $id = 'oai:test.example:article:'.$article->id;
+
+    $body = $this->get('/oai?verb=GetRecord&metadataPrefix=oai_dc&identifier='.urlencode($id))->getContent();
+
+    expect($body)->toContain('code="idDoesNotExist"');
+});
+
+test('soft-deleted published article serves tombstone', function () {
+    $article = Article::factory()->published()->create();
+    $article->delete();
+    $id = 'oai:test.example:article:'.$article->id;
+
+    $body = $this->get('/oai?verb=GetRecord&metadataPrefix=oai_dc&identifier='.urlencode($id))->getContent();
+
+    expect($body)->toContain('status="deleted"');
+});
+
+test('retracted article remains accessible', function () {
+    $article = Article::factory()->published()->create(['title' => 'Retracted Study']);
+    $article->update(['status' => ArticleStatus::Retracted]);
+    $id = 'oai:test.example:article:'.$article->id;
+
+    $body = $this->get('/oai?verb=GetRecord&metadataPrefix=oai_dc&identifier='.urlencode($id))->getContent();
+
+    expect($body)->toContain('<dc:title>Retracted Study</dc:title>');
+});
