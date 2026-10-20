@@ -43,7 +43,8 @@ php artisan migrate --seed
 # Dev server (serve + queue + vite + logs concurrently)
 composer dev
 
-# Tests (PostgreSQL, requires test database — see .env.testing)
+# Tests (PostgreSQL, dedicated gc_journal_test database configured in phpunit.xml;
+# create it once with `createdb gc_journal_test` on a fresh setup)
 php artisan test
 php artisan test --filter=TestClassName
 php artisan test tests/Feature/ProfileTest.php
