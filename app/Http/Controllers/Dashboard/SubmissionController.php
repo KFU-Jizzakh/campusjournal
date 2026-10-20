@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\ArticleStatus;
 use App\Enums\Country;
 use App\Enums\DiscussionScope;
 use App\Http\Controllers\Controller;
@@ -75,7 +76,7 @@ class SubmissionController extends Controller
 
         $this->validateOrcidDistinct($validated);
 
-        $duplicates = $this->findDuplicateTitles($validated['title']);
+        $duplicates = $this->findDuplicateTitles($validated['title'], $request->user());
 
         if ($duplicates->isNotEmpty() && ! $request->boolean('duplicate_acknowledged')) {
             if ($request->file('pdf_file')) {
@@ -454,13 +455,17 @@ class SubmissionController extends Controller
 
     /**
      * PURPOSE: Non-blocking duplicate check — titles of existing
-     * non-draft articles similar to the submitted one (normalized
+     * articles similar to the submitted one (normalized
      * exact match, substring, or high similarity). Shorter titles are
      * ignored to avoid false positives.
      *
+     * The candidate set is limited to the submitter's own articles and
+     * published ones — other authors' unpublished submissions are
+     * confidential and must not be disclosed through this warning.
+     *
      * @return Collection<int, string>
      */
-    private function findDuplicateTitles(string $title)
+    private function findDuplicateTitles(string $title, User $submitter)
     {
         $normalized = $this->normalizeTitle($title);
 
@@ -468,7 +473,12 @@ class SubmissionController extends Controller
             return collect();
         }
 
-        return Article::submitted()
+        return Article::query()
+            ->where(function ($query) use ($submitter) {
+                $query->where('submitted_by', $submitter->id)
+                    ->where('status', '!=', ArticleStatus::Draft)
+                    ->orWhereIn('status', [ArticleStatus::Published, ArticleStatus::Retracted]);
+            })
             ->select('id', 'title')
             ->get()
             ->filter(function (Article $article) use ($normalized) {

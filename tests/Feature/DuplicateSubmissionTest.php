@@ -39,7 +39,7 @@ test('similar existing title triggers a warning and no article is created', func
     $author = User::factory()->create();
     $author->assignRole('author');
 
-    Article::factory()->submitted()->create([
+    Article::factory()->published()->create([
         'title' => 'Методы машинного обучения в образовании',
     ]);
 
@@ -55,7 +55,7 @@ test('punctuation and case differences are normalized for duplicates', function 
     $author = User::factory()->create();
     $author->assignRole('author');
 
-    Article::factory()->submitted()->create([
+    Article::factory()->published()->create([
         'title' => 'Методы машинного обучения в образовании',
     ]);
 
@@ -67,7 +67,7 @@ test('acknowledged duplicate proceeds with submission', function () {
     $author = User::factory()->create();
     $author->assignRole('author');
 
-    Article::factory()->submitted()->create([
+    Article::factory()->published()->create([
         'title' => 'Методы машинного обучения в образовании',
     ]);
 
@@ -85,7 +85,7 @@ test('unique title passes the duplicate check directly', function () {
     $author = User::factory()->create();
     $author->assignRole('author');
 
-    Article::factory()->submitted()->create([
+    Article::factory()->published()->create([
         'title' => 'Методы машинного обучения в образовании',
     ]);
 
@@ -115,7 +115,7 @@ test('confirming a duplicate warning submits without re-attaching the pdf', func
     $author = User::factory()->create();
     $author->assignRole('author');
 
-    Article::factory()->submitted()->create([
+    Article::factory()->published()->create([
         'title' => 'Методы машинного обучения в образовании',
     ]);
 
@@ -149,7 +149,7 @@ test('parked pdf is not reused for a different title', function () {
     $author = User::factory()->create();
     $author->assignRole('author');
 
-    Article::factory()->submitted()->create([
+    Article::factory()->published()->create([
         'title' => 'Методы машинного обучения в образовании',
     ]);
 
@@ -181,4 +181,40 @@ test('submission without a pdf file is still rejected', function () {
         ->assertSessionHasErrors('pdf_file');
 
     expect(Article::where('submitted_by', $author->id)->exists())->toBeFalse();
+});
+
+// --- Confidentiality: only own and published titles may be disclosed ---
+
+test('other authors unpublished submissions are not disclosed as duplicates', function () {
+    $other = User::factory()->create();
+    $other->assignRole('author');
+
+    // Another author's confidential in-review submission with the
+    // very same title must stay invisible to the warning.
+    Article::factory()->submitted()->create([
+        'title' => 'Методы машинного обучения в образовании',
+        'submitted_by' => $other->id,
+    ]);
+
+    $author = User::factory()->create();
+    $author->assignRole('author');
+
+    submitAs($author, ['title' => 'Методы машинного обучения в образовании'])
+        ->assertSessionMissing('warning');
+
+    expect(Article::where('title', 'Методы машинного обучения в образовании')->count())->toBe(2);
+});
+
+test('own earlier submission triggers the duplicate warning', function () {
+    $author = User::factory()->create();
+    $author->assignRole('author');
+
+    Article::factory()->submitted()->create([
+        'title' => 'Методы машинного обучения в образовании',
+        'submitted_by' => $author->id,
+    ]);
+
+    submitAs($author, ['title' => 'Методы машинного обучения в образовании'])
+        ->assertSessionHas('warning')
+        ->assertSessionHas('duplicates');
 });
