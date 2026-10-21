@@ -41,13 +41,10 @@ class EditorialController extends Controller
         $status = $request->query('status');
         $search = $request->query('q');
 
-        $query = Article::submitted()
-            ->with('submitter.profile', 'editor.profile', 'category')
-            ->orderByDesc('submitted_at');
-
-        if ($user->hasRole('section-editor') && ! $user->hasAnyRole(['editor-in-chief', 'managing-editor'])) {
-            $query->where('editor_id', $user->id);
-        }
+        $query = DashboardInbox::applyEditorialScope(
+            Article::submitted()->with('submitter.profile', 'editor.profile', 'category'),
+            $user
+        )->orderByDesc('submitted_at');
 
         if ($status) {
             $query->where('status', $status);
@@ -61,11 +58,7 @@ class EditorialController extends Controller
 
         $articles = $query->paginate(20)->withQueryString();
 
-        $counts = Article::submitted()
-            ->when(
-                $user->hasRole('section-editor') && ! $user->hasAnyRole(['editor-in-chief', 'managing-editor']),
-                fn ($q) => $q->where('editor_id', $user->id)
-            )
+        $counts = DashboardInbox::applyEditorialScope(Article::submitted(), $user)
             ->selectRaw('count(*) as total')
             ->selectRaw('count(*) filter (where status = ?) as submitted', [ArticleStatus::Submitted->value])
             ->selectRaw('count(*) filter (where status = ?) as in_review', [ArticleStatus::InReview->value])
