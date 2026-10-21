@@ -4,6 +4,7 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\ConferenceController;
 use App\Http\Controllers\CopyrightAgreementController;
+use App\Http\Controllers\CorrectionController;
 use App\Http\Controllers\Dashboard\ArticleFileController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Dashboard\DiscussionController;
@@ -62,6 +63,9 @@ Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 // Public file download route
 Route::get('/article-files/{file}/download', [ArticleFileController::class, 'download'])->name('article-files.download')->middleware('throttle:30,1');
+
+// Correction supporting documents (gated by published article)
+Route::get('/corrections/{correction}/file', [CorrectionController::class, 'showFile'])->name('corrections.file');
 
 // Authenticated routes
 Route::middleware(['auth', 'verified'])->group(function () {

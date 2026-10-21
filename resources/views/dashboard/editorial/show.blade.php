@@ -886,7 +886,7 @@
                                 <p class="text-sm text-gray-700">{{ $correction->description }}</p>
                                 @if($correction->file_path)
                                     <div class="mt-2">
-                                        <a href="{{ Storage::disk('local')->url($correction->file_path) }}" target="_blank"
+                                        <a href="{{ route('corrections.file', $correction) }}" target="_blank"
                                             class="text-xs text-primary hover:underline">Скачать PDF уведомления</a>
                                     </div>
                                 @endif
