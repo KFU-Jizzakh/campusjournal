@@ -245,16 +245,10 @@ class ArticleController extends Controller
      */
     public function blindedPdf(Article $article)
     {
-        abort_unless($article->blinded_pdf_path, 404);
-
         $user = auth()->user();
-        abort_unless($user, 404);
 
-        $allowed = $user->hasAnyRole(['editor-in-chief', 'managing-editor', 'admin'])
-            || ($user->hasRole('section-editor') && $article->editor_id === $user->id)
-            || $article->reviews()->where('reviewer_id', $user->id)->active()->exists();
-
-        abort_unless($allowed, 404);
+        abort_unless($user && $user->can('viewBlindedPdf', $article), 404);
+        abort_unless($article->blinded_pdf_path, 404);
 
         $disk = Storage::disk('local');
         abort_unless($disk->exists($article->blinded_pdf_path), 404);
@@ -270,16 +264,10 @@ class ArticleController extends Controller
      */
     public function galleyPdf(Article $article)
     {
-        abort_unless($article->galley_pdf_path, 404);
-
         $user = auth()->user();
-        abort_unless($user, 404);
 
-        $allowed = $user->hasAnyRole(['editor-in-chief', 'managing-editor', 'admin'])
-            || ($user->hasRole('section-editor') && $article->editor_id === $user->id)
-            || $article->submitted_by === $user->id;
-
-        abort_unless($allowed, 404);
+        abort_unless($user && $user->can('viewGalleyPdf', $article), 404);
+        abort_unless($article->galley_pdf_path, 404);
 
         $disk = Storage::disk('local');
         abort_unless($disk->exists($article->galley_pdf_path), 404);

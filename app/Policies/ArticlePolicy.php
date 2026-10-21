@@ -188,6 +188,46 @@ class ArticlePolicy
     }
 
     /**
+     * PURPOSE: Authorise downloading the anonymised manuscript for
+     * double-blind review — editorial leadership, the assigned section
+     * editor, and active reviewers (declined and cancelled keep no
+     * access). Authors and coauthors never see the blinded version.
+     */
+    public function viewBlindedPdf(User $user, Article $article): bool
+    {
+        if ($user->hasAnyRole(['editor-in-chief', 'managing-editor', 'admin'])) {
+            return true;
+        }
+
+        if ($user->hasRole('section-editor') && $article->editor_id === $user->id) {
+            return true;
+        }
+
+        return $article->reviews()
+            ->where('reviewer_id', $user->id)
+            ->active()
+            ->exists();
+    }
+
+    /**
+     * PURPOSE: Authorise downloading the typeset galley proof —
+     * editorial leadership, the assigned section editor, and the
+     * submitter.
+     */
+    public function viewGalleyPdf(User $user, Article $article): bool
+    {
+        if ($article->submitted_by === $user->id) {
+            return true;
+        }
+
+        if ($user->hasAnyRole(['editor-in-chief', 'managing-editor', 'admin'])) {
+            return true;
+        }
+
+        return $user->hasRole('section-editor') && $article->editor_id === $user->id;
+    }
+
+    /**
      * PURPOSE: Authorise uploading the typeset galley PDF
      * during the Production stage.
      */

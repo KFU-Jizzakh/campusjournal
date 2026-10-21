@@ -1,8 +1,10 @@
 <?php
 
 use App\Enums\ArticleStatus;
+use App\Enums\ReviewStatus;
 use App\Models\Article;
 use App\Models\Author;
+use App\Models\Review;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 
@@ -306,4 +308,92 @@ test('section-editor cannot download copyedited file on unassigned article', fun
     $article = Article::factory()->copyediting()->withCopyeditedFile()->create();
 
     expect($editor->can('downloadCopyeditedFile', $article))->toBeFalse();
+});
+
+// --- viewBlindedPdf ---
+
+test('assigned section editor can view blinded pdf', function () {
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+    $article = Article::factory()->inReview()->create(['editor_id' => $editor->id]);
+
+    expect($editor->can('viewBlindedPdf', $article))->toBeTrue();
+});
+
+test('unassigned section editor cannot view blinded pdf', function () {
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+    $article = Article::factory()->inReview()->create();
+
+    expect($editor->can('viewBlindedPdf', $article))->toBeFalse();
+});
+
+test('active reviewer can view blinded pdf', function () {
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole('reviewer');
+    $article = Article::factory()->inReview()->create();
+
+    Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::InProgress,
+    ]);
+
+    expect($reviewer->can('viewBlindedPdf', $article))->toBeTrue();
+});
+
+test('declined reviewer cannot view blinded pdf', function () {
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole('reviewer');
+    $article = Article::factory()->inReview()->create();
+
+    Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::Declined,
+    ]);
+
+    expect($reviewer->can('viewBlindedPdf', $article))->toBeFalse();
+});
+
+test('authors never see the blinded pdf', function () {
+    $submitter = User::factory()->create();
+    $article = Article::factory()->inReview()->create(['submitted_by' => $submitter->id]);
+
+    $coauthor = User::factory()->create();
+    $article->authors()->attach(Author::factory()->create(['user_id' => $coauthor->id])->id);
+
+    expect($submitter->can('viewBlindedPdf', $article))->toBeFalse();
+    expect($coauthor->can('viewBlindedPdf', $article))->toBeFalse();
+});
+
+// --- viewGalleyPdf ---
+
+test('submitter can view galley pdf', function () {
+    $submitter = User::factory()->create();
+    $article = Article::factory()->production()->create(['submitted_by' => $submitter->id]);
+
+    expect($submitter->can('viewGalleyPdf', $article))->toBeTrue();
+});
+
+test('assigned section editor can view galley pdf', function () {
+    $editor = User::factory()->create();
+    $editor->assignRole('section-editor');
+    $article = Article::factory()->production()->create(['editor_id' => $editor->id]);
+
+    expect($editor->can('viewGalleyPdf', $article))->toBeTrue();
+});
+
+test('reviewer cannot view galley pdf', function () {
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole('reviewer');
+    $article = Article::factory()->production()->create();
+
+    Review::factory()->create([
+        'article_id' => $article->id,
+        'reviewer_id' => $reviewer->id,
+        'status' => ReviewStatus::InProgress,
+    ]);
+
+    expect($reviewer->can('viewGalleyPdf', $article))->toBeFalse();
 });
