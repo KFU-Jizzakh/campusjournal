@@ -12,3 +12,6 @@ Artisan::command('inspire', function () {
 Schedule::command('reviews:send-reminders')
     ->dailyAt('09:00')
     ->appendOutputTo(storage_path('logs/schedule-reviews-reminders.log'));
+
+// Keep the public sitemap fresh (served by SitemapController)
+Schedule::command('sitemap:generate')->daily();

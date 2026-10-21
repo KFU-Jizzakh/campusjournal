@@ -20,7 +20,7 @@ use App\Http\Controllers\OaiPmhController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
-use Illuminate\Support\Facades\File;
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -48,26 +48,17 @@ Route::get('/publication-ethics', [PageController::class, 'publicationEthics'])-
 Route::get('/archiving', [PageController::class, 'archiving'])->name('archiving');
 Route::get('/search', [SearchController::class, 'index'])->name('search');
 
-// OAI-PMH endpoint
-Route::match(['get', 'post'], '/oai', [OaiPmhController::class, 'handle'])->name('oai');
+// OAI-PMH endpoint (throttled: harvesters poll politely, resumption
+// queries are not cheap)
+Route::match(['get', 'post'], '/oai', [OaiPmhController::class, 'handle'])
+    ->name('oai')
+    ->middleware('throttle:60,1');
 
 // Copyright agreement full text (public)
 Route::get('/agreements/{agreement}', [CopyrightAgreementController::class, 'show'])->name('agreements.show');
 
 // Sitemap
-Route::get('/sitemap.xml', function () {
-    $path = public_path('sitemap.xml');
-
-    if (File::exists($path)) {
-        return response(File::get($path), 200, [
-            'Content-Type' => 'application/xml',
-        ]);
-    }
-
-    return response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>', 200, [
-        'Content-Type' => 'application/xml',
-    ]);
-})->name('sitemap');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 // Public file download route
 Route::get('/article-files/{file}/download', [ArticleFileController::class, 'download'])->name('article-files.download')->middleware('throttle:30,1');
@@ -155,6 +146,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Discussions
         Route::post('/dashboard/editorial/{article}/discussions', [DiscussionController::class, 'store'])->name('editorial.discussions.store');
+
+        // Discussion management — editors only (row-level access
+        // stays in DiscussionPolicy::resolve)
+        Route::post('/dashboard/discussions/{discussion}/resolve', [DiscussionController::class, 'resolve'])->name('discussions.resolve');
+        Route::post('/dashboard/discussions/{discussion}/reopen', [DiscussionController::class, 'reopen'])->name('discussions.reopen');
     });
 
     // Copyedited file download (authorized via policy, accessible to submitter and editorial staff)
@@ -175,10 +171,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/dashboard/articles/{article}/request-revision', [SubmissionController::class, 'requestGalleyRevision'])->name('submissions.request-revision');
         Route::post('/dashboard/articles/{article}/withdraw', [SubmissionController::class, 'withdraw'])->name('submissions.withdraw');
     });
-
-    // Discussion management (authorized via policy)
-    Route::post('/dashboard/discussions/{discussion}/resolve', [DiscussionController::class, 'resolve'])->name('discussions.resolve');
-    Route::post('/dashboard/discussions/{discussion}/reopen', [DiscussionController::class, 'reopen'])->name('discussions.reopen');
 
     // Notifications
     Route::get('/dashboard/notifications', [NotificationController::class, 'index'])->name('notifications.index');
