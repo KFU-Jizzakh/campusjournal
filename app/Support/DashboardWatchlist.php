@@ -69,15 +69,9 @@ class DashboardWatchlist
             return collect();
         }
 
-        $articleIds = DashboardInbox::editorialArticles($user)->pluck('id');
-
-        if ($articleIds->isEmpty()) {
-            return collect();
-        }
-
         return Review::with('article', 'reviewer.profile')
-            ->whereIn('article_id', $articleIds)
             ->whereIn('status', [ReviewStatus::Pending, ReviewStatus::InProgress])
+            ->whereHas('article', fn ($query) => DashboardInbox::applyEditorialScope($query->submitted(), $user))
             ->where(fn ($query) => $query
                 ->where(fn ($inner) => $inner
                     ->whereNotNull('review_due_at')

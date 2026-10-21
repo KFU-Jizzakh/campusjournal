@@ -69,8 +69,16 @@ class DashboardInbox
      */
     public static function editorialArticles(User $user): Builder
     {
-        $query = Article::submitted();
+        return self::applyEditorialScope(Article::submitted(), $user);
+    }
 
+    /**
+     * PURPOSE: The editorial visibility constraint itself, applicable
+     * to any Article query (including whereHas subqueries) — the
+     * single definition of the section-editor scoping rule.
+     */
+    public static function applyEditorialScope(Builder $query, User $user): Builder
+    {
         if ($user->hasRole('section-editor') && ! $user->hasAnyRole(['editor-in-chief', 'managing-editor'])) {
             $query->where('editor_id', $user->id);
         }
@@ -116,53 +124,14 @@ class DashboardInbox
 
     /**
      * PURPOSE: Number of actionable inbox entries for the navigation
-     * badge. Counts via cheap queries and one eager-loaded editorial
-     * pass — no item building for discussions.
+     * badge. Delegates to the memoized inbox build, so the badge is
+     * always exactly the length of the rendered list and the heavy
+     * editorial pass runs at most once per request (nav composer +
+     * dashboard page share it via the per-request cache).
      */
     public static function countFor(User $user, ?string $activeRole = null): int
     {
-        $family = self::familyOf($activeRole) ?? 'all';
-        $count = 0;
-
-        if ($family === 'all' || $family === 'author') {
-            $count += $user->submittedArticles()
-                ->whereIn('status', [
-                    ArticleStatus::Draft,
-                    ArticleStatus::Revision,
-                    ArticleStatus::AwaitingApproval,
-                ])
-                ->count();
-        }
-
-        if ($family === 'all' || $family === 'reviewer') {
-            $count += $user->reviews()
-                ->whereIn('status', [ReviewStatus::Pending, ReviewStatus::InProgress])
-                ->count();
-        }
-
-        $count += Discussion::root()
-            ->unresolved()
-            ->visibleTo($user)
-            ->unreadBy($user)
-            ->count();
-
-        if (($family === 'all' || $family === 'editorial') && self::canManageSubmissions($user)) {
-            $count += self::editorialArticles($user)
-                ->with('reviews')
-                ->whereIn('status', [
-                    ArticleStatus::Submitted,
-                    ArticleStatus::InReview,
-                    ArticleStatus::Accepted,
-                    ArticleStatus::Copyediting,
-                    ArticleStatus::Production,
-                    ArticleStatus::Approved,
-                ])
-                ->get()
-                ->filter(fn (Article $article) => self::editorialItem($user, $article) !== null)
-                ->count();
-        }
-
-        return $count;
+        return self::for($user, $activeRole)->count();
     }
 
     private static function build(User $user, string $family = 'all'): Collection

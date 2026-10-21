@@ -60,9 +60,13 @@ class DashboardController extends Controller
             ->with('category', 'issue')
             ->orderByDesc('created_at')
             ->get()
+            // coauthoredArticles() already scopes to non-draft articles
+            // where this user is a credited coauthor and not the
+            // submitter — the view policy always grants view, so the
+            // per-row can() check (one extra query each) was dead weight.
             ->map(fn (Article $article) => [
                 'article' => $article,
-                'url' => $user->can('view', $article) ? route('submissions.show', $article) : null,
+                'url' => route('submissions.show', $article),
             ]);
 
         $myReviews = $user->reviews()
