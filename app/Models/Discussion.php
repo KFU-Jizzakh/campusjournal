@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * PURPOSE: Threaded discussion message attached to an article,
@@ -124,6 +126,48 @@ class Discussion extends Model
     public function readBy(User $user): void
     {
         $this->readUsers()->syncWithoutDetaching([$user->id => ['read_at' => now()]]);
+    }
+
+    /**
+     * PURPOSE: Mark the given discussions as read by the user in a
+     * single batch — two queries total instead of two per thread.
+     *
+     * Returns the ids that were already read BEFORE this call, so the
+     * caller can flag which threads were genuinely unread on arrival
+     * (the "blue dot" indicator).
+     *
+     * @param  Collection<int, Discussion>  $discussions
+     * @return Collection<int, int>
+     */
+    public static function markReadAndTrack(Collection $discussions, User $user): Collection
+    {
+        $ids = $discussions->pluck('id');
+
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        $alreadyReadIds = static::query()
+            ->whereIn('id', $ids)
+            ->whereHas('readUsers', fn (Builder $query) => $query->where('users.id', $user->id))
+            ->pluck('id');
+
+        $unreadIds = $ids->diff($alreadyReadIds);
+
+        if ($unreadIds->isNotEmpty()) {
+            // Single insert; ON CONFLICT DO NOTHING keeps concurrent
+            // page views safe against the (user_id, discussion_id)
+            // unique index — same semantics as syncWithoutDetaching.
+            DB::table('discussion_user_reads')->insertOrIgnore(
+                $unreadIds->map(fn (int $id) => [
+                    'user_id' => $user->id,
+                    'discussion_id' => $id,
+                    'read_at' => now(),
+                ])->all()
+            );
+        }
+
+        return $alreadyReadIds;
     }
 
     public function isUnreadBy(?User $user): bool

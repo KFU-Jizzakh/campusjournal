@@ -11,6 +11,7 @@ use App\Mail\ReviewAssignedDoubleBlindMailable;
 use App\Mail\ReviewAssignedMailable;
 use App\Models\Article;
 use App\Models\Correction;
+use App\Models\Discussion;
 use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\Review;
@@ -136,12 +137,12 @@ class EditorialController extends Controller
         $showRetract = $article->isRetractable() && $user->can('retract', $article);
         $showCorrections = $article->isPublished() && $user->can('manageCorrections', $article);
 
-        $article->discussions
+        $visibleThreads = $article->discussions
             ->filter(fn ($d) => $d->isVisibleTo($user, $article))
-            ->each(function ($d) use ($user) {
-                $d->wasUnread = $d->isUnreadBy($user);
-                $d->readBy($user);
-            });
+            ->values();
+
+        $alreadyReadIds = Discussion::markReadAndTrack($visibleThreads, $user);
+        $visibleThreads->each(fn ($d) => $d->wasUnread = ! $alreadyReadIds->contains($d->id));
 
         // Discussion tab, threads and form visibility are precomputed so
         // the view stays declarative. The policy is invoked directly

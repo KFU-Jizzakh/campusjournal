@@ -10,6 +10,7 @@ use App\Models\Article;
 use App\Models\Author;
 use App\Models\Category;
 use App\Models\CopyrightAgreement;
+use App\Models\Discussion;
 use App\Models\User;
 use App\Notifications\AuthorSubmissionReceived;
 use App\Notifications\InvitationNotification;
@@ -159,12 +160,12 @@ class SubmissionController extends Controller
 
         $user = $request->user();
 
-        $article->discussions
+        $visibleThreads = $article->discussions
             ->filter(fn ($d) => $d->isVisibleTo($user, $article))
-            ->each(function ($d) use ($user) {
-                $d->wasUnread = $d->isUnreadBy($user);
-                $d->readBy($user);
-            });
+            ->values();
+
+        $alreadyReadIds = Discussion::markReadAndTrack($visibleThreads, $user);
+        $visibleThreads->each(fn ($d) => $d->wasUnread = ! $alreadyReadIds->contains($d->id));
 
         // Threads and form visibility are precomputed so the view stays
         // declarative: coauthors can read threads but cannot start or

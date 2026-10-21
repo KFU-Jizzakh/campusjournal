@@ -763,3 +763,39 @@ test('reviewer cannot start an article-scope discussion', function () {
 
     expect($article->discussions)->toHaveCount(0);
 });
+
+test('markReadAndTrack marks unread threads once and reports previously read ids', function () {
+    $author = ($this->createAuthor)();
+    $article = Article::factory()->create([
+        'submitted_by' => $author->id,
+        'status' => ArticleStatus::InReview,
+    ]);
+
+    $threads = Discussion::factory()->count(3)->create([
+        'article_id' => $article->id,
+        'user_id' => $author->id,
+        'scope' => DiscussionScope::Article,
+    ]);
+
+    // First visit: nothing was read before, all get marked.
+    $readIds = Discussion::markReadAndTrack($threads, $author);
+
+    expect($readIds)->toHaveCount(0);
+    expect($threads->every(fn ($d) => ! $d->fresh()->isUnreadBy($author)))->toBeTrue();
+
+    // One new thread arrives plus the already-read ones: the method
+    // reports only the previously read ids and marks the newcomer.
+    $newThread = Discussion::factory()->create([
+        'article_id' => $article->id,
+        'user_id' => $author->id,
+        'scope' => DiscussionScope::Article,
+    ]);
+
+    $previousIds = $threads->pluck('id');
+    $threads->push($newThread);
+
+    $readIds = Discussion::markReadAndTrack($threads, $author);
+
+    expect($readIds->sort()->values()->all())->toBe($previousIds->sort()->values()->all());
+    expect($newThread->fresh()->isUnreadBy($author))->toBeFalse();
+});
