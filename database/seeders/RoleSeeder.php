@@ -13,11 +13,7 @@ class RoleSeeder extends Seeder
         $allPermissions = [
             'submit-article',
             'review-article',
-            'manage-section',
-            'manage-issue',
             'publish-issue',
-            'manage-users',
-            'manage-settings',
             'manage-content',
             'manage-submissions',
             'manage-doi',
@@ -31,8 +27,6 @@ class RoleSeeder extends Seeder
         $editorialLeadershipPermissions = [
             'submit-article',
             'review-article',
-            'manage-section',
-            'manage-issue',
             'publish-issue',
             'manage-submissions',
             'manage-doi',
@@ -53,7 +47,6 @@ class RoleSeeder extends Seeder
         $sectionEditor = Role::firstOrCreate(['name' => 'section-editor']);
         $sectionEditor->syncPermissions([
             'submit-article',
-            'manage-section',
             'review-article',
             'manage-submissions',
         ]);
