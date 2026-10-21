@@ -24,7 +24,6 @@ use App\Support\ReviewerMatcher;
 use App\Support\ReviewerStats;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -508,25 +507,23 @@ class EditorialController extends Controller
     {
         $this->authorize('uploadBlindedPdf', $article);
 
-        $validated = $request->validate([
+        $request->validate([
             'blinded_pdf' => 'required|file|mimetypes:application/pdf|max:51200',
         ]);
 
-        if ($article->blinded_pdf_path) {
-            Storage::disk('local')->delete($article->blinded_pdf_path);
-        }
-
         $path = $request->file('blinded_pdf')->store('submissions', 'local');
 
-        $article->update([
-            'blinded_pdf_path' => $path,
-            'blinded_at' => now(),
-            'blinded_by' => $request->user()->id,
-        ]);
+        try {
+            $article->uploadBlindedPdf($request->user(), $path);
+        } catch (\DomainException $e) {
+            Storage::disk('local')->delete($path);
 
-        OutboxEvent::log('article.blinded_pdf_uploaded', $article, [
-            'file_path' => $path,
-        ]);
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($path);
+
+            throw $e;
+        }
 
         return back()->with('success', 'Анонимизированная рукопись загружена.');
     }
@@ -536,31 +533,17 @@ class EditorialController extends Controller
      *
      * Blocked while active reviewers exist — removing the blinded PDF
      * during an ongoing double-blind review would break the anonymity
-     * contract. Clears all blinded_pdf_* columns and writes an OutboxEvent.
+     * contract.
      */
     public function deleteBlindedPdf(Request $request, Article $article)
     {
         $this->authorize('uploadBlindedPdf', $article);
 
-        if ($article->hasActiveReviewers()) {
-            return back()->with('error', 'Нельзя удалить анонимизированную рукопись при наличии активных рецензентов.');
+        try {
+            $article->deleteBlindedPdf($request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        if ($article->blinded_pdf_path) {
-            Storage::disk('local')->delete($article->blinded_pdf_path);
-        }
-
-        $oldPath = $article->blinded_pdf_path;
-
-        $article->update([
-            'blinded_pdf_path' => null,
-            'blinded_at' => null,
-            'blinded_by' => null,
-        ]);
-
-        OutboxEvent::log('article.blinded_pdf_deleted', $article, [
-            'old_file_path' => $oldPath,
-        ]);
 
         return back()->with('success', 'Анонимизированная рукопись удалена.');
     }
@@ -573,29 +556,23 @@ class EditorialController extends Controller
     {
         $this->authorize('uploadGalleyPdf', $article);
 
-        if (! $article->isProduction()) {
-            return back()->with('error', __('article.error_galley_not_production'));
-        }
-
-        $validated = $request->validate([
+        $request->validate([
             'galley_pdf' => 'required|file|mimetypes:application/pdf|max:51200',
         ]);
 
-        if ($article->galley_pdf_path) {
-            Storage::disk('local')->delete($article->galley_pdf_path);
-        }
-
         $path = $request->file('galley_pdf')->store('galley_uploads', 'local');
 
-        $article->update([
-            'galley_pdf_path' => $path,
-            'galley_uploaded_at' => now(),
-            'galley_uploaded_by' => $request->user()->id,
-        ]);
+        try {
+            $article->uploadGalleyPdf($request->user(), $path);
+        } catch (\DomainException $e) {
+            Storage::disk('local')->delete($path);
 
-        OutboxEvent::log('galley.pdf_uploaded', $article, [
-            'file_path' => $path,
-        ]);
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($path);
+
+            throw $e;
+        }
 
         return back()->with('success', __('dashboard.galley_uploaded_success'));
     }
@@ -758,27 +735,24 @@ class EditorialController extends Controller
             'file' => 'nullable|file|mimes:pdf|max:51200',
         ]);
 
-        $filePath = null;
-        if ($request->hasFile('file')) {
-            $filePath = $request->file('file')->store('corrections', 'local');
-        }
+        $filePath = $request->hasFile('file')
+            ? $request->file('file')->store('corrections', 'local')
+            : null;
 
-        DB::transaction(function () use ($article, $request, $validated, $filePath) {
-            Correction::create([
-                'article_id' => $article->id,
+        try {
+            $article->addCorrection([
                 'type' => $validated['type'],
                 'title' => $validated['title'],
                 'description' => $validated['description'],
-                'file_path' => $filePath,
                 'published_at' => $validated['published_at'],
-                'created_by' => $request->user()->id,
-            ]);
+            ], $filePath, $request->user());
+        } catch (\DomainException $e) {
+            if ($filePath) {
+                Storage::disk('local')->delete($filePath);
+            }
 
-            OutboxEvent::log('article.correction_added', $article, [
-                'correction_type' => $validated['type'],
-                'correction_title' => $validated['title'],
-            ]);
-        });
+            return back()->with('error', $e->getMessage());
+        }
 
         if ($this->crossrefReady() && ! $this->crossmarkConfigured()) {
             return back()->with('warning', 'Исправление добавлено, но ре-депозит в Crossref не отправлен: '.$this->crossmarkSkipReason());
@@ -800,11 +774,7 @@ class EditorialController extends Controller
 
         $this->authorize('manageCorrections', $article);
 
-        $correction->delete();
-
-        if ($correction->file_path) {
-            Storage::disk('local')->delete($correction->file_path);
-        }
+        $article->removeCorrection($correction, $request->user());
 
         if ($this->crossrefReady() && ! $this->crossmarkConfigured()) {
             return back()->with('warning', 'Исправление удалено, но ре-депозит в Crossref не отправлен: '.$this->crossmarkSkipReason());

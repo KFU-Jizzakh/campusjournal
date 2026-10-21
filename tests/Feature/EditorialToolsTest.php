@@ -3,6 +3,7 @@
 use App\Enums\ReviewStatus;
 use App\Models\Article;
 use App\Models\Issue;
+use App\Models\OutboxEvent;
 use App\Models\Review;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -127,4 +128,25 @@ test('analytics page is forbidden for section editors', function () {
     $this->actingAs($editor)
         ->get(route('editorial.stats'))
         ->assertForbidden();
+});
+
+test('deleting a correction writes an outbox event', function () {
+    $eic = User::factory()->create();
+    $eic->assignRole('editor-in-chief');
+
+    $article = Article::factory()->published()->create();
+    $correction = $article->corrections()->create([
+        'type' => 'corrigendum',
+        'title' => 'Опечатка в формуле',
+        'description' => 'Исправление опечатки.',
+        'published_at' => now()->toDateString(),
+        'created_by' => $eic->id,
+    ]);
+
+    $this->actingAs($eic)
+        ->delete(route('editorial.corrections.destroy', [$article, $correction]))
+        ->assertRedirect();
+
+    expect(OutboxEvent::where('name', 'article.correction_deleted')->where('subject_id', $article->id)->exists())->toBeTrue();
+    expect($article->corrections()->count())->toBe(0);
 });

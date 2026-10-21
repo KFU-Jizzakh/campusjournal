@@ -108,6 +108,7 @@ return [
     'error_copyedited_file_not_uploaded' => 'Загрузите исправленный файл перед отправкой в производство.',
     'error_upload_copyedited_file_status' => 'Загрузить исправленный файл можно только на этапе корректуры.',
     'error_delete_copyedited_file_status' => 'Удалить исправленный файл можно только на этапе корректуры.',
+    'error_delete_blinded_pdf_active_reviewers' => 'Нельзя удалить анонимизированную рукопись при наличии активных рецензентов.',
     'error_no_copyedited_file_to_delete' => 'Нет файла для удаления.',
     'error_not_retractable' => 'Статья не может быть отозвана (ретрекшн) — требуется статус «Опубликована».',
     'error_not_withdrawable' => 'Статья не может быть отозвана в текущем статусе.',

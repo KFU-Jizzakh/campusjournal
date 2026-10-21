@@ -12,6 +12,7 @@ use App\Exceptions\AssignEditorFailedException;
 use App\Exceptions\AssignReviewerFailedException;
 use App\Exceptions\CannotReviewArticleException;
 use App\Exceptions\CopyeditedFileNotUploadedException;
+use App\Exceptions\DeleteBlindedPdfFailedException;
 use App\Exceptions\DeleteCopyeditedFileFailedException;
 use App\Exceptions\DuplicateReviewerException;
 use App\Exceptions\EditorIsAuthorException;
@@ -722,6 +723,148 @@ class Article extends Model
 
         if ($oldPath) {
             Storage::disk('local')->delete($oldPath);
+        }
+    }
+
+    /**
+     * Upload an anonymised manuscript for double-blind review,
+     * replacing any existing version. The file lives on the local
+     * (private) disk; the previous version is deleted only after
+     * the transaction commits.
+     */
+    public function uploadBlindedPdf(User $actor, string $filePath): void
+    {
+        $oldPath = null;
+        DB::transaction(function () use ($actor, $filePath, &$oldPath) {
+            $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
+
+            $oldPath = $lockedArticle->blinded_pdf_path;
+
+            $lockedArticle->update([
+                'blinded_pdf_path' => $filePath,
+                'blinded_at' => now(),
+                'blinded_by' => $actor->id,
+            ]);
+
+            OutboxEvent::log('article.blinded_pdf_uploaded', $lockedArticle, [
+                'file_path' => $filePath,
+            ], $actor);
+        });
+
+        if ($oldPath) {
+            Storage::disk('local')->delete($oldPath);
+        }
+    }
+
+    /**
+     * Delete the anonymised manuscript. Blocked while active reviewers
+     * exist — removing the blinded PDF mid-review would break the
+     * anonymity contract. The file is removed only after the columns
+     * are cleared and committed.
+     */
+    public function deleteBlindedPdf(User $actor): void
+    {
+        $oldPath = null;
+        DB::transaction(function () use ($actor, &$oldPath) {
+            $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
+
+            if ($lockedArticle->hasActiveReviewers()) {
+                throw new DeleteBlindedPdfFailedException;
+            }
+
+            $oldPath = $lockedArticle->blinded_pdf_path;
+
+            $lockedArticle->update([
+                'blinded_pdf_path' => null,
+                'blinded_at' => null,
+                'blinded_by' => null,
+            ]);
+
+            OutboxEvent::log('article.blinded_pdf_deleted', $lockedArticle, [
+                'old_file_path' => $oldPath,
+            ], $actor);
+        });
+
+        if ($oldPath) {
+            Storage::disk('local')->delete($oldPath);
+        }
+    }
+
+    /**
+     * Upload the typeset galley PDF during the Production stage,
+     * replacing any previously uploaded version. The old file is
+     * deleted only after the transaction commits.
+     */
+    public function uploadGalleyPdf(User $actor, string $filePath): void
+    {
+        $oldPath = null;
+        DB::transaction(function () use ($actor, $filePath, &$oldPath) {
+            $lockedArticle = static::lockForUpdate()->findOrFail($this->id);
+
+            if (! $lockedArticle->isProduction()) {
+                throw new GalleyNotProductionException;
+            }
+
+            $oldPath = $lockedArticle->galley_pdf_path;
+
+            $lockedArticle->update([
+                'galley_pdf_path' => $filePath,
+                'galley_uploaded_at' => now(),
+                'galley_uploaded_by' => $actor->id,
+            ]);
+
+            OutboxEvent::log('galley.pdf_uploaded', $lockedArticle, [
+                'file_path' => $filePath,
+            ], $actor);
+        });
+
+        if ($oldPath) {
+            Storage::disk('local')->delete($oldPath);
+        }
+    }
+
+    /**
+     * Add a post-publication correction (corrigendum, erratum, or
+     * expression of concern) with an optional supporting file.
+     */
+    public function addCorrection(array $attributes, ?string $filePath, User $actor): Correction
+    {
+        return DB::transaction(function () use ($attributes, $filePath, $actor) {
+            $correction = $this->corrections()->create([
+                ...$attributes,
+                'file_path' => $filePath,
+                'created_by' => $actor->id,
+            ]);
+
+            OutboxEvent::log('article.correction_added', $this, [
+                'correction_type' => $correction->type->value,
+                'correction_title' => $correction->title,
+            ], $actor);
+
+            return $correction;
+        });
+    }
+
+    /**
+     * Remove a post-publication correction; the supporting file is
+     * deleted from disk only after the deletion has committed.
+     */
+    public function removeCorrection(Correction $correction, User $actor): void
+    {
+        $filePath = null;
+        DB::transaction(function () use ($correction, $actor, &$filePath) {
+            $filePath = $correction->file_path;
+
+            $correction->delete();
+
+            OutboxEvent::log('article.correction_deleted', $this, [
+                'correction_id' => $correction->id,
+                'correction_type' => $correction->type->value,
+            ], $actor);
+        });
+
+        if ($filePath) {
+            Storage::disk('local')->delete($filePath);
         }
     }
 
