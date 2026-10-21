@@ -4,25 +4,15 @@ use App\Enums\ReviewStatus;
 use App\Models\Article;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     Storage::fake('local');
 
     Storage::disk('local')->put('submissions/manuscript.pdf', 'manuscript');
     Storage::disk('local')->put('blinded/blinded.pdf', 'blinded');
     Storage::disk('local')->put('response-letters/letter.pdf', 'letter');
 });
-
-function rfaReviewer(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('reviewer');
-
-    return $user;
-}
 
 /**
  * An in-review article with manuscript files and one review of
@@ -32,7 +22,7 @@ function rfaReviewer(): User
  */
 function rfaArticle(ReviewStatus $status): array
 {
-    $reviewer = rfaReviewer();
+    $reviewer = User::factory()->reviewer()->create();
 
     $article = Article::factory()->inReview()->create([
         'pdf_path' => 'submissions/manuscript.pdf',

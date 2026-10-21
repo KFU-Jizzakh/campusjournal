@@ -7,45 +7,8 @@ use App\Models\Article;
 use App\Models\Issue;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
-
-function createEic(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('editor-in-chief');
-
-    return $user;
-}
-
-function createSectionEditor(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('section-editor');
-
-    return $user;
-}
-
-function createReviewer(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('reviewer');
-
-    return $user;
-}
-
-function createAuthorUser(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('author');
-
-    return $user;
-}
 
 function createPdfFile(): UploadedFile
 {
@@ -55,13 +18,13 @@ function createPdfFile(): UploadedFile
 // --- Index ---
 
 test('editor-in-chief can view editorial index', function () {
-    $this->actingAs(createEic())
+    $this->actingAs(User::factory()->editorInChief()->create())
         ->get(route('editorial.index'))
         ->assertOk();
 });
 
 test('section editor sees only assigned articles', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $assigned = Article::factory()->submitted()->create([
         'editor_id' => $editor->id,
         'title' => 'Assigned Article Title',
@@ -97,13 +60,13 @@ test('author cannot access editorial', function () {
 test('editor-in-chief can view any non-draft article editorially', function () {
     $article = Article::factory()->submitted()->create();
 
-    $this->actingAs(createEic())
+    $this->actingAs(User::factory()->editorInChief()->create())
         ->get(route('editorial.show', $article))
         ->assertOk();
 });
 
 test('section editor cannot view unassigned article', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->submitted()->create();
 
     $this->actingAs($editor)
@@ -114,7 +77,7 @@ test('section editor cannot view unassigned article', function () {
 test('nobody can view draft article editorially', function () {
     $article = Article::factory()->create(['status' => ArticleStatus::Draft]);
 
-    $this->actingAs(createEic())
+    $this->actingAs(User::factory()->editorInChief()->create())
         ->get(route('editorial.show', $article))
         ->assertForbidden();
 });
@@ -122,8 +85,8 @@ test('nobody can view draft article editorially', function () {
 // --- Assign editor ---
 
 test('editor-in-chief can assign section editor', function () {
-    $eic = createEic();
-    $sectionEditor = createSectionEditor();
+    $eic = User::factory()->editorInChief()->create();
+    $sectionEditor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->submitted()->create();
 
     $this->actingAs($eic)
@@ -136,9 +99,9 @@ test('editor-in-chief can assign section editor', function () {
 });
 
 test('section editor cannot assign editor', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->submitted()->create(['editor_id' => $editor->id]);
-    $otherEditor = createSectionEditor();
+    $otherEditor = User::factory()->sectionEditor()->create();
 
     $this->actingAs($editor)
         ->post(route('editorial.assign-editor', $article), [
@@ -148,8 +111,8 @@ test('section editor cannot assign editor', function () {
 });
 
 test('cannot assign editor to non-submitted article', function () {
-    $eic = createEic();
-    $sectionEditor = createSectionEditor();
+    $eic = User::factory()->editorInChief()->create();
+    $sectionEditor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->inReview()->create();
 
     $this->actingAs($eic)
@@ -161,7 +124,7 @@ test('cannot assign editor to non-submitted article', function () {
 });
 
 test('cannot assign non-section-editor as editor', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $regularUser = User::factory()->create();
     $regularUser->assignRole('author');
     $article = Article::factory()->submitted()->create();
@@ -175,8 +138,8 @@ test('cannot assign non-section-editor as editor', function () {
 });
 
 test('editor-in-chief can re-assign section editor after revision resubmission', function () {
-    $eic = createEic();
-    $sectionEditor = createSectionEditor();
+    $eic = User::factory()->editorInChief()->create();
+    $sectionEditor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->revision()->create();
 
     $article->revise(['title' => 'Resubmitted Title', 'abstract_ru' => 'New abstract']);
@@ -196,8 +159,8 @@ test('editor-in-chief can re-assign section editor after revision resubmission',
 // --- Assign reviewer ---
 
 test('editor can assign reviewer to submitted article', function () {
-    $eic = createEic();
-    $reviewer = createReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->submitted()->create();
 
     $this->actingAs($eic)
@@ -212,8 +175,8 @@ test('editor can assign reviewer to submitted article', function () {
 });
 
 test('assigning reviewer to in_review article does not change status', function () {
-    $eic = createEic();
-    $reviewer = createReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->inReview()->create();
 
     $this->actingAs($eic)
@@ -227,8 +190,8 @@ test('assigning reviewer to in_review article does not change status', function 
 });
 
 test('cannot assign duplicate non-declined reviewer', function () {
-    $eic = createEic();
-    $reviewer = createReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->inReview()->create();
 
     Review::factory()->create([
@@ -246,8 +209,8 @@ test('cannot assign duplicate non-declined reviewer', function () {
 });
 
 test('can re-assign declined reviewer', function () {
-    $eic = createEic();
-    $reviewer = createReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->inReview()->create();
 
     Review::factory()->create([
@@ -265,7 +228,7 @@ test('can re-assign declined reviewer', function () {
 });
 
 test('cannot assign reviewer without review-article permission', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $user = User::factory()->create();
     $article = Article::factory()->submitted()->create();
 
@@ -278,8 +241,8 @@ test('cannot assign reviewer without review-article permission', function () {
 });
 
 test('cannot assign reviewer to accepted article', function () {
-    $eic = createEic();
-    $reviewer = createReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->accepted()->create();
 
     $this->actingAs($eic)
@@ -293,7 +256,7 @@ test('cannot assign reviewer to accepted article', function () {
 // --- Decide ---
 
 test('editor can accept article with completed review', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create();
     Review::factory()->completed()->create(['article_id' => $article->id]);
 
@@ -313,7 +276,7 @@ test('editor can accept article with completed review', function () {
 });
 
 test('editor can send article for revision', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create();
     Review::factory()->completed()->create(['article_id' => $article->id]);
 
@@ -328,7 +291,7 @@ test('editor can send article for revision', function () {
 });
 
 test('editor can reject article', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create();
     Review::factory()->completed()->create(['article_id' => $article->id]);
 
@@ -343,7 +306,7 @@ test('editor can reject article', function () {
 });
 
 test('cannot decide without completed review', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create();
     Review::factory()->create(['article_id' => $article->id, 'status' => ReviewStatus::Pending]);
 
@@ -357,8 +320,8 @@ test('cannot decide without completed review', function () {
 });
 
 test('editor can re-assign round one reviewer after revision resubmission', function () {
-    $eic = createEic();
-    $reviewer = createReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->inReview()->create();
     Review::factory()->completed()->create([
         'article_id' => $article->id,
@@ -380,8 +343,8 @@ test('editor can re-assign round one reviewer after revision resubmission', func
 });
 
 test('editor can decide round two article after round two review', function () {
-    $eic = createEic();
-    $reviewer = createReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->inReview()->create();
     Review::factory()->completed()->create([
         'article_id' => $article->id,
@@ -408,7 +371,7 @@ test('editor can decide round two article after round two review', function () {
 });
 
 test('cannot decide on non-in_review article', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->submitted()->create();
     Review::factory()->completed()->create(['article_id' => $article->id]);
 
@@ -422,7 +385,7 @@ test('cannot decide on non-in_review article', function () {
 });
 
 test('section editor cannot decide on unassigned article', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->inReview()->create();
     Review::factory()->completed()->create(['article_id' => $article->id]);
 
@@ -435,7 +398,7 @@ test('section editor cannot decide on unassigned article', function () {
 });
 
 test('section editor can decide on assigned article', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->inReview()->create(['editor_id' => $editor->id]);
     Review::factory()->completed()->create(['article_id' => $article->id]);
 
@@ -453,7 +416,7 @@ test('section editor can decide on assigned article', function () {
 // --- Send to Copyediting ---
 
 test('editor can send accepted article to copyediting', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->accepted()->create();
 
     $this->actingAs($eic)
@@ -469,7 +432,7 @@ test('editor can send accepted article to copyediting', function () {
 });
 
 test('cannot send non-accepted article to copyediting', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create();
 
     $this->actingAs($eic)
@@ -479,7 +442,7 @@ test('cannot send non-accepted article to copyediting', function () {
 });
 
 test('section editor cannot send unassigned accepted article to copyediting', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->accepted()->create();
 
     $this->actingAs($editor)
@@ -488,7 +451,7 @@ test('section editor cannot send unassigned accepted article to copyediting', fu
 });
 
 test('section editor can send assigned accepted article to copyediting', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->accepted()->create(['editor_id' => $editor->id]);
 
     $this->actingAs($editor)
@@ -502,7 +465,7 @@ test('section editor can send assigned accepted article to copyediting', functio
 // --- Send to Production ---
 
 test('editor can send copyediting article to production', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->copyediting()->withCopyeditedFile()->create();
 
     $this->actingAs($eic)
@@ -518,7 +481,7 @@ test('editor can send copyediting article to production', function () {
 });
 
 test('cannot send non-copyediting article to production', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->accepted()->create();
 
     $this->actingAs($eic)
@@ -528,7 +491,7 @@ test('cannot send non-copyediting article to production', function () {
 });
 
 test('section editor cannot send unassigned copyediting article to production', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->copyediting()->create();
 
     $this->actingAs($editor)
@@ -537,7 +500,7 @@ test('section editor cannot send unassigned copyediting article to production', 
 });
 
 test('section editor can send assigned copyediting article to production', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $article = Article::factory()->copyediting()->withCopyeditedFile()->create(['editor_id' => $editor->id]);
 
     $this->actingAs($editor)
@@ -551,7 +514,7 @@ test('section editor can send assigned copyediting article to production', funct
 // --- Copyedited File ---
 
 test('editor can upload copyedited file during copyediting stage', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->copyediting()->create();
 
     $this->actingAs($eic)
@@ -568,7 +531,7 @@ test('editor can upload copyedited file during copyediting stage', function () {
 });
 
 test('cannot send to production without copyedited file', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->copyediting()->create();
 
     $this->actingAs($eic)
@@ -581,7 +544,7 @@ test('cannot send to production without copyedited file', function () {
 
 test('uploading copyedited file replaces previous version', function () {
     Storage::fake('local');
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->copyediting()->create();
 
     $firstFile = createPdfFile();
@@ -605,7 +568,7 @@ test('uploading copyedited file replaces previous version', function () {
 
 test('editor can download copyedited file', function () {
     Storage::fake('local');
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->copyediting()->create();
 
     $this->actingAs($eic)
@@ -620,8 +583,8 @@ test('editor can download copyedited file', function () {
 
 test('author can download own copyedited file', function () {
     Storage::fake('local');
-    $eic = createEic();
-    $author = createAuthorUser();
+    $eic = User::factory()->editorInChief()->create();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->copyediting()->create(['submitted_by' => $author->id]);
 
     $this->actingAs($eic)
@@ -635,7 +598,7 @@ test('author can download own copyedited file', function () {
 });
 
 test('author cannot upload copyedited file', function () {
-    $author = createAuthorUser();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->copyediting()->create(['submitted_by' => $author->id]);
 
     $this->actingAs($author)
@@ -647,7 +610,7 @@ test('author cannot upload copyedited file', function () {
 
 test('editor can delete copyedited file', function () {
     Storage::fake('local');
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->copyediting()->create();
 
     $this->actingAs($eic)
@@ -667,7 +630,7 @@ test('editor can delete copyedited file', function () {
 
 test('cannot upload copyedited file for non-copyediting article', function () {
     Storage::fake('local');
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->accepted()->create();
 
     $this->actingAs($eic)
@@ -679,7 +642,7 @@ test('cannot upload copyedited file for non-copyediting article', function () {
 });
 
 test('cannot delete copyedited file for non-copyediting article', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->production()->withCopyeditedFile()->create();
 
     $this->actingAs($eic)
@@ -689,7 +652,7 @@ test('cannot delete copyedited file for non-copyediting article', function () {
 });
 
 test('copyedited file download returns 404 when not uploaded', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->copyediting()->create();
 
     $this->actingAs($eic)
@@ -700,7 +663,7 @@ test('copyedited file download returns 404 when not uploaded', function () {
 // --- Publish ---
 
 test('editor-in-chief can publish production article', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create();
 
@@ -719,7 +682,7 @@ test('editor-in-chief can publish production article', function () {
 });
 
 test('cannot publish article into non-published issue', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $issue = Issue::factory()->create(['status' => 'planned']);
     $article = Article::factory()->approved()->create();
 
@@ -736,7 +699,7 @@ test('cannot publish article into non-published issue', function () {
 });
 
 test('dashboard publish form lists only published issues', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     Issue::factory()->create(['status' => 'planned', 'title' => 'Hidden Planned Issue']);
     $published = Issue::factory()->create(['status' => 'published', 'title' => 'Visible Published Issue']);
     $article = Article::factory()->approved()->create();
@@ -750,7 +713,7 @@ test('dashboard publish form lists only published issues', function () {
 
 test('publishing mints and persists an opaque DOI', function () {
     config(['services.crossref.prefix' => '10.12345']);
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create(['doi' => null]);
 
@@ -765,7 +728,7 @@ test('publishing mints and persists an opaque DOI', function () {
 
 test('publishing without a configured prefix does not mint a DOI', function () {
     config(['services.crossref.prefix' => null]);
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create(['doi' => null]);
 
@@ -777,7 +740,7 @@ test('publishing without a configured prefix does not mint a DOI', function () {
 });
 
 test('publishing preserves a manually set DOI', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create(['doi' => '10.99999/preset']);
 
@@ -789,7 +752,7 @@ test('publishing preserves a manually set DOI', function () {
 });
 
 test('cannot publish accepted article directly', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->accepted()->create();
 
@@ -802,7 +765,7 @@ test('cannot publish accepted article directly', function () {
 });
 
 test('cannot publish non-production article', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->inReview()->create();
 
@@ -815,7 +778,7 @@ test('cannot publish non-production article', function () {
 });
 
 test('user without publish-issue permission cannot publish', function () {
-    $editor = createSectionEditor();
+    $editor = User::factory()->sectionEditor()->create();
     $issue = Issue::factory()->create(['status' => 'published']);
     $article = Article::factory()->approved()->create(['editor_id' => $editor->id]);
 
@@ -827,7 +790,7 @@ test('user without publish-issue permission cannot publish', function () {
 });
 
 test('decide rejects an unknown decision key with a domain exception', function () {
-    $eic = createEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create();
 
     // The model must stay safe even when the caller skipped validation.

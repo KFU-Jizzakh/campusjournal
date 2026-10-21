@@ -3,9 +3,6 @@
 use App\Enums\ArticleStatus;
 use App\Models\Article;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(fn () => $this->seed(RoleSeeder::class));
 
 test('leadership author cannot retract their own published article', function () {
     $eic = User::factory()->create();

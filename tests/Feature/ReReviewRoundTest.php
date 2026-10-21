@@ -9,39 +9,13 @@ use App\Models\ResponseLetter;
 use App\Models\Review;
 use App\Models\User;
 use App\Notifications\ReviewReRequested;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     Storage::fake('local');
 });
-
-function rrEic(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('editor-in-chief');
-
-    return $user;
-}
-
-function rrReviewer(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('reviewer');
-
-    return $user;
-}
-
-function rrAuthor(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('author');
-
-    return $user;
-}
 
 function rrAuthorContact(): array
 {
@@ -66,7 +40,7 @@ function rrArticleInRoundTwo(User $author, User $reviewer): Article
         'round' => 1,
     ]);
 
-    $article->decide('revision', 'Нужна доработка.', rrEic());
+    $article->decide('revision', 'Нужна доработка.', User::factory()->editorInChief()->create());
 
     $article->revise([
         'title' => $article->title,
@@ -101,8 +75,8 @@ test('revise increments current round and clears blinded pdf fields', function (
 });
 
 test('reviews are created with the article current round', function () {
-    $eic = rrEic();
-    $reviewer = rrReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->submitted()->create();
 
     $article->assignReviewer($reviewer, $eic);
@@ -117,9 +91,9 @@ test('reviews are created with the article current round', function () {
 test('editor can re-assign reviewer who completed an earlier round', function () {
     Notification::fake();
 
-    $eic = rrEic();
-    $reviewer = rrReviewer();
-    $author = rrAuthor();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
+    $author = User::factory()->author()->create();
     $article = rrArticleInRoundTwo($author, $reviewer);
 
     $this->actingAs($eic)
@@ -139,8 +113,8 @@ test('editor can re-assign reviewer who completed an earlier round', function ()
 test('re-request notification is not sent on first-round assignment', function () {
     Notification::fake();
 
-    $eic = rrEic();
-    $reviewer = rrReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->submitted()->create();
 
     $article->assignReviewer($reviewer, $eic);
@@ -149,8 +123,8 @@ test('re-request notification is not sent on first-round assignment', function (
 });
 
 test('duplicate non-declined reviewer in the same round is still rejected', function () {
-    $eic = rrEic();
-    $reviewer = rrReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->inReview()->create();
 
     $article->assignReviewer($reviewer, $eic);
@@ -166,10 +140,10 @@ test('duplicate non-declined reviewer in the same round is still rejected', func
 });
 
 test('uncompleted reviewer from earlier round does not block re-invite', function () {
-    $eic = rrEic();
-    $reviewer = rrReviewer();
-    $otherReviewer = rrReviewer();
-    $author = rrAuthor();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
+    $otherReviewer = User::factory()->reviewer()->create();
+    $author = User::factory()->author()->create();
 
     // The slow reviewer's round 1 assignment stays in progress; another
     // reviewer's completed review allows the revision decision.
@@ -200,9 +174,9 @@ test('uncompleted reviewer from earlier round does not block re-invite', functio
 // --- Decisions require a current-round review ---
 
 test('cannot decide after resubmit until a current round review is completed', function () {
-    $eic = rrEic();
-    $reviewer = rrReviewer();
-    $author = rrAuthor();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
+    $author = User::factory()->author()->create();
     $article = rrArticleInRoundTwo($author, $reviewer);
 
     $this->actingAs($eic)
@@ -217,9 +191,9 @@ test('cannot decide after resubmit until a current round review is completed', f
 });
 
 test('editor can decide after a current round review is completed', function () {
-    $eic = rrEic();
-    $reviewer = rrReviewer();
-    $author = rrAuthor();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
+    $author = User::factory()->author()->create();
     $article = rrArticleInRoundTwo($author, $reviewer);
 
     $roundTwoReview = $article->assignReviewer($reviewer, $eic);
@@ -240,7 +214,7 @@ test('editor can decide after a current round review is completed', function () 
 // --- Response letter on resubmission ---
 
 test('resubmission requires a response letter', function () {
-    $author = rrAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
     $article = Article::factory()->revision()->create(['submitted_by' => $author->id]);
 
@@ -261,7 +235,7 @@ test('resubmission requires a response letter', function () {
 });
 
 test('resubmission stores response letter in the new round with optional file', function () {
-    $author = rrAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
     $article = Article::factory()->revision()->create([
         'submitted_by' => $author->id,
@@ -302,9 +276,9 @@ test('resubmission stores response letter in the new round with optional file', 
 // --- Visibility ---
 
 test('editorial page shows round badge for re-review round', function () {
-    $eic = rrEic();
-    $reviewer = rrReviewer();
-    $author = rrAuthor();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
+    $author = User::factory()->author()->create();
     $article = rrArticleInRoundTwo($author, $reviewer);
     Review::factory()->completed()->create([
         'article_id' => $article->id,
@@ -319,8 +293,8 @@ test('editorial page shows round badge for re-review round', function () {
 });
 
 test('reviewer sees response letter and own previous round review', function () {
-    $reviewer = rrReviewer();
-    $author = rrAuthor();
+    $reviewer = User::factory()->reviewer()->create();
+    $author = User::factory()->author()->create();
     $article = rrArticleInRoundTwo($author, $reviewer);
     $article->responseLetters()->create([
         'round' => 2,
@@ -341,7 +315,7 @@ test('reviewer sees response letter and own previous round review', function () 
 });
 
 test('response letter file download is gated by role', function () {
-    $author = rrAuthor();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->revision()->create(['submitted_by' => $author->id]);
     $letter = $article->responseLetters()->create([
         'round' => 1,
@@ -357,14 +331,14 @@ test('response letter file download is gated by role', function () {
         ->assertOk();
 
     // An unrelated user cannot.
-    $this->actingAs(rrAuthor())
+    $this->actingAs(User::factory()->author()->create())
         ->get(route('response-letters.file', $letter))
         ->assertForbidden();
 });
 
 test('assigned reviewer of the round can download the response letter file', function () {
-    $reviewer = rrReviewer();
-    $author = rrAuthor();
+    $reviewer = User::factory()->reviewer()->create();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->inReview()->create(['submitted_by' => $author->id]);
     Review::factory()->create([
         'article_id' => $article->id,

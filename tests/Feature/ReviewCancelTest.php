@@ -6,10 +6,7 @@ use App\Models\OutboxEvent;
 use App\Models\Review;
 use App\Models\User;
 use App\Notifications\ReviewCancelled;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
-
-beforeEach(fn () => $this->seed(RoleSeeder::class));
 
 function cancelEic(): User
 {

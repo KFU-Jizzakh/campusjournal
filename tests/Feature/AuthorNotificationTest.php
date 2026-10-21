@@ -13,11 +13,9 @@ use App\Notifications\AuthorResubmitted;
 use App\Notifications\AuthorStatusChanged;
 use App\Notifications\AuthorSubmissionReceived;
 use App\Notifications\EditorGalleyRevisionRequested;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
 
     $this->createAuthor = function () {
         $user = User::factory()->create();

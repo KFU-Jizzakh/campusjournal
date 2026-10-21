@@ -4,12 +4,7 @@ use App\Jobs\DepositArticleToCrossref;
 use App\Models\Article;
 use App\Models\Issue;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Queue;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('publishing dispatches deposit job when crossref enabled', function () {
     Queue::fake();

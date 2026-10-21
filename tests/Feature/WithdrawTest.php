@@ -3,9 +3,6 @@
 use App\Enums\ArticleStatus;
 use App\Models\Article;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(fn () => $this->seed(RoleSeeder::class));
 
 test('author can withdraw their own pre-published article', function () {
     $author = User::factory()->create();

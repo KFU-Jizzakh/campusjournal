@@ -6,11 +6,6 @@ use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('editor sees reviewer workload stats in assign form', function () {
     $editor = User::factory()->create();

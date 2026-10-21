@@ -4,9 +4,6 @@ use App\Models\Article;
 use App\Models\Author;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(fn () => $this->seed(RoleSeeder::class));
 
 // --- Submission page (author surface) ---
 

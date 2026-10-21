@@ -3,12 +3,10 @@
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     Storage::fake('local');
 });
 

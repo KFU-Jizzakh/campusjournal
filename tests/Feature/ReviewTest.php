@@ -9,23 +9,10 @@ use App\Models\User;
 use App\Notifications\ReviewCompleted;
 use App\Notifications\ReviewerAccepted;
 use App\Notifications\ReviewerDeclined;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
 
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
-
-function createReviewerUser(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('reviewer');
-
-    return $user;
-}
-
 test('reviewer can view their reviews list', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
 
     $this->actingAs($reviewer)
         ->get(route('reviews.index'))
@@ -33,7 +20,7 @@ test('reviewer can view their reviews list', function () {
 });
 
 test('reviewer can view own review', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
     $review = Review::factory()->create(['reviewer_id' => $reviewer->id]);
 
     $this->actingAs($reviewer)
@@ -42,7 +29,7 @@ test('reviewer can view own review', function () {
 });
 
 test('reviewer cannot view another users review', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
     $review = Review::factory()->create();
 
     $this->actingAs($reviewer)
@@ -51,7 +38,7 @@ test('reviewer cannot view another users review', function () {
 });
 
 test('reviewer can submit a review', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
     $review = Review::factory()->inProgress()->create(['reviewer_id' => $reviewer->id]);
 
     $this->actingAs($reviewer)
@@ -70,7 +57,7 @@ test('reviewer can submit a review', function () {
 });
 
 test('reviewer cannot update completed review', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
     $review = Review::factory()->completed()->create(['reviewer_id' => $reviewer->id]);
 
     $this->actingAs($reviewer)
@@ -83,7 +70,7 @@ test('reviewer cannot update completed review', function () {
 });
 
 test('reviewer cannot submit review without accepting first', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
     $review = Review::factory()->create(['reviewer_id' => $reviewer->id]);
 
     $this->actingAs($reviewer)
@@ -96,7 +83,7 @@ test('reviewer cannot submit review without accepting first', function () {
 });
 
 test('reviewer cannot update another users review', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
     $review = Review::factory()->create();
 
     $this->actingAs($reviewer)
@@ -109,7 +96,7 @@ test('reviewer cannot update another users review', function () {
 });
 
 test('review validation requires all fields', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
     $review = Review::factory()->inProgress()->create(['reviewer_id' => $reviewer->id]);
 
     $this->actingAs($reviewer)
@@ -118,7 +105,7 @@ test('review validation requires all fields', function () {
 });
 
 test('review recommendation must be valid', function () {
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
     $review = Review::factory()->inProgress()->create(['reviewer_id' => $reviewer->id]);
 
     $this->actingAs($reviewer)
@@ -155,7 +142,7 @@ test('editor receives ReviewerAccepted notification when reviewer accepts', func
     $sectionEditor->assignRole('section-editor');
     $eic = User::factory()->create();
     $eic->assignRole('editor-in-chief');
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
 
     $article = Article::factory()->create([
         'status' => ArticleStatus::Submitted,
@@ -185,7 +172,7 @@ test('editor receives ReviewerDeclined notification when reviewer declines', fun
     $sectionEditor->assignRole('section-editor');
     $eic = User::factory()->create();
     $eic->assignRole('editor-in-chief');
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
 
     $article = Article::factory()->create([
         'status' => ArticleStatus::Submitted,
@@ -215,7 +202,7 @@ test('editor receives ReviewCompleted notification when review is completed', fu
     $sectionEditor->assignRole('section-editor');
     $eic = User::factory()->create();
     $eic->assignRole('editor-in-chief');
-    $reviewer = createReviewerUser();
+    $reviewer = User::factory()->reviewer()->create();
 
     $article = Article::factory()->create([
         'status' => ArticleStatus::Submitted,

@@ -6,11 +6,6 @@ use App\Models\Issue;
 use App\Models\OutboxEvent;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('submitting an article logs submission.created', function () {
     $user = User::factory()->create();

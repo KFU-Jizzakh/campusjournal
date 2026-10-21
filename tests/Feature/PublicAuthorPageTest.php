@@ -3,12 +3,7 @@
 use App\Models\Article;
 use App\Models\Author;
 use Database\Seeders\AuthorSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Storage;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('article list links author names to the public profile', function () {
     $this->seed(AuthorSeeder::class);

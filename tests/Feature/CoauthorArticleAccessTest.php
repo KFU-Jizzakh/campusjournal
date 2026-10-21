@@ -7,12 +7,7 @@ use App\Models\Author;
 use App\Models\Discussion;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Storage;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 function makeCoauthorOn(Article $article): User
 {

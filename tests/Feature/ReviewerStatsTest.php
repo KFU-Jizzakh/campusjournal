@@ -4,11 +4,6 @@ use App\Enums\ReviewStatus;
 use App\Models\Review;
 use App\Models\User;
 use App\Support\ReviewerStats;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('reviewer stats aggregate workload and reliability', function () {
     $reviewer = User::factory()->create();

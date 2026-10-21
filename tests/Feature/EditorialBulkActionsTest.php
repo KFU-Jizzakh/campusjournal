@@ -2,11 +2,6 @@
 
 use App\Models\Article;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 function bulkEicUser(): User
 {

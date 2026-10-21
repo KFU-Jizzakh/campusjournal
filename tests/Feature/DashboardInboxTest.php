@@ -7,11 +7,6 @@ use App\Models\Discussion;
 use App\Models\Review;
 use App\Models\User;
 use App\Support\DashboardInbox;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('inbox shows resubmit task for author with revision article', function () {
     $author = User::factory()->create();

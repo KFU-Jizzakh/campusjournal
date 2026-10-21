@@ -3,9 +3,6 @@
 use App\Models\Article;
 use App\Models\User;
 use App\Support\ReviewerMatcher;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(fn () => $this->seed(RoleSeeder::class));
 
 function matcherReviewer(array $interests): User
 {

@@ -38,4 +38,44 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * ROLE STATES — create the user with the Spatie role already
+     * assigned, replacing the two-step create+assignRole dance (and
+     * the per-file helper functions invented to avoid name clashes).
+     */
+    public function admin(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole('admin'));
+    }
+
+    public function editorInChief(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole('editor-in-chief'));
+    }
+
+    public function managingEditor(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole('managing-editor'));
+    }
+
+    public function sectionEditor(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole('section-editor'));
+    }
+
+    public function reviewer(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole('reviewer'));
+    }
+
+    public function author(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole('author'));
+    }
+
+    public function contentManager(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole('content-manager'));
+    }
 }

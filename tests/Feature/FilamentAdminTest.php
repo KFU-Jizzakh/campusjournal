@@ -7,13 +7,8 @@ use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\Author;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('admin can access filament panel', function () {
     $admin = User::factory()->create();

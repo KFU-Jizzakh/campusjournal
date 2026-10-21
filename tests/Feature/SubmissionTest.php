@@ -7,13 +7,11 @@ use App\Models\Category;
 use App\Models\CopyrightAgreement;
 use App\Models\User;
 use App\Notifications\AuthorSubmissionReceived;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     Storage::fake('public');
     Storage::fake('local');
 
@@ -27,14 +25,6 @@ beforeEach(function () {
         ]);
     }
 });
-
-function createAuthor(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('author');
-
-    return $user;
-}
 
 function authorContactFields(array $overrides = []): array
 {
@@ -59,7 +49,7 @@ function coauthorContactFields(array $overrides = []): array
 }
 
 test('author can view submission create form', function () {
-    $this->actingAs(createAuthor())
+    $this->actingAs(User::factory()->author()->create())
         ->get(route('submissions.create'))
         ->assertOk();
 });
@@ -80,7 +70,7 @@ test('user without permission cannot access submissions', function () {
 test('author can submit an article', function () {
     Notification::fake();
 
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($author)
@@ -113,7 +103,7 @@ test('author can submit an article', function () {
 });
 
 test('submission stores author contact details', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($author)
@@ -149,7 +139,7 @@ test('submission stores author contact details', function () {
 });
 
 test('submission stores coauthor contact details', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($author)
@@ -188,13 +178,13 @@ test('submission stores coauthor contact details', function () {
 });
 
 test('submission validation requires mandatory fields', function () {
-    $this->actingAs(createAuthor())
+    $this->actingAs(User::factory()->author()->create())
         ->post(route('submissions.store'), [])
         ->assertSessionHasErrors(['title', 'abstract_ru', 'category_id', 'pdf_file', 'author_name', 'author_email', 'author_phone', 'author_country', 'author_city', 'agreement_accepted']);
 });
 
 test('submission rejects invalid phone and country', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($author)
@@ -211,7 +201,7 @@ test('submission rejects invalid phone and country', function () {
 });
 
 test('submission rejects missing coauthor contact details', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($author)
@@ -231,7 +221,7 @@ test('submission rejects missing coauthor contact details', function () {
 });
 
 test('author can view own submission', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->submitted()->create(['submitted_by' => $author->id]);
 
     $this->actingAs($author)
@@ -240,7 +230,7 @@ test('author can view own submission', function () {
 });
 
 test('author cannot view another users submission', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->submitted()->create();
 
     $this->actingAs($author)
@@ -249,7 +239,7 @@ test('author cannot view another users submission', function () {
 });
 
 test('author can edit own draft article', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->create([
         'submitted_by' => $author->id,
         'status' => ArticleStatus::Draft,
@@ -261,7 +251,7 @@ test('author can edit own draft article', function () {
 });
 
 test('author cannot edit submitted article', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->submitted()->create(['submitted_by' => $author->id]);
 
     $this->actingAs($author)
@@ -270,7 +260,7 @@ test('author cannot edit submitted article', function () {
 });
 
 test('author can edit article in revision status', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $article = Article::factory()->revision()->create(['submitted_by' => $author->id]);
     $category = Category::factory()->create();
 
@@ -295,7 +285,7 @@ test('author can edit article in revision status', function () {
 });
 
 test('updating draft article does not change status to submitted', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
     $article = Article::factory()->create([
         'submitted_by' => $author->id,
@@ -317,7 +307,7 @@ test('updating draft article does not change status to submitted', function () {
 });
 
 test('update stores changed author contact details', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
     $article = Article::factory()->create([
         'submitted_by' => $author->id,
@@ -353,7 +343,7 @@ test('update stores changed author contact details', function () {
 });
 
 test('submission rejects duplicate orcid between author and coauthor', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($author)
@@ -374,7 +364,7 @@ test('submission rejects duplicate orcid between author and coauthor', function 
 });
 
 test('submission rejects duplicate orcid between coauthors', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($author)
@@ -395,7 +385,7 @@ test('submission rejects duplicate orcid between coauthors', function () {
 });
 
 test('updating article cleans up orphaned coauthors', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
     $article = Article::factory()->create([
         'submitted_by' => $author->id,
@@ -436,7 +426,7 @@ test('updating article cleans up orphaned coauthors', function () {
 });
 
 test('coauthor shared with another article is not deleted', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $article1 = Article::factory()->create([
@@ -483,7 +473,7 @@ test('coauthor shared with another article is not deleted', function () {
 });
 
 test('pdf replacement deletes old file', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     Storage::disk('public')->put('submissions/old.pdf', 'old content');
@@ -513,8 +503,8 @@ test('pdf replacement deletes old file', function () {
 test('submission notifies coauthor linked via ORCID', function () {
     Notification::fake();
 
-    $submitter = createAuthor();
-    $coauthorUser = createAuthor();
+    $submitter = User::factory()->author()->create();
+    $coauthorUser = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $coauthorAuthor = Author::create([
@@ -548,8 +538,8 @@ test('submission notifies coauthor linked via ORCID', function () {
 });
 
 test('coauthor listing does not overwrite a linked author row', function () {
-    $submitter = createAuthor();
-    $coauthorUser = createAuthor();
+    $submitter = User::factory()->author()->create();
+    $coauthorUser = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $linked = Author::create([
@@ -599,8 +589,8 @@ test('coauthor listing does not overwrite a linked author row', function () {
 });
 
 test('coauthor listing prefers the linked row when an orcid has both rows', function () {
-    $submitter = createAuthor();
-    $coauthorUser = createAuthor();
+    $submitter = User::factory()->author()->create();
+    $coauthorUser = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $unlinked = Author::create([
@@ -644,7 +634,7 @@ test('coauthor listing prefers the linked row when an orcid has both rows', func
 });
 
 test('coauthor listing updates an unlinked row with the latest listing', function () {
-    $submitter = createAuthor();
+    $submitter = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $unlinked = Author::create([
@@ -680,7 +670,7 @@ test('coauthor listing updates an unlinked row with the latest listing', functio
 });
 
 test('relisting an orcid of a soft-deleted author restores the same row', function () {
-    $submitter = createAuthor();
+    $submitter = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $softDeleted = Author::create([
@@ -715,7 +705,7 @@ test('relisting an orcid of a soft-deleted author restores the same row', functi
 });
 
 test('author can submit a second article reusing their own orcid', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $payload = function (string $title) use ($category) {
@@ -743,7 +733,7 @@ test('author can submit a second article reusing their own orcid', function () {
 });
 
 test('author contact details are snapshotted per article', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $submit = function (string $title, string $email, string $phone, string $website) use ($author, $category) {
@@ -798,7 +788,7 @@ test('author contact details are snapshotted per article', function () {
 });
 
 test('draft edit form prefills the article own contact snapshot', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $articleA = Article::factory()->create([
@@ -840,8 +830,8 @@ test('draft edit form prefills the article own contact snapshot', function () {
 });
 
 test('coauthor can submit their own article reusing their orcid', function () {
-    $submitter = createAuthor();
-    $coauthorUser = createAuthor();
+    $submitter = User::factory()->author()->create();
+    $coauthorUser = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($submitter)
@@ -886,8 +876,8 @@ test('coauthor can submit their own article reusing their orcid', function () {
 });
 
 test('pre-listed orcid does not block its owner and is adopted by the claim', function () {
-    $submitter = createAuthor();
-    $otherUser = createAuthor();
+    $submitter = User::factory()->author()->create();
+    $otherUser = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($submitter)
@@ -932,8 +922,8 @@ test('pre-listed orcid does not block its owner and is adopted by the claim', fu
 });
 
 test('orcid linked to another user is still rejected', function () {
-    $first = createAuthor();
-    $second = createAuthor();
+    $first = User::factory()->author()->create();
+    $second = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($first)
@@ -966,7 +956,7 @@ test('orcid linked to another user is still rejected', function () {
 });
 
 test('submitter with an existing author record does not adopt a foreign unlinked row', function () {
-    $submitter = createAuthor();
+    $submitter = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($submitter)
@@ -1009,7 +999,7 @@ test('submitter with an existing author record does not adopt a foreign unlinked
 });
 
 test('claiming an orcid restores a soft-deleted unlinked row instead of duplicating it', function () {
-    $claimer = createAuthor();
+    $claimer = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $softDeleted = Author::create([
@@ -1038,8 +1028,8 @@ test('claiming an orcid restores a soft-deleted unlinked row instead of duplicat
 });
 
 test('user can claim an unlinked orcid row without an email snapshot', function () {
-    $submitter = createAuthor();
-    $claimer = createAuthor();
+    $submitter = User::factory()->author()->create();
+    $claimer = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($submitter)
@@ -1082,9 +1072,9 @@ test('user can claim an unlinked orcid row without an email snapshot', function 
 });
 
 test('user can reuse their orcid after the unlinked row email diverges', function () {
-    $submitter = createAuthor();
-    $owner = createAuthor();
-    $thirdSubmitter = createAuthor();
+    $submitter = User::factory()->author()->create();
+    $owner = User::factory()->author()->create();
+    $thirdSubmitter = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($submitter)
@@ -1161,7 +1151,7 @@ test('user can reuse their orcid after the unlinked row email diverges', functio
 });
 
 test('submission page shows author contact details when pivot snapshot is missing', function () {
-    $author = createAuthor();
+    $author = User::factory()->author()->create();
     $category = Category::factory()->create();
 
     $this->actingAs($author)

@@ -2,12 +2,7 @@
 
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('registration screen can be rendered', function () {
     $this->get('/register')->assertStatus(200);

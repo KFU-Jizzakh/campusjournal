@@ -5,12 +5,7 @@ use App\Models\Article;
 use App\Models\Review;
 use App\Models\User;
 use App\Support\DashboardWatchlist;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Carbon;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('watchlist shows in-review article waiting on reviewers with nearest deadline', function () {
     $editor = User::factory()->create();

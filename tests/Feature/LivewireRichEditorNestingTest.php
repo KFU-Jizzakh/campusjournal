@@ -3,13 +3,8 @@
 use App\Filament\Resources\PageResource\Pages\EditPage;
 use App\Models\Page;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Livewire\Exceptions\MaxNestingDepthExceededException;
 use Livewire\Livewire;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('rich editor state accepts deep tiptap document paths', function () {
     $user = User::factory()->create()->assignRole('content-manager');

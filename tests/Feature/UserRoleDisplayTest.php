@@ -1,11 +1,6 @@
 <?php
 
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('dashboard navigation shows localized role badge', function () {
     $user = User::factory()->create();

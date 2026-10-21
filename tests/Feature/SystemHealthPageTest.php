@@ -3,12 +3,7 @@
 use App\Models\Article;
 use App\Models\CrossrefDeposit;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\DB;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('admin can view the system health page', function () {
     $admin = User::factory()->create();

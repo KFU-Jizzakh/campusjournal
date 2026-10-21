@@ -3,12 +3,10 @@
 use App\Filament\Pages\SiteSettings;
 use App\Models\Setting;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     Cache::flush();
 });
 

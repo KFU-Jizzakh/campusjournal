@@ -7,14 +7,9 @@ use App\Models\Category;
 use App\Models\User;
 use App\Notifications\AuthorStatusChanged;
 use App\Notifications\InvitationNotification;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 function inviteArticleWithCoauthor(string $coauthorEmail, User $submitter): array
 {

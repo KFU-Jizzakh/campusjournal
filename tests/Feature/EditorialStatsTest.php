@@ -5,11 +5,6 @@ use App\Models\Article;
 use App\Models\Review;
 use App\Models\User;
 use App\Support\EditorialStats;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('funnel counts non-draft articles by status', function () {
     Article::factory()->submitted()->create();

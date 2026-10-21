@@ -5,9 +5,6 @@ use App\Models\Article;
 use App\Models\Review;
 use App\Models\User;
 use App\Support\ReviewerStats;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(fn () => $this->seed(RoleSeeder::class));
 
 function ratingEic(): User
 {

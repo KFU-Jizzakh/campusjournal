@@ -4,12 +4,7 @@ use App\Jobs\DepositArticleToCrossref;
 use App\Models\Article;
 use App\Models\Correction;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Queue;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('retraction dispatches crossmark deposit when crossref enabled and prefix configured', function () {
     Queue::fake();

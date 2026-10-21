@@ -3,9 +3,6 @@
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(fn () => $this->seed(RoleSeeder::class));
 
 test('submission is auto-assigned to the section editor mapped to the rubric', function () {
     $editor = User::factory()->create();

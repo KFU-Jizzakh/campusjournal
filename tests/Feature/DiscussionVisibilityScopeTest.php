@@ -6,11 +6,6 @@ use App\Models\Author;
 use App\Models\Discussion;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('visibleTo scope shows leadership all discussions', function () {
     $eic = User::factory()->create();

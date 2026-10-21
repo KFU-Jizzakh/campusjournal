@@ -4,11 +4,6 @@ use App\Enums\ReviewStatus;
 use App\Models\Article;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('guest cannot access dashboard', function () {
     $this->get(route('dashboard'))

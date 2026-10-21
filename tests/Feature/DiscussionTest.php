@@ -9,11 +9,9 @@ use App\Models\Review;
 use App\Models\User;
 use App\Notifications\NewDiscussionMessage;
 use App\Notifications\NewDiscussionThread;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     Notification::fake();
 
     $this->createAuthor = function () {

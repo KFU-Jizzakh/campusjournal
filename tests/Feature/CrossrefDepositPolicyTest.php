@@ -2,11 +2,6 @@
 
 use App\Models\CrossrefDeposit;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('user with manage-doi can viewAny crossref deposits', function () {
     $user = User::factory()->create();

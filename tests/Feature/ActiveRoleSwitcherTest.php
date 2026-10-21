@@ -6,10 +6,8 @@ use App\Models\Review;
 use App\Models\User;
 use App\Support\DashboardInbox;
 use App\Support\DashboardWatchlist;
-use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     DashboardInbox::flush();
 });
 

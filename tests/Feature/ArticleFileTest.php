@@ -10,13 +10,11 @@ use App\Models\ArticleFile;
 use App\Models\Review;
 use App\Models\User;
 use App\Policies\ArticleFilePolicy;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     Storage::fake('public');
     Storage::fake('local');
 

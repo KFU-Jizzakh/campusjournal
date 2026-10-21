@@ -6,25 +6,6 @@ use App\Models\Author;
 use App\Models\Category;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(fn () => $this->seed(RoleSeeder::class));
-
-function coiEic(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('editor-in-chief');
-
-    return $user;
-}
-
-function coiReviewer(): User
-{
-    $user = User::factory()->create();
-    $user->assignRole('reviewer');
-
-    return $user;
-}
 
 // --- Auto-assignment skip ---
 
@@ -118,7 +99,7 @@ test('unclaimed coauthor-editor cannot decide on the article', function () {
 });
 
 test('unclaimed coauthor cannot be assigned as section editor', function () {
-    $eic = coiEic();
+    $eic = User::factory()->editorInChief()->create();
     $editor = User::factory()->create();
     $editor->assignRole('section-editor');
 
@@ -141,8 +122,8 @@ test('unclaimed coauthor cannot be assigned as section editor', function () {
 // --- Self-review guard ---
 
 test('authoring editor is forbidden from assigning any reviewer to their own article', function () {
-    $eic = coiEic();
-    $reviewer = coiReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->submitted()->create(['submitted_by' => $eic->id]);
 
     $this->actingAs($eic)
@@ -155,7 +136,7 @@ test('authoring editor is forbidden from assigning any reviewer to their own art
 });
 
 test('article author cannot be assigned as reviewer even by another editor', function (string $case) {
-    $eic = coiEic();
+    $eic = User::factory()->editorInChief()->create();
     $author = User::factory()->create();
     $author->assignRole('author');
     $author->assignRole('reviewer');
@@ -190,8 +171,8 @@ test('article author cannot be assigned as reviewer even by another editor', fun
 })->with(['submitter', 'coauthor', 'unclaimed coauthor']);
 
 test('reviewer without authorship can still be assigned', function () {
-    $eic = coiEic();
-    $reviewer = coiReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->submitted()->create();
 
     $this->actingAs($eic)
@@ -204,7 +185,7 @@ test('reviewer without authorship can still be assigned', function () {
 // --- Workflow policy for authoring editors ---
 
 test('authoring editor-in-chief cannot decide on their own article', function () {
-    $eic = coiEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create(['submitted_by' => $eic->id]);
     Review::factory()->completed()->create(['article_id' => $article->id]);
 
@@ -219,8 +200,8 @@ test('authoring editor-in-chief cannot decide on their own article', function ()
 });
 
 test('authoring editor-in-chief cannot assign reviewers to their own article', function () {
-    $eic = coiEic();
-    $reviewer = coiReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->submitted()->create(['submitted_by' => $eic->id]);
 
     $this->actingAs($eic)
@@ -231,7 +212,7 @@ test('authoring editor-in-chief cannot assign reviewers to their own article', f
 });
 
 test('authoring editor-in-chief cannot rate or cancel reviews on their own article', function () {
-    $eic = coiEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create(['submitted_by' => $eic->id]);
     $review = Review::factory()->completed()->create(['article_id' => $article->id]);
     $pending = Review::factory()->create(['article_id' => $article->id]);
@@ -248,7 +229,7 @@ test('authoring editor-in-chief cannot rate or cancel reviews on their own artic
 });
 
 test('authoring editor keeps read-only editorial access', function () {
-    $eic = coiEic();
+    $eic = User::factory()->editorInChief()->create();
     $article = Article::factory()->inReview()->create(['submitted_by' => $eic->id]);
 
     $this->actingAs($eic)
@@ -257,8 +238,8 @@ test('authoring editor keeps read-only editorial access', function () {
 });
 
 test('non-authoring editor workflow is unaffected', function () {
-    $eic = coiEic();
-    $reviewer = coiReviewer();
+    $eic = User::factory()->editorInChief()->create();
+    $reviewer = User::factory()->reviewer()->create();
     $article = Article::factory()->inReview()->create();
 
     $this->actingAs($eic)
@@ -282,7 +263,7 @@ test('non-authoring editor workflow is unaffected', function () {
 // --- Editor assignment guard ---
 
 test('author of the article cannot be assigned as its section editor', function () {
-    $eic = coiEic();
+    $eic = User::factory()->editorInChief()->create();
     $authorEditor = User::factory()->create();
     $authorEditor->assignRole('section-editor');
 
@@ -303,7 +284,7 @@ test('author of the article cannot be assigned as its section editor', function 
 test('admin keeps full override even on their own article', function () {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
-    $reviewer = coiReviewer();
+    $reviewer = User::factory()->reviewer()->create();
 
     $article = Article::factory()->submitted()->create(['submitted_by' => $admin->id]);
 

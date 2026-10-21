@@ -5,12 +5,7 @@ use App\Filament\Resources\IssueResource\Pages\EditIssue;
 use App\Models\Article;
 use App\Models\Issue;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Livewire\Livewire;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('unpublishing an issue with published articles shows a notification and does not save', function () {
     $admin = User::factory()->create();

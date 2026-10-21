@@ -3,11 +3,6 @@
 use App\Models\Article;
 use App\Models\Author;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('dashboard shows coauthored articles to coauthor', function () {
     $submitter = User::factory()->create();

@@ -5,11 +5,9 @@ use App\Models\Review;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\DecisionLetter;
-use Database\Seeders\RoleSeeder;
 use Database\Seeders\SettingSeeder;
 
 beforeEach(function () {
-    $this->seed(RoleSeeder::class);
     $this->seed(SettingSeeder::class);
 });
 

@@ -6,11 +6,6 @@ use App\Models\Article;
 use App\Models\Author;
 use App\Models\Review;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 test('workflow steps mark submitted article at review step', function () {
     $article = Article::factory()->submitted()->create();

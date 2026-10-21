@@ -4,11 +4,6 @@ use App\Enums\ReviewStatus;
 use App\Models\Review;
 use App\Models\Setting;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 function registerUser(array $extra = []): array
 {

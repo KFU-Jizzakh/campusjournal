@@ -13,12 +13,7 @@ use App\Models\Event;
 use App\Models\Organization;
 use App\Models\Page;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Livewire\Livewire;
-
-beforeEach(function () {
-    $this->seed(RoleSeeder::class);
-});
 
 // --- Panel Access ---
 test('content-manager can access filament panel', function () {
