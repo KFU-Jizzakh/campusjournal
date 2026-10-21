@@ -43,11 +43,6 @@ class PageController extends Controller
         return view('pages.show', compact('page'));
     }
 
-    public function join()
-    {
-        return view('pages.join');
-    }
-
     public function crossmarkPolicy()
     {
         return view('pages.crossmark-policy', [

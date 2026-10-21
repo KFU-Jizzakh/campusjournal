@@ -103,7 +103,7 @@ php artisan migrate:fresh --seed
 
 ## Two distinct surfaces
 
-**Public site** (`/`, `/issues`, `/articles`, `/education`, `/events`, `/about`, `/for-authors`, `/contacts`, `/join`) — anonymous access, read-only, served by controllers in `app/Http/Controllers/`.
+**Public site** (`/`, `/issues`, `/articles`, `/education`, `/events`, `/about`, `/for-authors`, `/contacts`) — anonymous access, read-only, served by controllers in `app/Http/Controllers/`.
 
 **Dashboard** (`/dashboard/*`) — authenticated, permission-gated, served by controllers in `app/Http/Controllers/Dashboard/`. Three sub-areas:
 - `/dashboard/articles/*` — requires `submit-article` permission → `SubmissionController`
